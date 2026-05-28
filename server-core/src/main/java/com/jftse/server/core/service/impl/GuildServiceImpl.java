@@ -6,7 +6,9 @@ import com.jftse.entities.database.repository.guild.GuildMemberRepository;
 import com.jftse.entities.database.repository.guild.GuildRepository;
 import com.jftse.server.core.service.GuildService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +49,9 @@ public class GuildServiceImpl implements GuildService {
 
     @Override
     @Transactional(readOnly = true)
-    public Guild findById(Long id) { return guildRepository.findById(id).orElse(null); }
+    public Guild findById(Long id) {
+        return guildRepository.findById(id).orElse(null);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -67,7 +71,9 @@ public class GuildServiceImpl implements GuildService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Guild> findAll() { return guildRepository.findAll(); }
+    public List<Guild> findAll() {
+        return guildRepository.findAll();
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -86,6 +92,29 @@ public class GuildServiceImpl implements GuildService {
     public List<Guild> findAllGuildLeagues(int page) {
         int pageIndex = Math.max(page - 1, 0);
         return guildRepository.findAllByOrderByLeaguePointsDescIdAsc(PageRequest.of(pageIndex, 10));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Guild> findAllRankingPage(int mode, int page) {
+        int pageIndex = Math.max(page, 0);
+
+        String pointsProperty;
+        if (mode == 0) {
+            pointsProperty = "clubPoints";
+        } else if (mode == 1) {
+            pointsProperty = "leaguePoints";
+        } else {
+            return Page.empty(PageRequest.of(pageIndex, 10));
+        }
+
+        PageRequest pageRequest = PageRequest.of(
+                pageIndex,
+                10,
+                Sort.by(pointsProperty).descending().and(Sort.by("id").ascending())
+        );
+
+        return guildRepository.findAll(pageRequest);
     }
 
     @Override

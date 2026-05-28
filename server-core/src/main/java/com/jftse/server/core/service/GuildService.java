@@ -1,6 +1,7 @@
 package com.jftse.server.core.service;
 
 import com.jftse.entities.database.model.guild.Guild;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -22,6 +23,8 @@ public interface GuildService {
     List<Guild> findAll();
 
     List<Guild> findAll(int offset);
+
+    Page<Guild> findAllRankingPage(int mode, int page);
 
     Guild changeInformation(Long guildId, String introduction, byte minLevel, boolean isPublic, Byte[] allowedCharacterTypes);
 

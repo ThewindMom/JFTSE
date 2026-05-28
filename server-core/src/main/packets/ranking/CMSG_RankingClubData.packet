@@ -1,0 +1,4 @@
+message CMSG_RankingClubData (0x4000) {
+    int32 mode = 1;
+    int32 page = 2;
+}

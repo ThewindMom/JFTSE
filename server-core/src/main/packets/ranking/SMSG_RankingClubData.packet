@@ -1,0 +1,16 @@
+message RankingClubDataRow {
+    int32 ranking = 1;
+    int32 clubId = 2;
+    string clubName = 3;
+    byte clubLevel = 4;
+    int32 wins = 5;
+    int32 losses = 6;
+    int32 points = 7;
+}
+
+message SMSG_RankingClubData (0x4001) {
+    int32 mode = 1;
+    int32 page = 2;
+    int32 totalPages = 3;
+    repeated RankingClubDataRow rows = 4;
+}
