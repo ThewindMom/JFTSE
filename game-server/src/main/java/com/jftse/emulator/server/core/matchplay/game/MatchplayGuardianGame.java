@@ -7,6 +7,7 @@ import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.constants.BonusIconHighlightValues;
 import com.jftse.emulator.server.core.constants.GameFieldSide;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
+import com.jftse.emulator.server.core.life.event.ScriptEventBus;
 import com.jftse.emulator.server.core.life.progression.ExpGoldBonus;
 import com.jftse.emulator.server.core.life.progression.ExpGoldBonusImpl;
 import com.jftse.emulator.server.core.life.progression.bonuses.BattleHouseBonus;
@@ -793,12 +794,12 @@ public class MatchplayGuardianGame extends MatchplayGame {
                     bindings.put("threadManager", GameManager.getInstance().getThreadManager());
                     bindings.put("eventHandler", GameManager.getInstance().getEventHandler());
                     bindings.put("scriptContextHelper", new ScriptContextHelper(GameEventBus.getInstance().getScriptStateService(), scriptFile));
-                    bindings.put("geb", GameEventBus.getInstance());
+                    bindings.put("geb", new ScriptEventBus(GameEventBus.getInstance(), scriptFile));
                     bindings.put("log", log);
                     bindings.put("game", this);
 
                     BossBattlePhaseable phase = sm.getInterfaceByImplementingObject(scriptFile, "phase", BossBattlePhaseable.class, bindings);
-                    PhaseScript phaseScript = new PhaseScript(phase, scriptFile.getContext());
+                    PhaseScript phaseScript = new PhaseScript(phase, scriptFile, sm);
                     phases.add(phaseScript);
                     log.info("Phase registered from script: " + scriptFile.getName() + " for map: " + map.getMap());
                 } catch (Exception e) {
@@ -808,7 +809,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         }
         final boolean success = !phases.isEmpty();
         if (success) {
-            this.phaseManager = new PhaseManager(phases);
+            this.phaseManager = new PhaseManager(phases, scriptManager.get());
             this.isAdvancedBossGuardianMode = true;
         }
         return success;

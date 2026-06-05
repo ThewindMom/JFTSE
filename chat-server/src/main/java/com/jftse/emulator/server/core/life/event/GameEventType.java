@@ -14,7 +14,9 @@ public enum GameEventType {
     GACHA_OPENED,
 
     TREE_SHAKE_SUCCESS,
-    FISHING_SUCCESS;
+    FISHING_SUCCESS,
+
+    LOBBY_JOINED;
 
     public String getName() {
         return toString();

@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.matchplay.guardian;
 
 import com.jftse.emulator.common.exception.ValidationException;
+import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.server.core.constants.PacketEventType;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
@@ -32,6 +33,9 @@ public class PhaseManager {
 
     private AtomicBoolean isChangingPhase = new AtomicBoolean(false);
     private AtomicBoolean isPhaseEnding = new AtomicBoolean(false);
+
+    private final ScriptManagerV2 scriptManager;
+    private final AtomicBoolean scriptManagerShutdown = new AtomicBoolean(false);
 
     private final EventHandler eventHandler = GameManager.getInstance().getEventHandler();
 
@@ -73,18 +77,29 @@ public class PhaseManager {
                 return;
             }
 
-            if (!isRunning.compareAndSet(true, false)) {
-                return;
-            }
+            try {
+                if (!isRunning.compareAndSet(true, false)) {
+                    return;
+                }
 
-            currentPhase.get().end();
-            isPhaseEnding.set(false);
+                currentPhase.get().end();
+            } finally {
+                isPhaseEnding.set(false);
+                shutdownPhaseScripts();
+            }
         }
     };
 
-    public PhaseManager(List<PhaseScript> phases) {
+    public PhaseManager(List<PhaseScript> phases, ScriptManagerV2 scriptManager) {
         this.phases = phases;
+        this.scriptManager = scriptManager;
         currentPhase = new AtomicReference<>(phases.getFirst());
+    }
+
+    private void shutdownPhaseScripts() {
+        if (scriptManagerShutdown.compareAndSet(false, true)) {
+            scriptManager.shutdownAllExecutors();
+        }
     }
 
     public void start(FTConnection connection) {
@@ -123,7 +138,7 @@ public class PhaseManager {
 
     public void end() {
         // end() is called from outside origin thread so we must requeue it to event handler
-        eventHandler.createRunnableEvent(() -> {
+        RunnableEvent runnableEvent = eventHandler.createRunnableEvent(() -> {
             try {
                 validate();
             } catch (ValidationException e) {
@@ -133,6 +148,8 @@ public class PhaseManager {
 
             defaultPhaseCallback.onPhaseEnd(hostConnection);
         }, 0);
+
+        eventHandler.offer(runnableEvent);
     }
 
     public boolean hasNextPhase() {

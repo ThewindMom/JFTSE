@@ -112,7 +112,7 @@ public class GameEventBus {
                     bindings.put("serviceManager", GameManager.getInstance().getServiceManager());
                     bindings.put("threadManager", GameManager.getInstance().getThreadManager());
                     bindings.put("state", new ScriptContextHelper(scriptStateService, scriptFile));
-                    bindings.put("geb", this);
+                    bindings.put("geb", new ScriptEventBus(this, scriptFile));
                     bindings.put("log", scriptLogger);
 
                     sm.eval(scriptFile, bindings);

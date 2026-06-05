@@ -126,6 +126,8 @@ public class GameManager implements ServerLoopHandler {
     }
 
     public void onExit() {
+        getScriptManager().ifPresent(ScriptManagerV2::shutdownAllExecutors);
+
         log.info("Closing all connections");
 
         for (FTClient client : clients) {

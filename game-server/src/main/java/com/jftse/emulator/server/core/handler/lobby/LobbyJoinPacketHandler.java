@@ -1,5 +1,7 @@
 package com.jftse.emulator.server.core.handler.lobby;
 
+import com.jftse.emulator.server.core.life.event.GameEventBus;
+import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -27,6 +29,8 @@ public class LobbyJoinPacketHandler implements PacketHandler<FTConnection, CMSGL
 
         GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
         GameManager.getInstance().refreshLobbyPlayerListForAllClients();
+
+        GameEventBus.call(GameEventType.LOBBY_JOINED, client);
 
         client.getIsJoiningOrLeavingLobby().set(false);
     }

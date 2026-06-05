@@ -7,6 +7,10 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 
 import java.io.File;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @Getter
 @Setter
@@ -18,6 +22,8 @@ public class ScriptFile {
 
     private Context context;
     private Source source;
+
+    private ExecutorService executor;
 
     public ScriptFile(String name, File file, String type, String groupPath) {
         this.name = name;
@@ -64,6 +70,37 @@ public class ScriptFile {
         }
 
         return name.toLowerCase();
+    }
+
+    public String getScriptThreadName() {
+        return "Script-" + getScriptKey();
+    }
+
+    public boolean isScriptThread() {
+        return Thread.currentThread().getName().equals(getScriptThreadName());
+    }
+
+    public void execute(Runnable runnable) {
+        if (executor == null || isScriptThread()) {
+            runnable.run();
+            return;
+        }
+
+        executor.execute(runnable);
+    }
+
+    public <T> Future<T> submit(Callable<T> callable) {
+        if (executor == null || isScriptThread()) {
+            CompletableFuture<T> future = new CompletableFuture<>();
+            try {
+                future.complete(callable.call());
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            }
+            return future;
+        }
+
+        return executor.submit(callable);
     }
 
     @Override

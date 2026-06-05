@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 @Log4j2
 public class ScriptManagerV2 {
@@ -52,6 +52,10 @@ public class ScriptManagerV2 {
                 scriptFile.setContext(context);
                 scriptFile.setSource(source);
 
+                if (!scriptFile.isLibrary()) {
+                    ensureExecutor(scriptFile);
+                }
+
                 if (scriptFile.isLibrary()) {
                     libraries.put(scriptFile.getIncludeKey(), scriptFile);
                     log.info("Library loaded: {}", scriptFile.getIncludeKey());
@@ -67,6 +71,26 @@ public class ScriptManagerV2 {
         }
     }
 
+    private ExecutorService createScriptExecutor(ScriptFile scriptFile) {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, scriptFile.getScriptThreadName());
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    public void ensureExecutor(ScriptFile scriptFile) {
+        if (scriptFile.isLibrary()) {
+            return;
+        }
+
+        if (scriptFile.getExecutor() != null && !scriptFile.getExecutor().isShutdown()) {
+            return;
+        }
+
+        scriptFile.setExecutor(createScriptExecutor(scriptFile));
+    }
+
     private boolean hasScriptValidType(String type) {
         return allowedTypes.stream().anyMatch(t -> t.equalsIgnoreCase(type));
     }
@@ -76,37 +100,68 @@ public class ScriptManagerV2 {
     }
 
     public Value eval(ScriptFile scriptFile, Map<String, Object> bindings) {
-       final Context context = scriptFile.getContext();
-       final Source source = scriptFile.getSource();
+        ensureExecutor(scriptFile);
 
-       try {
-           Value jsBindings = context.getBindings("js");
-           bindings.forEach(jsBindings::putMember);
-           installInclude(scriptFile, context, jsBindings);
+        Callable<Value> task = () -> {
+            final Context context = scriptFile.getContext();
+            final Source source = scriptFile.getSource();
 
-           return context.eval(source);
-       } catch (Exception e) {
-              log.error("Error evaluating script: {}", scriptFile.getName(), e);
-              return null;
-       }
+            try {
+                Value jsBindings = context.getBindings("js");
+                bindings.forEach(jsBindings::putMember);
+                installInclude(scriptFile, context, jsBindings);
+
+                return context.eval(source);
+            } catch (Exception e) {
+                log.error("Error evaluating script: {}", scriptFile.getName(), e);
+                return null;
+            }
+        };
+
+        try {
+            Future<Value> future = scriptFile.submit(task);
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while evaluating script: {}", scriptFile.getName(), e);
+            return null;
+        } catch (ExecutionException e) {
+            log.error("Error evaluating script on executor: {}", scriptFile.getName(), e);
+            return null;
+        }
     }
 
     public <T> T getInterfaceByImplementingObject(ScriptFile scriptFile, String key, Class<T> interfaceClass, Map<String, Object> bindings) {
         eval(scriptFile, bindings);
 
-        final Context context = scriptFile.getContext();
+        Callable<T> task = () -> {
+            final Context context = scriptFile.getContext();
 
-        try {
-            Value jsBindings = context.getBindings("js");
-            Value member = jsBindings.getMember(key);
-            if (member == null || member.isNull()) {
-                log.error("No member found for key: {} in script: {}", key, scriptFile.getName());
+            try {
+                Value jsBindings = context.getBindings("js");
+                Value member = jsBindings.getMember(key);
+
+                if (member == null || member.isNull()) {
+                    log.error("No member found for key: {} in script: {}", key, scriptFile.getName());
+                    return null;
+                }
+
+                return member.as(interfaceClass);
+            } catch (Exception e) {
+                log.error("Error getting interface '{}' from script: {}", key, scriptFile.getName(), e);
                 return null;
             }
+        };
 
-            return member.as(interfaceClass);
-        } catch (Exception e) {
-            log.error("Error getting interface '{}' from script: {}", key, scriptFile.getName(), e);
+        try {
+            Future<T> future = scriptFile.submit(task);
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while getting interface '{}' from script: {}", key, scriptFile.getName(), e);
+            return null;
+        } catch (ExecutionException e) {
+            log.error("Error getting interface '{}' on executor from script: {}", key, scriptFile.getName(), e);
             return null;
         }
     }
@@ -117,5 +172,57 @@ public class ScriptManagerV2 {
         }
 
         jsBindings.putMember("include", new IncludeFunction(owner, context, libraries));
+    }
+
+    public <T> T callOnScriptThread(ScriptFile scriptFile, Callable<T> task) {
+        ensureExecutor(scriptFile);
+
+        try {
+            Future<T> future = scriptFile.submit(task);
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while executing script task: {}", scriptFile.getScriptKey(), e);
+            return null;
+        } catch (ExecutionException e) {
+            log.error("Error while executing script task: {}", scriptFile.getScriptKey(), e);
+            return null;
+        }
+    }
+
+    public void executeOnScriptThread(ScriptFile scriptFile, Runnable task) {
+        ensureExecutor(scriptFile);
+
+        try {
+            scriptFile.execute(() -> {
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    log.error("Error while executing script runnable: {}", scriptFile.getScriptKey(), e);
+                }
+            });
+        } catch (Exception e) {
+            log.error("Failed to submit script runnable: {}", scriptFile.getScriptKey(), e);
+        }
+    }
+
+    public void shutdownExecutors(String type) {
+        for (ScriptFile scriptFile : getScriptFiles(type)) {
+            if (scriptFile.getExecutor() != null) {
+                scriptFile.getExecutor().shutdownNow();
+                scriptFile.setExecutor(null);
+            }
+        }
+    }
+
+    public void shutdownAllExecutors() {
+        scripts.values().forEach(list -> {
+            for (ScriptFile scriptFile : list) {
+                if (scriptFile.getExecutor() != null) {
+                    scriptFile.getExecutor().shutdownNow();
+                    scriptFile.setExecutor(null);
+                }
+            }
+        });
     }
 }

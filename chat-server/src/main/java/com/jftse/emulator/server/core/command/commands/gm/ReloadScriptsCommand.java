@@ -1,11 +1,9 @@
 package com.jftse.emulator.server.core.command.commands.gm;
 
-import com.jftse.emulator.common.scripting.ScriptFile;
 import com.jftse.emulator.common.scripting.ScriptManagerFactory;
 import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.server.core.command.AbstractCommand;
 import com.jftse.emulator.server.core.command.CommandManager;
-import com.jftse.emulator.server.core.interaction.PlayerScriptable;
 import com.jftse.emulator.server.core.interaction.PlayerScriptableImpl;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -35,54 +33,35 @@ public class ReloadScriptsCommand extends AbstractCommand {
     public void execute(FTConnection connection, List<String> params) {
         PlayerScriptableImpl playerScriptable = new PlayerScriptableImpl(connection.getClient());
 
-        Optional<ScriptManagerV2> scriptManager = ScriptManagerFactory.loadScriptsV2("scripts", () -> log);
-        boolean valid = false;
-        if (scriptManager.isPresent()) {
+        try {
+            gameManager.getScriptManager().ifPresent(ScriptManagerV2::shutdownAllExecutors);
+
+            Optional<ScriptManagerV2> scriptManager = ScriptManagerFactory.loadScriptsV2("scripts", () -> log);
+            if (scriptManager.isEmpty()) {
+                playerScriptable.sendChat(MESSAGE_SENDER, MESSAGE_FAIL);
+                return;
+            }
+
             gameManager.setScriptManager(scriptManager);
 
-            valid = registerScriptFileCommands(playerScriptable);
-            if (!valid) {
+            playerScriptable.sendChat(MESSAGE_SENDER, "Reloading commands...");
+            boolean commandsValid = commandManager.reloadCommands();
+            if (!commandsValid) {
                 playerScriptable.sendChat(MESSAGE_SENDER, MESSAGE_FAIL);
                 return;
             }
 
-            playerScriptable.sendChat("Server", "Reloading events...");
-            valid = registerScriptFileEvents();
-            if (!valid) {
+            playerScriptable.sendChat(MESSAGE_SENDER, "Reloading events...");
+            boolean eventsValid = GameEventBus.getInstance().reloadEvents();
+            if (!eventsValid) {
                 playerScriptable.sendChat(MESSAGE_SENDER, MESSAGE_FAIL);
                 return;
             }
-        }
 
-        if (valid) {
             playerScriptable.sendChat(MESSAGE_SENDER, MESSAGE_SUCCESS);
-        } else {
+        } catch (Exception e) {
+            log.error("Failed to reload scripts", e);
             playerScriptable.sendChat(MESSAGE_SENDER, MESSAGE_FAIL);
         }
-    }
-
-    private boolean registerScriptFileCommands(PlayerScriptable playerScriptable) {
-        Optional<ScriptManagerV2> scriptManager = gameManager.getScriptManager();
-        boolean hasRegisteredACommand = false;
-        if (scriptManager.isPresent()) {
-            ScriptManagerV2 sm = scriptManager.get();
-            List<ScriptFile> scriptFiles = sm.getScriptFiles("COMMAND");
-            playerScriptable.sendChat("Server", "Reloading commands...");
-            for (ScriptFile scriptFile : scriptFiles) {
-                try {
-                    AbstractCommand command = commandManager.getAbstractCommandObj(scriptFile, sm);
-                    commandManager.registerCommand(command.getCommandName(), command.getRank(), command);
-                    hasRegisteredACommand = true;
-                } catch (Exception e) {
-                    playerScriptable.sendChat("Server", "Error on reload command from script: " + scriptFile.getFile().getName().split("_")[1].split("\\.")[0]);
-                    return false;
-                }
-            }
-        }
-        return hasRegisteredACommand;
-    }
-
-    private boolean registerScriptFileEvents() {
-        return GameEventBus.getInstance().reloadEvents();
     }
 }

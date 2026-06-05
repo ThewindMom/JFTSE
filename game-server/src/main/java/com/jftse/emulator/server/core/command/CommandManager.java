@@ -192,6 +192,33 @@ public class CommandManager {
         if (command == null) {
             throw new Exception("Script does not implement AbstractCommand interface or 'impl' key is missing in script bindings.");
         }
-        return command;
+
+        return new ScriptedCommand(scriptFile, sm, command);
+    }
+
+    public boolean reloadCommands() {
+        registeredCommands.clear();
+
+        registerCommands();
+
+        Optional<ScriptManagerV2> scriptManager = GameManager.getInstance().getScriptManager();
+        boolean success = true;
+
+        if (scriptManager.isPresent()) {
+            ScriptManagerV2 sm = scriptManager.get();
+            List<ScriptFile> scriptFiles = sm.getScriptFiles("COMMAND");
+
+            for (ScriptFile scriptFile : scriptFiles) {
+                try {
+                    AbstractCommand command = getAbstractCommandObj(scriptFile, sm);
+                    registerCommand(command.getCommandName(), command.getRank(), command);
+                } catch (Exception e) {
+                    log.error("Error on reload command from script: {}. ScriptException: {}", scriptFile.getName(), e.getMessage(), e);
+                    success = false;
+                }
+            }
+        }
+
+        return success;
     }
 }
