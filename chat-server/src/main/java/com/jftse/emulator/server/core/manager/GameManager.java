@@ -98,6 +98,19 @@ public class GameManager implements ServerLoopHandler {
 
     private IntervalTimer[] timers = new IntervalTimer[ServerTimers.COUNT];
 
+    public static final Comparator<GuildMember> GUILD_MEMBER_VIEW_ORDER =
+            Comparator.comparing(
+                            GuildMember::getMemberRank,
+                            Comparator.reverseOrder()
+                    )
+                    .thenComparing(
+                            GuildMember::getContributionPoints,
+                            Comparator.reverseOrder()
+                    )
+                    .thenComparing(
+                            GuildMember::getRequestDate
+                    );
+
     @PostConstruct
     public void init() {
         instance = this;
@@ -551,7 +564,7 @@ public class GameManager implements ServerLoopHandler {
     public GuildMember getGuildMemberByPlayerPositionInGuild(Guild guild, int playerPositionInGuild) {
         final List<GuildMember> memberList = guild.getMemberList().stream()
                 .filter(x -> !x.getWaitingForApproval())
-                .sorted(Comparator.comparing(GuildMember::getMemberRank).reversed())
+                .sorted(GUILD_MEMBER_VIEW_ORDER)
                 .toList();
         if (memberList.size() < playerPositionInGuild) {
             return null;
