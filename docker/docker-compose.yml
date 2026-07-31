@@ -158,7 +158,7 @@ services:
       ChatTranslationTimeoutMs: "${CHAT_TRANSLATION_TIMEOUT_MS:-450}"
       ChatTranslationMaxInputChars: "${CHAT_TRANSLATION_MAX_INPUT_CHARS:-256}"
       ChatTranslationMaxTranslatedChars: "${CHAT_TRANSLATION_MAX_TRANSLATED_CHARS:-1024}"
-      ChatTranslationMaxConcurrentRequests: "${CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS:-8}"
+      ChatTranslationMaxConcurrentRequests: "${CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS:-2}"
     ports:
       - "${AUTH_PORT:-5894}:5894"
       - "${GAME_PORT:-5895}:5895"

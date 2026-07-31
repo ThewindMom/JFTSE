@@ -259,7 +259,7 @@ Operators enable the feature with the deployment environment:
 | `CHAT_TRANSLATION_TIMEOUT_MS` | `450` | Per-request timeout. |
 | `CHAT_TRANSLATION_MAX_INPUT_CHARS` | `256` | Largest source message sent to the provider. |
 | `CHAT_TRANSLATION_MAX_TRANSLATED_CHARS` | `1024` | Largest translated packet payload. |
-| `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS` | `8` | Shared provider concurrency limit. |
+| `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS` | `2` | Shared provider concurrency limit. |
 
 The Compose deployment supplies the internal provider endpoint. Its provider image
 pins the LibreTranslate base manifest plus exact English/Thai Argos and MiniSBD model
@@ -304,6 +304,28 @@ all-in-one Compose stack, an **8 GiB host is the practical minimum recommendatio
 the operating system, Docker, and temporary JVM/database growth retain headroom.
 Player count, traffic, kernel caching, Docker version, and JVM behavior can change
 actual usage, so production operators should still monitor their own host.
+
+### Concurrent translation performance
+
+The bundled provider was also measured with three rounds of 30 unique Thai messages
+per concurrency level. Every measured request returned a non-empty English response:
+
+| Concurrent requests | Throughput | Mean | p95 | Maximum |
+|---------------------|------------|------|-----|---------|
+| 1 | 17.75 req/s | 47.7 ms | 72.9 ms | 99.0 ms |
+| 2 | 17.72 req/s | 100.9 ms | 157.9 ms | 217.4 ms |
+| 4 | 10.72 req/s | 355.4 ms | 822.3 ms | 1010.7 ms |
+| 8 | 10.69 req/s | 654.6 ms | 1266.6 ms | 1984.9 ms |
+| 16 | 10.67 req/s | 1168.9 ms | 2107.4 ms | 2967.9 ms |
+
+The bundled image is CPU-bound and behaves like a one-worker provider for unique
+messages. The default limit is therefore **2 concurrent provider requests**: it keeps
+essentially the same throughput as one request while allowing two messages to progress,
+and stayed within the default 450 ms timeout on the measured host. Completed
+translations are cached, identical in-flight requests are coalesced, and requests above
+the configured capacity keep the original chat message instead of blocking gameplay.
+Operators using a different or multi-worker provider should benchmark before increasing
+`CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS`.
 
 Model or provider upgrades are deliberate deployment changes: update the pinned base
 digest, artifact URLs, and SHA-256 values in `docker/libretranslate/Dockerfile`, then

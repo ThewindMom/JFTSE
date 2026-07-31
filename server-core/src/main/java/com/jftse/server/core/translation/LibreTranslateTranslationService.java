@@ -31,7 +31,7 @@ public final class LibreTranslateTranslationService {
     static final int MAX_INPUT_BYTES = 1024;
     static final int MAX_TRANSLATED_CODE_POINTS = 1024;
     static final int MAX_RESPONSE_BYTES = 16_384;
-    static final int MAX_CONCURRENT_REQUESTS = 8;
+    static final int MAX_CONCURRENT_REQUESTS = 2;
 
     private final HttpClient httpClient;
     private final URI endpoint;

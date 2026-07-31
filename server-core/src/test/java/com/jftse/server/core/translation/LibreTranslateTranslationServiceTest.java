@@ -138,7 +138,10 @@ class LibreTranslateTranslationServiceTest {
                 provider.client,
                 URI.create("http://provider.invalid/translate"),
                 Duration.ofSeconds(5),
-                true
+                true,
+                LibreTranslateTranslationService.MAX_INPUT_CODE_POINTS,
+                LibreTranslateTranslationService.MAX_TRANSLATED_CODE_POINTS,
+                8
         );
         List<CompletableFuture<String>> results = new ArrayList<>();
 
@@ -176,7 +179,10 @@ class LibreTranslateTranslationServiceTest {
                 provider.client,
                 URI.create("http://provider.invalid/translate"),
                 Duration.ofSeconds(5),
-                true
+                true,
+                LibreTranslateTranslationService.MAX_INPUT_CODE_POINTS,
+                LibreTranslateTranslationService.MAX_TRANSLATED_CODE_POINTS,
+                8
         );
         List<CompletableFuture<String>> firstBatch = new ArrayList<>();
         for (int index = 0; index < 8; index++) {
@@ -214,6 +220,33 @@ class LibreTranslateTranslationServiceTest {
 
         provider.completeNext("{\"translatedText\":\"four\"}");
         assertEquals("ก", first.get(1, TimeUnit.SECONDS));
+    }
+
+    @Test
+    void defaultsToTwoConcurrentProviderRequests() throws Exception {
+        ControlledProvider provider = new ControlledProvider();
+        LibreTranslateTranslationService service = new LibreTranslateTranslationService(
+                provider.client,
+                URI.create("http://provider.invalid/translate"),
+                Duration.ofMillis(500),
+                true
+        );
+        String firstMessage = THAI_MESSAGE + " 1";
+        String secondMessage = THAI_MESSAGE + " 2";
+        String thirdMessage = THAI_MESSAGE + " 3";
+
+        CompletableFuture<String> first = service.translateToEnglish(firstMessage);
+        CompletableFuture<String> second = service.translateToEnglish(secondMessage);
+        CompletableFuture<String> third = service.translateToEnglish(thirdMessage);
+
+        try {
+            assertEquals(2, provider.requestCount.get());
+            assertEquals(thirdMessage, third.get(1, TimeUnit.SECONDS));
+        } finally {
+            provider.completeAll("{\"translatedText\":\"hello\"}");
+        }
+        assertEquals("hello", first.get(1, TimeUnit.SECONDS));
+        assertEquals("hello", second.get(1, TimeUnit.SECONDS));
     }
 
     @Test
