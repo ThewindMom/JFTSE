@@ -9,6 +9,7 @@
 * [Project structure](#project-structure)
 * [Installation](#installation)
 * [Running the emulator](#running-the-emulator)
+* [Optional English chat translation](#optional-english-chat-translation)
 * [Reporting issues](#reporting-issues)
 * [Submitting fixes](#submitting-fixes)
 * [Copyright](#copyright)
@@ -16,7 +17,7 @@
 
 ## Introduction
 
-**JFTSE** is an open source project for the game **Fantasy Tennis**.    
+**JFTSE** is an open source project for the game **Fantasy Tennis**.
 
 It's a server emulator and written in Java.
 
@@ -38,7 +39,7 @@ Since it's cross-platform I will not provide download links otherwise I will blo
 
 * Also you need a Git CLI or GUI. Doesn't matter which one.
 
-**_Note:_** If under Windows, Maven & JDK has to be configured in your PATH variable. 
+**_Note:_** If under Windows, Maven & JDK has to be configured in your PATH variable.
 
 ## Project structure
 
@@ -92,7 +93,7 @@ sudo service docker status
 For downloading and installing RabbitMQ on your host, please refer to the official documentation: [ Downloading and Installing RabbitMQ
 — RabbitMQ](https://www.rabbitmq.com/download.html)
 
-We **recommend** using the docker image for RabbitMQ, since it's the easiest way to get it up and running.  
+We **recommend** using the docker image for RabbitMQ, since it's the easiest way to get it up and running.
 You can find the docker setup in the **docker** folder of the root project directory. There is a **docker-compose.yml** file which contains the configuration for the RabbitMQ server. The subfolder **rabbitmq** contains the configuration files and the **Dockerfile** for the RabbitMQ server.
 
 #### Building the RabbitMQ server
@@ -113,13 +114,13 @@ The RabbitMQ server is now running and is reachable through port 5672 and the 15
 
 #### Configuring the RabbitMQ server
 
-It is recommended to adjust the **definitions.json** file in the **rabbitmq** folder inside the **docker** folder of the root project directory.  
+It is recommended to adjust the **definitions.json** file in the **rabbitmq** folder inside the **docker** folder of the root project directory.
 The file contains configuration for users, vhosts and permissions (refer to official documentation for all available options). Currently the default configuration is used, which is **not recommended for production use**.
 
-Therefore you should adjust the configuration to your needs. Getting a hashed password for a user is easy and can be done inside the rabbitmq container.  
+Therefore you should adjust the configuration to your needs. Getting a hashed password for a user is easy and can be done inside the rabbitmq container.
 First you need to connect to your running rabbitmq container:
 ```
-docker exec -it rabbitmq-server bash
+docker compose exec rabbitmq bash
 ```
 Then you can use the **rabbitmqctl** command to generate a hashed password for a user:
 ```
@@ -128,7 +129,7 @@ rabbitmqctl hash_password <password>
 
 With **CTRL + C** or typing **exit** you can exit the container.
 
-The output of the command is the hashed password, which you can use in the **definitions.json** file.  
+The output of the command is the hashed password, which you can use in the **definitions.json** file.
 That same password and username (defined in **definitions.json**) has to be used in the **application.properties** file of the **chat-server** and **game-server** module. The host and port inside **application.properties** has not to be adjusted unless you changed the host and port configuration of the RabbitMQ server.
 
 You need to restart the RabbitMQ server after you adjusted the **definitions.json** file:
@@ -179,8 +180,8 @@ java -jar auth-server-1.0.0-SNAPSHOT.jar -import
 ```
 Or you run it from inside your Java IDE if using one. Make sure to add the **-import** argument.
 
-The auth-server will do his first time initialization and the process will take some time. It loades static data like products of the shop etc.    
-When it says 
+The auth-server will do his first time initialization and the process will take some time. It loades static data like products of the shop etc.
+When it says
 > **auth-server successfully started!**
 
 Then the initialization was successful and the auth-server is running. You can now close it and start it again without the **-import** argument.
@@ -188,7 +189,7 @@ Then the initialization was successful and the auth-server is running. You can n
 java -jar auth-server-1.0.0-SNAPSHOT.jar
 ```
 
-Before you start playing, you need to import additional data into the database.  
+Before you start playing, you need to import additional data into the database.
 **Run the `import_sql.sh` script** located inside the `scripts/` folder to insert required game data:
    ```sh
    cd <path to the cloned project>/scripts
@@ -217,6 +218,100 @@ cd xxx-server/target
 java -jar xxx-server-1.0.0-SNAPSHOT.jar
 ```
 
+## Optional English chat translation
+
+JFTSE can translate incoming lobby, room, and team chat to English independently
+for each recipient. Translation is off by default.
+
+This is an optional quality-of-life feature for the current Fantasy Tennis community:
+many active players speak Thai, and opt-in translation makes mixed Thai/English lobbies
+and matches easier to enjoy together without changing chat for anyone who leaves it
+disabled.
+
+Players control their own preference from chat:
+
+```
+-translate on
+-translate off
+```
+
+The command accepts surrounding whitespace and case differences. A missing or
+unsupported argument returns usage without changing the saved preference. Command
+messages are not broadcast. The preference is stored on the `Player` record and is
+restored at the next login.
+
+Delivery rules:
+
+* The sender always receives the original message.
+* Recipients who did not opt in receive the original message.
+* Opted-in recipients receive English when translation succeeds.
+* Room and team visibility rules are unchanged.
+* Provider errors, timeouts, malformed responses, and capacity limits fall back to
+  the original message instead of dropping or reordering chat.
+* Oversized input is not sent to the provider, and provider output is bounded before
+  it is placed in a game packet.
+
+Operators enable the feature with the deployment environment:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CHAT_TRANSLATION_ENABLED` | `false` | Enables provider requests. |
+| `CHAT_TRANSLATION_TIMEOUT_MS` | `450` | Per-request timeout. |
+| `CHAT_TRANSLATION_MAX_INPUT_CHARS` | `256` | Largest source message sent to the provider. |
+| `CHAT_TRANSLATION_MAX_TRANSLATED_CHARS` | `1024` | Largest translated packet payload. |
+| `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS` | `8` | Shared provider concurrency limit. |
+
+The Compose deployment supplies the internal provider endpoint. Its provider image
+pins the LibreTranslate base manifest plus exact English/Thai Argos and MiniSBD model
+artifacts by SHA-256, disables automatic model updates, and must pass a real
+Thai-to-English `/translate` health probe before starting the emulator:
+
+```sh
+cd docker
+CHAT_TRANSLATION_ENABLED=true docker compose up -d --build
+```
+
+No paid translation API or external cloud translation account is required. Internet
+access is needed when Docker first pulls/builds the images and downloads the pinned
+model artifacts. Normal runtime translation stays inside the Compose network, and the
+built provider image does not download models or mutable model indexes at startup.
+
+On a fresh database, the one-shot `database-fixtures` service waits for Hibernate's
+schema and imports the canonical SQL fixtures. It should finish with exit code `0`.
+LibreTranslate should report `healthy`, and all four programs should report `RUNNING`:
+
+```sh
+docker compose ps -a
+docker compose exec emulator supervisorctl status
+```
+
+### Memory guidance
+
+The exact all-in-one Compose deployment was measured on Linux after a fresh startup.
+These are observed values, not hard limits:
+
+| Component | Idle | After translation load |
+|-----------|------|------------------------|
+| LibreTranslate | 763 MiB | 764 MiB (773 MiB observed peak) |
+| Emulator (four JVMs) | 3.10 GiB | 3.16 GiB |
+| MySQL | 469 MiB | 469 MiB |
+| RabbitMQ | 144 MiB | 180 MiB |
+| **Running-service total** | **about 4.45 GiB** | **about 4.54 GiB** |
+
+The translation feature therefore added about **0.75 GiB** in this measurement.
+Reserve **1 GiB** for LibreTranslate to allow normal variation. For the complete
+all-in-one Compose stack, an **8 GiB host is the practical minimum recommendation** so
+the operating system, Docker, and temporary JVM/database growth retain headroom.
+Player count, traffic, kernel caching, Docker version, and JVM behavior can change
+actual usage, so production operators should still monitor their own host.
+
+Model or provider upgrades are deliberate deployment changes: update the pinned base
+digest, artifact URLs, and SHA-256 values in `docker/libretranslate/Dockerfile`, then
+verify the concrete Thai-to-English health probe before rollout. Models are installed
+at image build time; a fresh runtime does not download mutable model indexes. When
+translation is enabled, source chat may be sent to the configured translation provider
+for opted-in recipients.
+
 ## Running client
 1. Download FT Client from : https://www.jftse.com/client/FantaTennis.7z
 2. Unzip and execute it for the first time in order to create configuration files
@@ -233,7 +328,7 @@ _TODO_
 
 ## Copyright
 
-License: GPL 3.0    
+License: GPL 3.0
 Read file [LICENSE](LICENSE).
 
 ## Footnotes
