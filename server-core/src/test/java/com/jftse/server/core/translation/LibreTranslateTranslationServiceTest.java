@@ -250,6 +250,58 @@ class LibreTranslateTranslationServiceTest {
     }
 
     @Test
+    void coalescesOneHundredConcurrentRecipientsIntoOneProviderRequest() throws Exception {
+        ControlledProvider provider = new ControlledProvider();
+        LibreTranslateTranslationService service = new LibreTranslateTranslationService(
+                provider.client,
+                URI.create("http://provider.invalid/translate"),
+                Duration.ofMillis(500),
+                true,
+                LibreTranslateTranslationService.MAX_INPUT_CODE_POINTS,
+                LibreTranslateTranslationService.MAX_TRANSLATED_CODE_POINTS,
+                100
+        );
+        List<CompletableFuture<String>> recipients = new ArrayList<>();
+
+        for (int index = 0; index < 100; index++) {
+            recipients.add(service.translateToEnglish(THAI_MESSAGE));
+        }
+
+        assertEquals(1, provider.requestCount.get());
+        provider.completeNext("{\"translatedText\":\"hello\"}");
+        CompletableFuture.allOf(recipients.toArray(CompletableFuture[]::new))
+                .get(1, TimeUnit.SECONDS);
+        assertTrue(recipients.stream().allMatch(result -> "hello".equals(result.join())));
+    }
+
+    @Test
+    void failsOpenNinetyEightOfOneHundredSimultaneousUniqueMessages() throws Exception {
+        ControlledProvider provider = new ControlledProvider();
+        LibreTranslateTranslationService service = new LibreTranslateTranslationService(
+                provider.client,
+                URI.create("http://provider.invalid/translate"),
+                Duration.ofMillis(500),
+                true
+        );
+        List<CompletableFuture<String>> messages = new ArrayList<>();
+
+        for (int index = 0; index < 100; index++) {
+            messages.add(service.translateToEnglish(THAI_MESSAGE + index));
+        }
+
+        assertEquals(2, provider.requestCount.get());
+        for (int index = 2; index < 100; index++) {
+            assertEquals(THAI_MESSAGE + index, messages.get(index).get(1, TimeUnit.SECONDS));
+        }
+
+        provider.completeAll("{\"translatedText\":\"hello\"}");
+        CompletableFuture.allOf(messages.toArray(CompletableFuture[]::new))
+                .get(1, TimeUnit.SECONDS);
+        assertEquals("hello", messages.get(0).join());
+        assertEquals("hello", messages.get(1).join());
+    }
+
+    @Test
     void evictsLeastRecentlyUsedTranslationAfter512Entries() throws Exception {
         ControlledProvider provider = new ControlledProvider();
         LibreTranslateTranslationService service = new LibreTranslateTranslationService(

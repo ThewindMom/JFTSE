@@ -31,7 +31,7 @@ public final class LibreTranslateTranslationService {
     static final int MAX_INPUT_BYTES = 1024;
     static final int MAX_TRANSLATED_CODE_POINTS = 1024;
     static final int MAX_RESPONSE_BYTES = 16_384;
-    static final int MAX_CONCURRENT_REQUESTS = 2;
+    public static final int DEFAULT_MAX_CONCURRENT_REQUESTS = 2;
 
     private final HttpClient httpClient;
     private final URI endpoint;
@@ -63,7 +63,7 @@ public final class LibreTranslateTranslationService {
                 enabled,
                 MAX_INPUT_CODE_POINTS,
                 MAX_TRANSLATED_CODE_POINTS,
-                MAX_CONCURRENT_REQUESTS
+                DEFAULT_MAX_CONCURRENT_REQUESTS
         );
     }
 

@@ -327,6 +327,35 @@ the configured capacity keep the original chat message instead of blocking gamep
 Operators using a different or multi-worker provider should benchmark before increasing
 `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS`.
 
+#### What 100 concurrent players means
+
+Connected players are not the provider load unit. Inside one game or chat server
+process, a single Thai chat message broadcast to 100 opted-in recipients is coalesced
+by exact message text and makes **one provider request**, not 100. All recipients share
+that in-flight result, and later repeats can use the process's 512-entry translation
+cache.
+
+Game and chat are separate Java processes, so each owns its own limit and cache while
+sharing the same LibreTranslate container. If both process distinct messages at their
+default limit simultaneously, the provider can see up to four requests. A constrained
+host that expects heavy activity on both can set
+`CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS=1`, limiting the combined admission to two.
+
+Provider capacity is governed by the rate of **unique untranslated messages**. As a
+simple steady-state illustration, 100 players each sending one unique Thai message
+every ten seconds is 10 requests per second, below the measured 17.7 requests per
+second on the test host. One message every five seconds each is 20 requests per second
+and exceeds that single-instance measurement. Real results vary with message reuse,
+burstiness, CPU, and model behavior.
+
+Inside one server process, an artificial instant burst of 100 unique Thai messages does
+not queue stale chat: the configured two requests start translation and the other 98
+immediately keep their original text. Per-recipient message order is still preserved.
+This fail-open behavior keeps gameplay responsive; it means translation is best-effort
+during overload, not a guaranteed delivery service. Communities that require every
+unique burst message to be translated should benchmark and horizontally scale the
+provider rather than simply raising concurrency on one CPU-bound instance.
+
 Model or provider upgrades are deliberate deployment changes: update the pinned base
 digest, artifact URLs, and SHA-256 values in `docker/libretranslate/Dockerfile`, then
 verify the concrete Thai-to-English health probe before rollout. Models are installed

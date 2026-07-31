@@ -104,7 +104,11 @@ public class ChatServerStart implements CommandLineRunner {
         int timeoutMs = serverConfService.get("ChatTranslationTimeoutMs", Integer.class, 450);
         int maximumInputChars = serverConfService.get("ChatTranslationMaxInputChars", Integer.class, 256);
         int maximumTranslatedChars = serverConfService.get("ChatTranslationMaxTranslatedChars", Integer.class, 1024);
-        int maximumConcurrentRequests = serverConfService.get("ChatTranslationMaxConcurrentRequests", Integer.class, 8);
+        int maximumConcurrentRequests = serverConfService.get(
+                "ChatTranslationMaxConcurrentRequests",
+                Integer.class,
+                LibreTranslateTranslationService.DEFAULT_MAX_CONCURRENT_REQUESTS
+        );
         URI endpoint = URI.create(serverConfService.get(
                 "ChatTranslationEndpoint",
                 String.class,
