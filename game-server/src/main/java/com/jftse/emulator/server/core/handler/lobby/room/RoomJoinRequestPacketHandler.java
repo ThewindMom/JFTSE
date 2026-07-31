@@ -14,7 +14,6 @@ import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.Friend;
-import com.jftse.entities.database.model.player.*;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.protocol.Packet;
@@ -54,6 +53,13 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
+        Room joiningRoom = null;
+        RoomPlayer joiningRoomPlayer = null;
+        int reservedPosition = -1;
+        boolean activeRoomAssigned = false;
+        boolean wasInLobby = ftClient.isInLobby();
+
+        try {
         Room room = GameManager.getInstance().getRooms().stream()
                 .filter(r -> r.getRoomId() == roomJoinRequestPacket.getRoomId())
                 .findAny()
@@ -244,8 +250,10 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
+        joiningRoom = room;
         if (!isTownSquare) {
             room.getPositions().set(newPosition, RoomPositionState.InUse);
+            reservedPosition = newPosition;
         }
 
         Friend couple = socialService.getRelationshipWithFriend(activePlayer.getPlayerRef());
@@ -261,6 +269,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         roomPlayer.setFitting(false);
 
         ftClient.setActiveRoom(room);
+        activeRoomAssigned = true;
         if (isTownSquare) {
             ftClient.setInLobby(true);
         } else {
@@ -268,10 +277,24 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         }
 
         room.getRoomPlayerList().add(roomPlayer);
+        joiningRoomPlayer = roomPlayer;
 
         handleRoomUponJoin(connection, room, false);
-
-        ftClient.getIsJoiningOrLeavingRoom().set(false);
+        } catch (RuntimeException exception) {
+            if (joiningRoomPlayer != null) {
+                joiningRoom.getRoomPlayerList().remove(joiningRoomPlayer);
+            }
+            if (reservedPosition >= 0) {
+                joiningRoom.getPositions().set(reservedPosition, RoomPositionState.Free);
+            }
+            if (activeRoomAssigned && ftClient.getActiveRoom() == joiningRoom) {
+                ftClient.setActiveRoom(null);
+                ftClient.setInLobby(wasInLobby);
+            }
+            throw exception;
+        } finally {
+            ftClient.getIsJoiningOrLeavingRoom().set(false);
+        }
     }
 
     private void handleRoomUponJoin(final FTConnection connection, Room room, boolean existingRoom) {
