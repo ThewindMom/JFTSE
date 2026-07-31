@@ -220,13 +220,8 @@ java -jar xxx-server-1.0.0-SNAPSHOT.jar
 
 ## Optional English chat translation
 
-JFTSE can translate incoming lobby, room, and team chat to English independently
-for each recipient. Translation is off by default.
-
-This is an optional quality-of-life feature for the current Fantasy Tennis community:
-many active players speak Thai, and opt-in translation makes mixed Thai/English lobbies
-and matches easier to enjoy together without changing chat for anyone who leaves it
-disabled.
+JFTSE can translate Thai lobby, room, and team chat to English for players who opt in.
+Translation is off by default.
 
 Players control their own preference from chat:
 
@@ -235,133 +230,29 @@ Players control their own preference from chat:
 -translate off
 ```
 
-The command accepts surrounding whitespace and case differences. A missing or
-unsupported argument returns usage without changing the saved preference. Command
-messages are not broadcast. The preference is stored on the `Player` record and is
-restored at the next login.
+The preference is saved per player. Senders and players who leave translation disabled
+receive the original message. Translation failures also fall back to the original
+message without delaying or reordering chat.
 
-Delivery rules:
-
-* The sender always receives the original message.
-* Recipients who did not opt in receive the original message.
-* Opted-in recipients receive English when translation succeeds.
-* Room and team visibility rules are unchanged.
-* Provider errors, timeouts, malformed responses, and capacity limits fall back to
-  the original message instead of dropping or reordering chat.
-* Oversized input is not sent to the provider, and provider output is bounded before
-  it is placed in a game packet.
-
-Operators enable the feature with the deployment environment:
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `CHAT_TRANSLATION_ENABLED` | `false` | Enables provider requests. |
-| `CHAT_TRANSLATION_TIMEOUT_MS` | `450` | Per-request timeout. |
-| `CHAT_TRANSLATION_MAX_INPUT_CHARS` | `256` | Largest source message sent to the provider. |
-| `CHAT_TRANSLATION_MAX_TRANSLATED_CHARS` | `1024` | Largest translated packet payload. |
-| `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS` | `2` | Shared provider concurrency limit. |
-
-The Compose deployment supplies the internal provider endpoint. Its provider image
-pins the LibreTranslate base manifest plus exact English/Thai Argos and MiniSBD model
-artifacts by SHA-256, disables automatic model updates, and must pass a real
-Thai-to-English `/translate` health probe before starting the emulator:
+The Docker deployment includes a self-hosted LibreTranslate provider. Enable it with:
 
 ```sh
 cd docker
 CHAT_TRANSLATION_ENABLED=true docker compose up -d --build
 ```
 
-No paid translation API or external cloud translation account is required. Internet
-access is needed when Docker first pulls/builds the images and downloads the pinned
-model artifacts. Normal runtime translation stays inside the Compose network, and the
-built provider image does not download models or mutable model indexes at startup.
+Configuration:
 
-On a fresh database, the one-shot `database-fixtures` service waits for Hibernate's
-schema and imports the canonical SQL fixtures. It should finish with exit code `0`.
-LibreTranslate should report `healthy`, and all four programs should report `RUNNING`:
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CHAT_TRANSLATION_ENABLED` | `false` | Enables translation. |
+| `CHAT_TRANSLATION_TIMEOUT_MS` | `450` | Per-request timeout. |
+| `CHAT_TRANSLATION_MAX_INPUT_CHARS` | `256` | Maximum source length. |
+| `CHAT_TRANSLATION_MAX_TRANSLATED_CHARS` | `1024` | Maximum translated length. |
+| `CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS` | `2` | Per-server provider concurrency. |
 
-```sh
-docker compose ps -a
-docker compose exec emulator supervisorctl status
-```
-
-### Memory guidance
-
-The exact all-in-one Compose deployment was measured on Linux after a fresh startup.
-These are observed values, not hard limits:
-
-| Component | Idle | After translation load |
-|-----------|------|------------------------|
-| LibreTranslate | 763 MiB | 764 MiB (773 MiB observed peak) |
-| Emulator (four JVMs) | 3.10 GiB | 3.16 GiB |
-| MySQL | 469 MiB | 469 MiB |
-| RabbitMQ | 144 MiB | 180 MiB |
-| **Running-service total** | **about 4.45 GiB** | **about 4.54 GiB** |
-
-The translation feature therefore added about **0.75 GiB** in this measurement.
-Reserve **1 GiB** for LibreTranslate to allow normal variation. For the complete
-all-in-one Compose stack, an **8 GiB host is the practical minimum recommendation** so
-the operating system, Docker, and temporary JVM/database growth retain headroom.
-Player count, traffic, kernel caching, Docker version, and JVM behavior can change
-actual usage, so production operators should still monitor their own host.
-
-### Concurrent translation performance
-
-The bundled provider was also measured with three rounds of 30 unique Thai messages
-per concurrency level. Every measured request returned a non-empty English response:
-
-| Concurrent requests | Throughput | Mean | p95 | Maximum |
-|---------------------|------------|------|-----|---------|
-| 1 | 17.75 req/s | 47.7 ms | 72.9 ms | 99.0 ms |
-| 2 | 17.72 req/s | 100.9 ms | 157.9 ms | 217.4 ms |
-| 4 | 10.72 req/s | 355.4 ms | 822.3 ms | 1010.7 ms |
-| 8 | 10.69 req/s | 654.6 ms | 1266.6 ms | 1984.9 ms |
-| 16 | 10.67 req/s | 1168.9 ms | 2107.4 ms | 2967.9 ms |
-
-The bundled image is CPU-bound and behaves like a one-worker provider for unique
-messages. The default limit is therefore **2 concurrent provider requests**: it keeps
-essentially the same throughput as one request while allowing two messages to progress,
-and stayed within the default 450 ms timeout on the measured host. Completed
-translations are cached, identical in-flight requests are coalesced, and requests above
-the configured capacity keep the original chat message instead of blocking gameplay.
-Operators using a different or multi-worker provider should benchmark before increasing
-`CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS`.
-
-#### What 100 concurrent players means
-
-Connected players are not the provider load unit. Inside one game or chat server
-process, a single Thai chat message broadcast to 100 opted-in recipients is coalesced
-by exact message text and makes **one provider request**, not 100. All recipients share
-that in-flight result, and later repeats can use the process's 512-entry translation
-cache.
-
-Game and chat are separate Java processes, so each owns its own limit and cache while
-sharing the same LibreTranslate container. If both process distinct messages at their
-default limit simultaneously, the provider can see up to four requests. A constrained
-host that expects heavy activity on both can set
-`CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS=1`, limiting the combined admission to two.
-
-Provider capacity is governed by the rate of **unique untranslated messages**. As a
-simple steady-state illustration, 100 players each sending one unique Thai message
-every ten seconds is 10 requests per second, below the measured 17.7 requests per
-second on the test host. One message every five seconds each is 20 requests per second
-and exceeds that single-instance measurement. Real results vary with message reuse,
-burstiness, CPU, and model behavior.
-
-Inside one server process, an artificial instant burst of 100 unique Thai messages does
-not queue stale chat: the configured two requests start translation and the other 98
-immediately keep their original text. Per-recipient message order is still preserved.
-This fail-open behavior keeps gameplay responsive; it means translation is best-effort
-during overload, not a guaranteed delivery service. Communities that require every
-unique burst message to be translated should benchmark and horizontally scale the
-provider rather than simply raising concurrency on one CPU-bound instance.
-
-Model or provider upgrades are deliberate deployment changes: update the pinned base
-digest, artifact URLs, and SHA-256 values in `docker/libretranslate/Dockerfile`, then
-verify the concrete Thai-to-English health probe before rollout. Models are installed
-at image build time; a fresh runtime does not download mutable model indexes. When
-translation is enabled, source chat may be sent to the configured translation provider
-for opted-in recipients.
+No paid API or cloud account is required. The provider uses about 0.75 GiB of RAM in
+the measured deployment; reserve about 1 GiB for it.
 
 ## Running client
 1. Download FT Client from : https://www.jftse.com/client/FantaTennis.7z
