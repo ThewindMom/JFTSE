@@ -24,10 +24,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import javax.annotation.PreDestroy;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -49,7 +51,10 @@ public class AuthServerStart implements CommandLineRunner {
     private ServerConfService serverConfService;
 
     public static void main(String[] args) {
-        SpringApplication.run(AuthServerStart.class, args);
+        ConfigurableApplicationContext context = SpringApplication.run(AuthServerStart.class, args);
+        if (Arrays.stream(args).anyMatch("-import-only"::equalsIgnoreCase)) {
+            System.exit(SpringApplication.exit(context));
+        }
     }
 
     @Override

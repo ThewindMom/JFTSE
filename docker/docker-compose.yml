@@ -1,19 +1,20 @@
-version: '3.8'
-
 services:
   rabbitmq:
     build:
       context: ./rabbitmq
       dockerfile: Dockerfile
-    container_name: rabbitmq-server
-    hostname: rabbitmq-server
     volumes:
       - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     networks:
       - rabbitmq-network
 
@@ -21,40 +22,157 @@ services:
     build:
       context: ./mysql-db
       dockerfile: Dockerfile
-    container_name: mysql-db-server
-    hostname: mysql-db-server
     command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: 123456
     restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     networks:
       - db-network
 
-  emulator:
-    build:
-      context: ..
-      dockerfile: docker/emulator/Dockerfile
-    container_name: emulator-server
-    hostname: emulator-server
+  database-import:
+    image: jftse-emulator:local
     depends_on:
-      - "mysql-db"
-      - "rabbitmq"
-    ports:
-      - "5894:5894"
-      - "5895:5895"
-      - "5896:5896"
-      - "5897:5897"
-      - "3724:3724"
+      mysql-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/fantasytennis?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Berlin"
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+    working_dir: /opt/jftse/auth-server/target/dist
+    command:
+      - java
+      - -Djava.net.preferIPv4Stack=true
+      - -Dconf.path=/opt/jftse/auth-server/target/dist
+      - -jar
+      - /opt/jftse/auth-server/target/auth-server.jar
+      - -import-only
+    restart: "no"
     networks:
       - db-network
       - rabbitmq-network
 
+  database-fixtures:
+    image: mysql@sha256:6e0014cdd88092545557dee5e9eb7e1a3c84c9a14ad2418d5f2231e930967a38
+    depends_on:
+      database-import:
+        condition: service_completed_successfully
+    environment:
+      MYSQL_PWD: "123456"
+    volumes:
+      - ../scripts/sql:/fixtures:ro
+    entrypoint:
+      - /bin/bash
+      - -ec
+    command:
+      - |
+        until mysql -hmysql-db -uroot -N -e \
+          "SELECT COUNT(*) FROM fantasytennis.S_Relationship_Roles" >/dev/null 2>&1; do
+          sleep 1
+        done
+        required_data="$$(mysql -hmysql-db -uroot -N fantasytennis -e \
+          "SELECT
+             (SELECT COUNT(*) FROM Product) > 0
+             AND (SELECT COUNT(*) FROM Guardian) > 0
+             AND (SELECT COUNT(*) FROM Skill) > 0
+             AND (SELECT COUNT(*) FROM LevelExp) > 0")"
+        if [ "$${required_data}" != "1" ]; then
+          echo "Required auth-server import data is incomplete" >&2
+          exit 1
+        fi
+        mysql -hmysql-db -uroot fantasytennis -e \
+          "CREATE TABLE IF NOT EXISTS DeploymentFixtureVersion (
+            version VARCHAR(64) PRIMARY KEY,
+            installed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ) ENGINE=InnoDB"
+        if [ "$$(mysql -hmysql-db -uroot -N fantasytennis -e \
+          "SELECT COUNT(*) FROM DeploymentFixtureVersion
+           WHERE version = 'scripts-sql-v1'")" -eq 0 ]; then
+          {
+            echo "SET SESSION FOREIGN_KEY_CHECKS=0;"
+            echo "START TRANSACTION;"
+            for fixture in /fixtures/*.sql; do
+              echo "Loading canonical fixture: $${fixture}" >&2
+              cat "$${fixture}"
+            done
+            echo "INSERT INTO DeploymentFixtureVersion(version) VALUES ('scripts-sql-v1');"
+            echo "COMMIT;"
+          } | mysql -hmysql-db -uroot fantasytennis
+        fi
+    restart: "no"
+    networks:
+      - db-network
+
+  libretranslate:
+    image: jftse-libretranslate:1.9.6-models-1.9
+    build:
+      context: ./libretranslate
+      dockerfile: Dockerfile
+    environment:
+      LT_LOAD_ONLY: en,th
+      LT_UPDATE_MODELS: "false"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LIBRETRANSLATE_PORT:-5000}:5000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json, urllib.request; q='มีใครอยากเล่นคู่ไหม'; body=json.dumps({'q':q,'source':'th','target':'en','format':'text'}).encode(); request=urllib.request.Request('http://127.0.0.1:5000/translate', data=body, headers={'Content-Type':'application/json'}); translated=json.load(urllib.request.urlopen(request, timeout=5))['translatedText']; assert translated and translated != q"
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+    networks:
+      - translation-network
+
+  emulator:
+    image: jftse-emulator:local
+    build:
+      context: ..
+      dockerfile: docker/emulator/Dockerfile
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      database-import:
+        condition: service_completed_successfully
+      database-fixtures:
+        condition: service_completed_successfully
+      libretranslate:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/fantasytennis?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Berlin"
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+      ChatTranslationEnabled: "${CHAT_TRANSLATION_ENABLED:-false}"
+      ChatTranslationEndpoint: "http://libretranslate:5000/translate"
+      ChatTranslationTimeoutMs: "${CHAT_TRANSLATION_TIMEOUT_MS:-450}"
+      ChatTranslationMaxInputChars: "${CHAT_TRANSLATION_MAX_INPUT_CHARS:-256}"
+      ChatTranslationMaxTranslatedChars: "${CHAT_TRANSLATION_MAX_TRANSLATED_CHARS:-1024}"
+      ChatTranslationMaxConcurrentRequests: "${CHAT_TRANSLATION_MAX_CONCURRENT_REQUESTS:-8}"
+    ports:
+      - "${AUTH_PORT:-5894}:5894"
+      - "${GAME_PORT:-5895}:5895"
+      - "${RELAY_PORT:-5896}:5896"
+      - "${CHAT_PORT:-5897}:5897"
+    networks:
+      - db-network
+      - rabbitmq-network
+      - translation-network
+
 networks:
   rabbitmq-network:
     driver: bridge
-    name: rabbitmq-network
   db-network:
     driver: bridge
-    name: db-network
+  translation-network:
+    driver: bridge

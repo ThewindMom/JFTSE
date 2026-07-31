@@ -102,6 +102,7 @@ public class DBDataLoader implements CommandLineRunner {
     private enum ECLIOption {
         EXPORT("-export"),
         IMPORT("-import"),
+        IMPORT_ONLY("-import-only"),
         NONE("");
 
         private final String option;
@@ -132,7 +133,7 @@ public class DBDataLoader implements CommandLineRunner {
             case EXPORT:
                 dbExporter.init();
                 return;
-            case IMPORT:
+            case IMPORT, IMPORT_ONLY:
                 break;
             case NONE:
                 return;
