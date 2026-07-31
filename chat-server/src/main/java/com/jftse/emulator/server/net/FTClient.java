@@ -15,12 +15,14 @@ import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.net.Client;
 import com.jftse.server.core.shared.PlayerLoadType;
 import com.jftse.server.core.shared.packets.game.SMSGReceiveData;
+import com.jftse.server.core.translation.OrderedChatDelivery;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Getter
@@ -36,10 +38,12 @@ public class FTClient extends Client<FTConnection> {
     private TutorialGame activeTutorialGame;
 
     private Room activeRoom;
+    private final AtomicLong roomMembershipGenerationCounter = new AtomicLong();
 
     private FruitManager fruitManager = new FruitManager();
 
     private volatile boolean inLobby = false;
+    private final AtomicLong lobbyMembershipGenerationCounter = new AtomicLong();
     private volatile boolean isSpectator = false;
 
     private volatile int lobbyGameModeTabFilter = GameMode.ALL;
@@ -65,6 +69,30 @@ public class FTClient extends Client<FTConnection> {
     private Pet activePet;
 
     private int textMode = 0;
+    private volatile boolean translateChatToEnglish = false;
+    private final OrderedChatDelivery chatDelivery = new OrderedChatDelivery();
+
+    public void setActiveRoom(Room activeRoom) {
+        if (this.activeRoom != activeRoom) {
+            roomMembershipGenerationCounter.incrementAndGet();
+        }
+        this.activeRoom = activeRoom;
+    }
+
+    public long getRoomMembershipGeneration() {
+        return roomMembershipGenerationCounter.get();
+    }
+
+    public void setInLobby(boolean inLobby) {
+        if (this.inLobby != inLobby) {
+            lobbyMembershipGenerationCounter.incrementAndGet();
+        }
+        this.inLobby = inLobby;
+    }
+
+    public long getLobbyMembershipGeneration() {
+        return lobbyMembershipGenerationCounter.get();
+    }
 
     public boolean updateDataRequestStep(int step) {
         boolean valid = dataRequestStep.compareAndSet(step - 1, step);
@@ -95,6 +123,7 @@ public class FTClient extends Client<FTConnection> {
         this.gameMaster = account.getGameMaster();
         this.accountStatus = account.getStatus();
         this.ap.set(account.getAp());
+        this.translateChatToEnglish = Boolean.TRUE.equals(player.getTranslateChatToEnglish());
         this.ftPlayer.set(loadPlayer(player, playerLoadType));
     }
 

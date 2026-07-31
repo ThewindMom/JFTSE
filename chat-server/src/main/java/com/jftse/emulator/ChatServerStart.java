@@ -7,6 +7,8 @@ import com.jftse.server.core.StartupBanner;
 import com.jftse.server.core.YamlPropertySourceFactory;
 import com.jftse.server.core.protocol.PacketAutoRegister;
 import com.jftse.server.core.shared.ServerConfService;
+import com.jftse.server.core.translation.ChatTranslationServices;
+import com.jftse.server.core.translation.LibreTranslateTranslationService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -30,6 +32,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import javax.annotation.PreDestroy;
 import java.util.concurrent.ExecutionException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.concurrent.Future;
 
 @SpringBootApplication
@@ -82,6 +87,7 @@ public class ChatServerStart implements CommandLineRunner {
                 .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024, 128 * 1024)); // 32 KB low, 128 KB high
 
         final int port = serverConfService.get("ServerPort", Integer.class);
+        configureChatTranslation();
         b.bind(port).addListener(cf -> {
             if (cf.isSuccess()) {
                 serverLoop.start();
@@ -91,6 +97,32 @@ public class ChatServerStart implements CommandLineRunner {
                 log.error("Failed to start chat-server: {}", cf.cause().getMessage(), cf.cause());
             }
         });
+    }
+
+    private void configureChatTranslation() {
+        boolean enabled = serverConfService.get("ChatTranslationEnabled", Boolean.class, false);
+        int timeoutMs = serverConfService.get("ChatTranslationTimeoutMs", Integer.class, 450);
+        int maximumInputChars = serverConfService.get("ChatTranslationMaxInputChars", Integer.class, 256);
+        int maximumTranslatedChars = serverConfService.get("ChatTranslationMaxTranslatedChars", Integer.class, 1024);
+        int maximumConcurrentRequests = serverConfService.get("ChatTranslationMaxConcurrentRequests", Integer.class, 8);
+        URI endpoint = URI.create(serverConfService.get(
+                "ChatTranslationEndpoint",
+                String.class,
+                "http://libretranslate:5000/translate"
+        ));
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(timeoutMs))
+                .build();
+        ChatTranslationServices.configure(new LibreTranslateTranslationService(
+                httpClient,
+                endpoint,
+                Duration.ofMillis(timeoutMs),
+                enabled,
+                maximumInputChars,
+                maximumTranslatedChars,
+                maximumConcurrentRequests
+        ));
+        log.info("Thai-to-English chat translation is {}", enabled ? "enabled" : "disabled");
     }
 
     @PreDestroy

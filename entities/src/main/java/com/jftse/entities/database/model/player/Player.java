@@ -83,5 +83,8 @@ public class Player extends AbstractBaseModel {
     private Byte statusPoints = 0;
 
     @Column(columnDefinition = "bit(1) DEFAULT 0")
+    private Boolean translateChatToEnglish = false;
+
+    @Column(columnDefinition = "bit(1) DEFAULT 0")
     private Boolean online = false;
 }

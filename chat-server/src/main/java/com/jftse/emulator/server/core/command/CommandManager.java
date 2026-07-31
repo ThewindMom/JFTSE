@@ -5,6 +5,7 @@ import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.common.utilities.StringUtils;
 import com.jftse.emulator.server.core.command.commands.gm.*;
 import com.jftse.emulator.server.core.command.commands.player.OpenGachaCommand;
+import com.jftse.emulator.server.core.command.commands.player.TranslateChatCommand;
 import com.jftse.emulator.server.core.life.script.ScriptContextHelper;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.packets.chat.S2CChatLobbyAnswerPacket;
@@ -67,11 +68,18 @@ public class CommandManager {
     }
 
     public boolean isCommand(String content) {
-        if (StringUtils.isEmpty(content) || content.isEmpty())
+        if (StringUtils.isEmpty(content))
             return false;
 
-        char heading = content.charAt(0);
-        return heading == COMMAND_HEADING && registeredCommands.get(getCommandArgumentList(content).get(0).substring(1)) != null;
+        List<String> arguments = getCommandArgumentList(content.trim());
+        if (arguments.isEmpty()) {
+            return false;
+        }
+
+        String commandToken = arguments.get(0);
+        return commandToken.length() > 1
+                && commandToken.charAt(0) == COMMAND_HEADING
+                && registeredCommands.containsKey(commandToken.substring(1).toLowerCase(Locale.ROOT));
     }
 
     public void handle(FTConnection connection, String content) {
@@ -94,10 +102,10 @@ public class CommandManager {
     }
 
     private void executeCommand(FTConnection connection, String content) {
-        List<String> commandArgumentList = getCommandArgumentList(content);
+        List<String> commandArgumentList = getCommandArgumentList(content.trim());
 
         String commandName = commandArgumentList.get(0);
-        commandName = commandName.substring(1);
+        commandName = commandName.substring(1).toLowerCase(Locale.ROOT);
 
         commandArgumentList.remove(0);
 
@@ -134,12 +142,13 @@ public class CommandManager {
     public void registerCommand(String commandName, int rank, AbstractCommand command) {
         command.setRank(rank);
         command.setCommandName(commandName);
-        registeredCommands.put(commandName, command);
+        registeredCommands.put(commandName.toLowerCase(Locale.ROOT), command);
         log.info("Registered command -" + commandName);
     }
 
     private void registerCommands() {
         registerCommand("og", 0, new OpenGachaCommand());
+        registerCommand("translate", 0, new TranslateChatCommand());
         registerCommand("ban", 1, new BanPlayerCommand());
         registerCommand("unban", 1, new UnbanPlayerCommand());
         registerCommand("sN", 1, new ServerNoticeCommand());

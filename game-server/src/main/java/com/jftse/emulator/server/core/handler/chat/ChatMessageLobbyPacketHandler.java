@@ -8,8 +8,11 @@ import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.chat.CMSGChatMessageLobby;
 import com.jftse.server.core.shared.packets.chat.SMSGChatMessageLobby;
+import com.jftse.server.core.translation.ChatTranslationServices;
+import com.jftse.server.core.translation.LibreTranslateTranslationService;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @PacketId(CMSGChatMessageLobby.PACKET_ID)
 public class ChatMessageLobbyPacketHandler implements PacketHandler<FTConnection, CMSGChatMessageLobby> {
@@ -37,6 +40,51 @@ public class ChatMessageLobbyPacketHandler implements PacketHandler<FTConnection
                 .filter(FTClient::isInLobby)
                 .toList();
 
-        clientList.forEach(c -> c.getConnection().sendTCP(chatLobbyMessage));
+        LibreTranslateTranslationService translationService = ChatTranslationServices.get();
+        clientList.forEach(recipient ->
+                sendMessage(recipient, client, chatLobbyReqPacket, translationService)
+        );
+    }
+
+    private static void sendMessage(
+            FTClient recipient,
+            FTClient sender,
+            CMSGChatMessageLobby request,
+            LibreTranslateTranslationService translationService
+    ) {
+        String senderName = sender.getPlayer().getName();
+        int textColor = sender.getTextMode();
+        long membershipGeneration = recipient.getLobbyMembershipGeneration();
+        recipient.getChatDelivery().enqueue(
+                messageForRecipient(sender, recipient, request.getMessage(), translationService),
+                message -> {
+                    FTConnection connection = recipient.getConnection();
+                    if (!recipient.isInLobby()
+                            || recipient.getLobbyMembershipGeneration() != membershipGeneration
+                            || connection == null) {
+                        return;
+                    }
+                    connection.sendTCP(
+                            SMSGChatMessageLobby.builder()
+                                    .unk(request.getUnk())
+                                    .sender(senderName)
+                                    .message(message)
+                                    .textColor(textColor)
+                                    .build()
+                    );
+                }
+        );
+    }
+
+    static CompletableFuture<String> messageForRecipient(
+            FTClient sender,
+            FTClient recipient,
+            String message,
+            LibreTranslateTranslationService translationService
+    ) {
+        if (recipient == sender || !recipient.isTranslateChatToEnglish()) {
+            return CompletableFuture.completedFuture(message);
+        }
+        return translationService.translateToEnglish(message);
     }
 }

@@ -18,6 +18,9 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <java.version>21</java.version>
+        <git.commit.id.abbrev>unknown</git.commit.id.abbrev>
+        <git.commit.time>unknown</git.commit.time>
+        <git.branch>unknown</git.branch>
     </properties>
 
     <dependencies>
@@ -80,6 +83,11 @@
             <groupId>org.springframework.amqp</groupId>
             <artifactId>spring-rabbit</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -128,6 +136,7 @@
                 <version>4.9.10</version>
                 <configuration>
                     <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
                     <generateGitPropertiesFile>false</generateGitPropertiesFile>
                     <includeOnlyProperties>
                         <includeOnlyProperty>git.commit.id.abbrev</includeOnlyProperty>

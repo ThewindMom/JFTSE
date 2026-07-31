@@ -12,6 +12,11 @@ import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.chat.CMSGChatMessageRoom;
 import com.jftse.server.core.shared.packets.chat.SMSGChatMessageRoom;
+import com.jftse.server.core.translation.ChatTranslationServices;
+import com.jftse.server.core.translation.LibreTranslateTranslationService;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 
 @PacketId(CMSGChatMessageRoom.PACKET_ID)
 public class ChatMessageRoomPacketHandler implements PacketHandler<FTConnection, CMSGChatMessageRoom> {
@@ -56,16 +61,99 @@ public class ChatMessageRoomPacketHandler implements PacketHandler<FTConnection,
 
                 boolean playerCanSeeMessage = areInSameTeam(senderPos, rp.getPosition()) || rp.getPosition() == MiscConstants.InvisibleGmSlot;
                 if (c.hasPlayer() && rp.getPlayerId() == c.getPlayer().getId() && playerCanSeeMessage) {
-                    c.getConnection().sendTCP(chatRoomMessage);
+                    sendMessage(
+                            c,
+                            client,
+                            chatRoomReqPacket,
+                            messageType,
+                            () -> isEligibleTeamRecipient(c, room, senderPos),
+                            translationService()
+                    );
                 }
             }
-            connection.sendTCP(chatRoomMessage); // Send to sender
+            sendMessage(
+                    client,
+                    client,
+                    chatRoomReqPacket,
+                    messageType,
+                    () -> client.getActiveRoom() == room,
+                    translationService()
+            );
         } else {
-            GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(c -> c.getConnection().sendTCP(chatRoomMessage));
+            LibreTranslateTranslationService translationService = translationService();
+            GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(recipient ->
+                    sendMessage(
+                            recipient,
+                            client,
+                            chatRoomReqPacket,
+                            messageType,
+                            () -> recipient.getActiveRoom() == room,
+                            translationService
+                    )
+            );
         }
     }
 
-    private boolean areInSameTeam(int playerPos1, int playerPos2) {
+    private static LibreTranslateTranslationService translationService() {
+        return ChatTranslationServices.get();
+    }
+
+    private static void sendMessage(
+            FTClient recipient,
+            FTClient sender,
+            CMSGChatMessageRoom request,
+            byte messageType,
+            BooleanSupplier stillEligible,
+            LibreTranslateTranslationService translationService
+    ) {
+        String senderName = sender.getPlayer().getName();
+        int textColor = sender.getTextMode();
+        long membershipGeneration = recipient.getRoomMembershipGeneration();
+        recipient.getChatDelivery().enqueue(
+                messageForRecipient(sender, recipient, request.getMessage(), translationService),
+                message -> {
+                    FTConnection connection = recipient.getConnection();
+                    if (recipient.getRoomMembershipGeneration() != membershipGeneration
+                            || !stillEligible.getAsBoolean()
+                            || connection == null) {
+                        return;
+                    }
+                    connection.sendTCP(
+                            SMSGChatMessageRoom.builder()
+                                    .type(messageType)
+                                    .sender(senderName)
+                                    .message(message)
+                                    .textColor(textColor)
+                                    .build()
+                    );
+                }
+        );
+    }
+
+    private static boolean isEligibleTeamRecipient(FTClient recipient, Room room, short senderPosition) {
+        if (recipient.getActiveRoom() != room || !recipient.hasPlayer()) {
+            return false;
+        }
+        RoomPlayer roomPlayer = recipient.getRoomPlayer();
+        return roomPlayer != null
+                && roomPlayer.getPlayerId() == recipient.getPlayer().getId()
+                && (areInSameTeam(senderPosition, roomPlayer.getPosition())
+                || roomPlayer.getPosition() == MiscConstants.InvisibleGmSlot);
+    }
+
+    static CompletableFuture<String> messageForRecipient(
+            FTClient sender,
+            FTClient recipient,
+            String message,
+            LibreTranslateTranslationService translationService
+    ) {
+        if (recipient == sender || !recipient.isTranslateChatToEnglish()) {
+            return CompletableFuture.completedFuture(message);
+        }
+        return translationService.translateToEnglish(message);
+    }
+
+    private static boolean areInSameTeam(int playerPos1, int playerPos2) {
         boolean bothInRedTeam = (playerPos1 == 0 && playerPos2 == 2) || (playerPos1 == 2 && playerPos2 == 0);
         boolean bothInBlueTeam = (playerPos1 == 1 && playerPos2 == 3) || (playerPos1 == 3 && playerPos2 == 1);
         return bothInRedTeam || bothInBlueTeam;

@@ -70,7 +70,18 @@ public class ServerConfService {
 
     public <T> T get(String key, Class<T> type) {
         String value = getString(key);
+        return cast(value, type);
+    }
 
+    public <T> T get(String key, Class<T> type, T defaultValue) {
+        String value = System.getenv(key);
+        if (value == null) {
+            value = props.getProperty(key);
+        }
+        return value == null ? defaultValue : cast(value, type);
+    }
+
+    private <T> T cast(String value, Class<T> type) {
         Object castedValue;
         if (type == Integer.class) {
             castedValue = Integer.parseInt(value);
