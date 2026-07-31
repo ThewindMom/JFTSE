@@ -56,7 +56,9 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         Room joiningRoom = null;
         RoomPlayer joiningRoomPlayer = null;
         int reservedPosition = -1;
+        short reservedPositionState = RoomPositionState.Free;
         boolean activeRoomAssigned = false;
+        boolean joinCommitted = false;
         boolean wasInLobby = ftClient.isInLobby();
 
         try {
@@ -252,6 +254,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
         joiningRoom = room;
         if (!isTownSquare) {
+            reservedPositionState = room.getPositions().get(newPosition);
             room.getPositions().set(newPosition, RoomPositionState.InUse);
             reservedPosition = newPosition;
         }
@@ -279,17 +282,21 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         room.getRoomPlayerList().add(roomPlayer);
         joiningRoomPlayer = roomPlayer;
 
-        handleRoomUponJoin(connection, room, false);
+        sendRoomJoinAnswer(connection, room);
+        joinCommitted = true;
+        handleRoomAfterJoin(connection, room, false);
         } catch (RuntimeException exception) {
-            if (joiningRoomPlayer != null) {
-                joiningRoom.getRoomPlayerList().remove(joiningRoomPlayer);
-            }
-            if (reservedPosition >= 0) {
-                joiningRoom.getPositions().set(reservedPosition, RoomPositionState.Free);
-            }
-            if (activeRoomAssigned && ftClient.getActiveRoom() == joiningRoom) {
-                ftClient.setActiveRoom(null);
-                ftClient.setInLobby(wasInLobby);
+            if (!joinCommitted) {
+                if (joiningRoomPlayer != null) {
+                    joiningRoom.getRoomPlayerList().remove(joiningRoomPlayer);
+                }
+                if (reservedPosition >= 0) {
+                    joiningRoom.getPositions().set(reservedPosition, reservedPositionState);
+                }
+                if (activeRoomAssigned && ftClient.getActiveRoom() == joiningRoom) {
+                    ftClient.setActiveRoom(null);
+                    ftClient.setInLobby(wasInLobby);
+                }
             }
             throw exception;
         } finally {
@@ -298,19 +305,27 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
     }
 
     private void handleRoomUponJoin(final FTConnection connection, Room room, boolean existingRoom) {
-        FTClient client = connection.getClient();
-        RoomPlayer roomPlayer = client.getRoomPlayer();
-        final boolean isTownSquare = room.getRoomType() == 1 && room.getMode() == 2;
+        sendRoomJoinAnswer(connection, room);
+        handleRoomAfterJoin(connection, room, existingRoom);
+    }
 
+    private void sendRoomJoinAnswer(final FTConnection connection, Room room) {
         SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
                 .result((char) 0)
                 .roomType(room.getRoomType())
                 .mode(room.getMode())
                 .mapId(room.getMap())
                 .build();
+        connection.sendTCP(roomJoinAnswerPacket);
+    }
+
+    private void handleRoomAfterJoin(final FTConnection connection, Room room, boolean existingRoom) {
+        FTClient client = connection.getClient();
+        RoomPlayer roomPlayer = client.getRoomPlayer();
+        final boolean isTownSquare = room.getRoomType() == 1 && room.getMode() == 2;
+
         S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
 
-        connection.sendTCP(roomJoinAnswerPacket);
         connection.sendTCP(roomInformationPacket);
 
         List<RoomPlayer> filteredRoomPlayerList = roomPlayer.getPosition() == MiscConstants.InvisibleGmSlot

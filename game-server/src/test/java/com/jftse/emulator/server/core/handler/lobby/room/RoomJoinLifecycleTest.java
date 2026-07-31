@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -55,6 +56,7 @@ class RoomJoinLifecycleTest {
 
         FTClient client = new FTClient();
         client.refreshPlayer(mock(FTPlayer.class));
+        client.setInLobby(true);
 
         FTConnection connection = mock(FTConnection.class);
         when(connection.getClient()).thenReturn(client);
@@ -77,7 +79,70 @@ class RoomJoinLifecycleTest {
         assertTrue(room.getRoomPlayerList().isEmpty(), "failed join must remove partial room membership");
         assertEquals(RoomPositionState.Free, room.getPositions().get(0),
                 "failed join must release the reserved position");
+        assertTrue(client.isInLobby(), "failed join must restore the prior lobby state");
         assertTrue(client.getIsJoiningOrLeavingRoom().compareAndSet(false, true),
                 "a later join or leave must be able to acquire the guard");
+
+        assertFailedHiddenGmJoinRestoresLockedPosition();
+        assertPostCommitSendFailureKeepsServerMembership();
+    }
+
+    private void assertFailedHiddenGmJoinRestoresLockedPosition() {
+        GameManager gameManager = GameManager.getInstance();
+        Room room = new Room();
+        room.setRoomId((short) 8);
+        when(gameManager.getRooms()).thenReturn(new ConcurrentLinkedDeque<>());
+        gameManager.getRooms().add(room);
+
+        FTClient client = new FTClient();
+        client.setGameMaster(true);
+        client.refreshPlayer(mock(FTPlayer.class));
+
+        FTConnection connection = mock(FTConnection.class);
+        when(connection.getClient()).thenReturn(client);
+        IllegalStateException sendFailure = new IllegalStateException("simulated GM send failure");
+        when(connection.sendTCP(any(IPacket.class))).thenThrow(sendFailure);
+
+        CMSGRoomJoin request = CMSGRoomJoin.builder().roomId(room.getRoomId()).build();
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> new RoomJoinRequestPacketHandler().handle(connection, request));
+
+        assertSame(sendFailure, thrown);
+        assertEquals(RoomPositionState.Locked, room.getPositions().get(9),
+                "failed hidden GM join must restore the locked slot");
+        assertNull(client.getActiveRoom());
+        assertTrue(room.getRoomPlayerList().isEmpty());
+        assertFalse(client.getIsJoiningOrLeavingRoom().get());
+    }
+
+    private void assertPostCommitSendFailureKeepsServerMembership() {
+        GameManager gameManager = GameManager.getInstance();
+        Room room = new Room();
+        room.setRoomId((short) 9);
+        when(gameManager.getRooms()).thenReturn(new ConcurrentLinkedDeque<>());
+        gameManager.getRooms().add(room);
+
+        FTClient client = new FTClient();
+        client.refreshPlayer(mock(FTPlayer.class));
+        client.setInLobby(true);
+
+        FTConnection connection = mock(FTConnection.class);
+        when(connection.getClient()).thenReturn(client);
+        IllegalStateException sendFailure = new IllegalStateException("simulated post-commit send failure");
+        when(connection.sendTCP(any(IPacket.class)))
+                .thenReturn(null)
+                .thenThrow(sendFailure);
+
+        CMSGRoomJoin request = CMSGRoomJoin.builder().roomId(room.getRoomId()).build();
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> new RoomJoinRequestPacketHandler().handle(connection, request));
+
+        assertSame(sendFailure, thrown);
+        assertFalse(client.getIsJoiningOrLeavingRoom().get());
+        assertSame(room, client.getActiveRoom(),
+                "post-commit failure must not roll back server membership");
+        assertEquals(1, room.getRoomPlayerList().size());
+        assertEquals(RoomPositionState.InUse, room.getPositions().get(0));
+        assertFalse(client.isInLobby());
     }
 }
