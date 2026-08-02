@@ -58,7 +58,6 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         RoomPlayer joiningRoomPlayer = null;
         int reservedPosition = -1;
         short reservedPositionState = RoomPositionState.Free;
-        boolean activeRoomAssigned = false;
         boolean joinCommitted = false;
         boolean wasInLobby = ftClient.isInLobby();
 
@@ -273,7 +272,6 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         roomPlayer.setFitting(false);
 
         ftClient.setActiveRoom(room);
-        activeRoomAssigned = true;
         if (isTownSquare) {
             ftClient.setInLobby(true);
         } else {
@@ -284,6 +282,9 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         joiningRoomPlayer = roomPlayer;
 
         sendRoomJoinAnswer(connection, room);
+        if (connection.getIsClosingConnection().get()) {
+            throw new IllegalStateException("Connection closed during room join");
+        }
         joinCommitted = true;
         handleRoomAfterJoin(connection, room, false);
         } catch (RuntimeException exception) {
@@ -294,7 +295,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
                 if (reservedPosition >= 0) {
                     joiningRoom.getPositions().set(reservedPosition, reservedPositionState);
                 }
-                if (activeRoomAssigned && ftClient.getActiveRoom() == joiningRoom) {
+                if (ftClient.getActiveRoom() == joiningRoom) {
                     ftClient.setActiveRoom(null);
                     ftClient.setInLobby(wasInLobby);
                 }
