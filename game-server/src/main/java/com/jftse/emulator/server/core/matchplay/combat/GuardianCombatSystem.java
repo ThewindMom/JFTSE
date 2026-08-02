@@ -8,11 +8,7 @@ import com.jftse.server.core.item.EElementalProperty;
 import com.jftse.server.core.matchplay.Elementable;
 import com.jftse.server.core.matchplay.battle.GuardianBattleState;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
-import lombok.extern.log4j.Log4j2;
 
-import java.util.List;
-
-@Log4j2
 public class GuardianCombatSystem implements GuardianCombatable {
     private final MatchplayGuardianGame game;
 
@@ -138,8 +134,7 @@ public class GuardianCombatSystem implements GuardianCombatable {
 
         Elementable offensiveElement;
         if (attackingGuardian != null) {
-            final List<Elementable> elementList = attackingGuardian.getElements();
-            offensiveElement = elementList.stream()
+            offensiveElement = attackingGuardian.getElements().stream()
                     .filter(x -> skill != null && x.getProperty() == EElementalProperty.fromValue(skill.getElemental().byteValue()))
                     .findFirst()
                     .orElse(null);
