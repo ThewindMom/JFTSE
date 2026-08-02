@@ -52,31 +52,11 @@ public class GuardianCombatSystem implements GuardianCombatable {
             Elementable offensiveElement = attackingPlayer != null ? attackingPlayer.getOffensiveElement() : null;
 
             if (totalDamageToDeal != -1 && offensiveElement != null && skill != null && offensiveElement.getProperty() == EElementalProperty.fromValue(skill.getElemental().byteValue())) {
-                double efficiency = offensiveElement.getEfficiency();
-                List<Elementable> defensiveElements = targetGuardian.getDefensiveElements();
-
-                Elementable strongElement = defensiveElements.stream()
-                        .filter(offensiveElement::isStrongAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable weakElement = defensiveElements.stream()
-                        .filter(offensiveElement::isWeakAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable resistantElement = defensiveElements.stream()
-                        .filter(defensiveElement -> defensiveElement.isResistantTo(offensiveElement))
-                        .findAny()
-                        .orElse(null);
-
-                if (strongElement != null) {
-                    efficiency += 16;
-                }
-                if (weakElement != null) {
-                    efficiency -= 5;
-                }
-                if (resistantElement != null) {
-                    efficiency -= 10;
-                }
+                double efficiency = ElementalEfficiencyCalculator.calculate(
+                        offensiveElement.getEfficiency(),
+                        offensiveElement,
+                        targetGuardian.getDefensiveElements(),
+                        ElementalEfficiencyCalculator.GUARDIAN_PROFILE);
 
                 final double efficiencyMultiplier = 1 + (efficiency / 100.0);
                 totalDamageToDeal =  (int) (totalDamageToDeal * efficiencyMultiplier);
@@ -184,31 +164,11 @@ public class GuardianCombatSystem implements GuardianCombatable {
             }
 
             if (totalDamageToDeal != -1 && offensiveElement != null && offensiveElement.getProperty() == EElementalProperty.fromValue(skill.getElemental().byteValue())) {
-                double efficiency = offensiveElement.getEfficiency();
-                List<Elementable> defensiveElements = targetPlayer.getDefensiveElements();
-
-                Elementable strongElement = defensiveElements.stream()
-                        .filter(offensiveElement::isStrongAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable weakElement = defensiveElements.stream()
-                        .filter(offensiveElement::isWeakAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable resistantElement = defensiveElements.stream()
-                        .filter(defensiveElement -> defensiveElement.isResistantTo(offensiveElement))
-                        .findAny()
-                        .orElse(null);
-
-                if (strongElement != null) {
-                    efficiency += 16;
-                }
-                if (weakElement != null) {
-                    efficiency -= 5;
-                }
-                if (resistantElement != null) {
-                    efficiency -= 10;
-                }
+                double efficiency = ElementalEfficiencyCalculator.calculate(
+                        offensiveElement.getEfficiency(),
+                        offensiveElement,
+                        targetPlayer.getDefensiveElements(),
+                        ElementalEfficiencyCalculator.GUARDIAN_PROFILE);
 
                 final double efficiencyMultiplier = 1 + (efficiency / 100.0);
                 totalDamageToDeal =  (int) (totalDamageToDeal * efficiencyMultiplier);
