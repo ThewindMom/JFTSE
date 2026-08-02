@@ -8,4 +8,5 @@ public interface Elementable {
     boolean isResistantTo(Elementable elementable);
     boolean isStrongAgainst(Elementable elementable);
     double getEfficiency();
+    double getMaxEfficiency();
 }
