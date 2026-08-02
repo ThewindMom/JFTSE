@@ -39,13 +39,17 @@ class ElementalEfficiencyCalculatorTest {
 
         // When
         double gradeZero = calculatePlayerEfficiency(offense, new EarthElement(0, 0));
-        double gradeEight = calculatePlayerEfficiency(offense, new EarthElement(8, 8));
+        double gradeOneMaximum = calculatePlayerEfficiency(offense, new EarthElement(5, 5));
+        double gradeEightMinimum = calculatePlayerEfficiency(offense, new EarthElement(18, 18));
+        double gradeEightMaximum = calculatePlayerEfficiency(offense, new EarthElement(28, 28));
         double gradeNineMaximum = calculatePlayerEfficiency(offense, new EarthElement(32, 32));
         double overflow = calculatePlayerEfficiency(offense, new EarthElement(80, 80));
 
         // Then
         assertEquals(0.0, gradeZero, TOLERANCE);
-        assertEquals(-3.75, gradeEight, TOLERANCE);
+        assertEquals(-2.34375, gradeOneMaximum, TOLERANCE);
+        assertEquals(-8.4375, gradeEightMinimum, TOLERANCE);
+        assertEquals(-13.125, gradeEightMaximum, TOLERANCE);
         assertEquals(-15.0, gradeNineMaximum, TOLERANCE);
         assertEquals(-15.0, overflow, TOLERANCE);
     }
@@ -109,7 +113,7 @@ class ElementalEfficiencyCalculatorTest {
     void duplicateOrderingDoesNotChangeTheSelectedDefense() {
         // Given
         Elementable offense = new WindElement(0, 0);
-        Elementable weakerEarth = new EarthElement(8, 8);
+        Elementable weakerEarth = new EarthElement(5, 5);
         Elementable strongerEarth = new EarthElement(32, 32);
 
         // When

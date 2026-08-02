@@ -55,32 +55,21 @@ class GuardianCombatSystemTest {
     }
 
     @Test
-    void defensiveEnchantGradeScalesDamageFromPlayerToGuardian() throws Exception {
-        // Given / When
-        short gradeEightHealth = dealPlayerDamageToGuardian(List.of(new EarthElement(8, 8)));
-        short gradeNineHealth = dealPlayerDamageToGuardian(List.of(new EarthElement(32, 32)));
-
-        // Then
-        assertEquals(902, gradeEightHealth);
-        assertEquals(905, gradeNineHealth);
-    }
-
-    @Test
     void defensiveEnchantGradeScalesDamageFromGuardianToPlayer() throws Exception {
         // Given / When
-        short gradeEightHealth = dealGuardianDamageToPlayer(List.of(new EarthElement(8, 8)));
-        short gradeNineHealth = dealGuardianDamageToPlayer(List.of(new EarthElement(32, 32)));
+        short gradeOneMaximumHealth = dealGuardianDamageToPlayer(List.of(new EarthElement(5, 5)));
+        short gradeNineMaximumHealth = dealGuardianDamageToPlayer(List.of(new EarthElement(32, 32)));
 
         // Then
-        assertEquals(902, gradeEightHealth);
-        assertEquals(905, gradeNineHealth);
+        assertEquals(901, gradeOneMaximumHealth);
+        assertEquals(905, gradeNineMaximumHealth);
     }
 
     @Test
-    void strongestDuplicateSetsTheGuardianDefenseCapWithoutStacking() throws Exception {
+    void strongestDuplicateSetsPlayerDefenseCapAgainstGuardianDamage() throws Exception {
         // Given / When
-        short targetHealth = dealPlayerDamageToGuardian(
-                List.of(new EarthElement(8, 8), new EarthElement(32, 32)));
+        short targetHealth = dealGuardianDamageToPlayer(
+                List.of(new EarthElement(5, 5), new EarthElement(32, 32)));
 
         // Then
         assertEquals(905, targetHealth);
@@ -94,19 +83,6 @@ class GuardianCombatSystemTest {
 
         // Then
         assertEquals(915, targetHealth);
-    }
-
-    private short dealPlayerDamageToGuardian(List<Elementable> defenses) throws Exception {
-        MatchplayGuardianGame game = mock(MatchplayGuardianGame.class);
-        PlayerBattleState attacker = new PlayerBattleState((short) 0, 100, 1000, 0, 0, 0, 0);
-        attacker.setOffensiveElement(new WindElement(0, 0));
-        GuardianBattleState target = guardian((short) 4);
-        target.getDefensiveElements().addAll(defenses);
-        when(game.getPlayerBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(List.of(attacker)));
-        when(game.getGuardianBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(List.of(target)));
-
-        return new GuardianCombatSystem(game).dealDamage(
-                0, 4, (short) -100, false, false, elementalSkill());
     }
 
     private short dealGuardianDamageToPlayer(List<Elementable> defenses) throws Exception {

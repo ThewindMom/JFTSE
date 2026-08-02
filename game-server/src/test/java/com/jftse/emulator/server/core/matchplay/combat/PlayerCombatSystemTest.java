@@ -55,19 +55,19 @@ class PlayerCombatSystemTest {
     @Test
     void defensiveEnchantGradeScalesPlayerDamageReduction() throws Exception {
         // Given / When
-        short gradeEightHealth = dealWindDamage(List.of(new EarthElement(8, 8)), 2);
-        short gradeNineHealth = dealWindDamage(List.of(new EarthElement(32, 32)), 2);
+        short gradeOneMaximumHealth = dealWindDamage(List.of(new EarthElement(5, 5)), 2);
+        short gradeNineMaximumHealth = dealWindDamage(List.of(new EarthElement(32, 32)), 2);
 
         // Then
-        assertEquals(904, gradeEightHealth);
-        assertEquals(915, gradeNineHealth);
+        assertEquals(903, gradeOneMaximumHealth);
+        assertEquals(915, gradeNineMaximumHealth);
     }
 
     @Test
     void strongestDuplicateSetsThePlayerDefenseCapWithoutStacking() throws Exception {
         // Given / When
         short targetHealth = dealWindDamage(
-                List.of(new EarthElement(8, 8), new EarthElement(32, 32)), 2);
+                List.of(new EarthElement(5, 5), new EarthElement(32, 32)), 2);
 
         // Then
         assertEquals(915, targetHealth);
