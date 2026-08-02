@@ -85,6 +85,25 @@ class GuardianCombatSystemTest {
         assertEquals(915, targetHealth);
     }
 
+    @Test
+    void guardianOffensiveElementsDoNotActAsDefenseAgainstPlayers() throws Exception {
+        // Given
+        MatchplayGuardianGame game = mock(MatchplayGuardianGame.class);
+        PlayerBattleState attacker = new PlayerBattleState((short) 0, 100, 1000, 0, 0, 0, 0);
+        attacker.setOffensiveElement(new WindElement(32, 32));
+        GuardianBattleState target = guardian((short) 4);
+        target.getElements().add(new EarthElement(32, 32));
+        when(game.getPlayerBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(List.of(attacker)));
+        when(game.getGuardianBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(List.of(target)));
+
+        // When
+        short targetHealth = new GuardianCombatSystem(game).dealDamage(
+                0, 4, (short) -100, false, false, elementalSkill());
+
+        // Then
+        assertEquals(868, targetHealth);
+    }
+
     private short dealGuardianDamageToPlayer(List<Elementable> defenses) throws Exception {
         MatchplayGuardianGame game = mock(MatchplayGuardianGame.class);
         GuardianBattleState attacker = guardian((short) 4);
