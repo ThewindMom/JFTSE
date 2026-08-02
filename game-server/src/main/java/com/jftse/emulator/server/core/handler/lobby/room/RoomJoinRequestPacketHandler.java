@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.Friend;
+import com.jftse.entities.database.model.player.*;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.protocol.Packet;
