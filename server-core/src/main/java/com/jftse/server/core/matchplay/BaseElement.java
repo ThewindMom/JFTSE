@@ -27,4 +27,9 @@ public abstract class BaseElement implements Elementable {
     public double getEfficiency() {
         return minEfficiency + (maxEfficiency - minEfficiency) * random.nextDouble();
     }
+
+    @Override
+    public double getMaxEfficiency() {
+        return maxEfficiency;
+    }
 }
