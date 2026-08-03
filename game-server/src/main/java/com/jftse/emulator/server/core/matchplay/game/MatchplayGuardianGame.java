@@ -35,6 +35,8 @@ import com.jftse.entities.database.model.battle.*;
 import com.jftse.entities.database.model.item.ItemEnchantLevel;
 import com.jftse.entities.database.model.item.Product;
 import com.jftse.entities.database.model.map.SMaps;
+import com.jftse.entities.database.model.messenger.Friend;
+import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.entities.database.model.scenario.MScenarios;
@@ -267,7 +269,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return guardians;
     }
 
-    public PlayerBattleState createPlayerBattleState(RoomPlayer roomPlayer) {
+    public PlayerBattleState createPlayerBattleState(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
         int baseHp = BattleUtils.calculatePlayerHp(roomPlayer.getLevel());
         int baseStr = roomPlayer.getStrength();
         int baseSta = roomPlayer.getStamina();
@@ -278,6 +280,17 @@ public class MatchplayGuardianGame extends MatchplayGame {
         int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta();
         int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
         int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil();
+
+        Player persistedPlayer = ServiceManager.getInstance().getPlayerService().getPlayerRef(roomPlayer.getPlayerId());
+        Friend couple = ServiceManager.getInstance().getSocialService().getRelationshipWithFriend(persistedPlayer);
+        boolean coupleIsActive = couple != null && activeRoomPlayers.stream()
+                .anyMatch(player -> player.getPlayerId() == couple.getFriend().getId());
+        if (coupleIsActive) {
+            totalStr += totalStr / 20;
+            totalSta += totalSta / 20;
+            totalDex += totalDex / 20;
+            totalWill += totalWill / 20;
+        }
 
         PlayerBattleState pbs = new PlayerBattleState(roomPlayer.getPosition(), roomPlayer.getPlayerId(), totalHp, totalStr, totalSta, totalDex, totalWill);
 
