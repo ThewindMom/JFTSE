@@ -286,6 +286,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         boolean coupleIsActive = couple != null && activeRoomPlayers.stream()
                 .anyMatch(player -> player.getPlayerId() == couple.getFriend().getId());
         if (coupleIsActive) {
+            totalHp += totalHp / 20;
             totalStr += totalStr / 20;
             totalSta += totalSta / 20;
             totalDex += totalDex / 20;
