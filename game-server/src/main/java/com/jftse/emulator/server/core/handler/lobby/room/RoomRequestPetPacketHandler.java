@@ -1,11 +1,12 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
-import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.pet.CMSGRequestPet;
@@ -57,17 +58,17 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
                 return;
             }
 
-            Pet pet = roomPlayer.getPet();
+            PetView pet = roomPlayer.getPet();
             if (pet != null) {
-                roomPlayer.setPetId(null);
+                roomPlayer.setPet(null);
             } else {
-                roomPlayer.setPetId(ftClient.getActivePet().getId());
+                roomPlayer.setPet(ftClient.getActivePet());
                 pet = roomPlayer.getPet();
                 isAdd = true;
             }
 
             S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.SUCCESS, isAdd, slot, pet);
-            connection.sendTCP(petRequestRoomAnswerPacket);
+            GameManager.getInstance().sendPacketToAllClientsInSameRoom(petRequestRoomAnswerPacket, connection);
         } catch (Exception e) {
             S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null);
             connection.sendTCP(petRequestRoomAnswerPacket);

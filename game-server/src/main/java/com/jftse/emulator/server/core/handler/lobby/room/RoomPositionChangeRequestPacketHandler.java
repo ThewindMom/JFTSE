@@ -38,6 +38,17 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                     return;
                 }
 
+                if (requestingSlotChangePlayer.getPet() != null) {
+                    SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
+                            .type((byte) 2)
+                            .sender("Room")
+                            .message("You cannot change your slot while having a pet in room")
+                            .build();
+                    connection.sendTCP(msg);
+                    ftClient.getIsChangingSlot().set(false);
+                    return;
+                }
+
                 boolean requestingSlotChangePlayerIsMaster = requestingSlotChangePlayer.isMaster();
                 boolean slotIsInUse = room.getPositions().get(positionToClaim) == RoomPositionState.InUse;
                 if (slotIsInUse && !requestingSlotChangePlayerIsMaster) {
