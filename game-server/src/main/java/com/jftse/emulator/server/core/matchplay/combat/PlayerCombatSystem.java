@@ -13,8 +13,6 @@ import com.jftse.server.core.matchplay.battle.BattleState;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import lombok.extern.log4j.Log4j2;
 
-import java.util.List;
-
 @Log4j2
 public class PlayerCombatSystem implements PlayerCombatable {
     private final MatchplayGame game;
@@ -69,31 +67,11 @@ public class PlayerCombatSystem implements PlayerCombatable {
             Elementable offensiveElement = attackingPlayer != null ? attackingPlayer.getOffensiveElement() : null;
 
             if (totalDamageToDeal != -1 && offensiveElement != null && skill != null && offensiveElement.getProperty() == EElementalProperty.fromValue(skill.getElemental().byteValue())) {
-                double efficiency = offensiveElement.getEfficiency();
-                List<Elementable> defensiveElements = targetPlayer.getDefensiveElements();
-
-                Elementable strongElement = defensiveElements.stream()
-                        .filter(offensiveElement::isStrongAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable weakElement = defensiveElements.stream()
-                        .filter(offensiveElement::isWeakAgainst)
-                        .findAny()
-                        .orElse(null);
-                Elementable resistantElement = defensiveElements.stream()
-                        .filter(defensiveElement -> defensiveElement.isResistantTo(offensiveElement))
-                        .findAny()
-                        .orElse(null);
-
-                if (strongElement != null) {
-                    efficiency += 26;
-                }
-                if (weakElement != null) {
-                    efficiency -= 15;
-                }
-                if (resistantElement != null) {
-                    efficiency -= 20;
-                }
+                double efficiency = ElementalEfficiencyCalculator.calculate(
+                        offensiveElement.getEfficiency(),
+                        offensiveElement,
+                        targetPlayer.getDefensiveElements(),
+                        ElementalEfficiencyCalculator.PLAYER_PROFILE);
 
                 final double efficiencyMultiplier = 1 + (efficiency / 100.0);
                 totalDamageToDeal =  (int) (totalDamageToDeal * efficiencyMultiplier);
