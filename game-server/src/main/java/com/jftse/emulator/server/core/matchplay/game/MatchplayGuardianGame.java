@@ -35,8 +35,6 @@ import com.jftse.entities.database.model.battle.*;
 import com.jftse.entities.database.model.item.ItemEnchantLevel;
 import com.jftse.entities.database.model.item.Product;
 import com.jftse.entities.database.model.map.SMaps;
-import com.jftse.entities.database.model.messenger.Friend;
-import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.entities.database.model.scenario.MScenarios;
@@ -281,10 +279,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
         int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil();
 
-        Player persistedPlayer = ServiceManager.getInstance().getPlayerService().getPlayerRef(roomPlayer.getPlayerId());
-        Friend couple = ServiceManager.getInstance().getSocialService().getRelationshipWithFriend(persistedPlayer);
-        boolean coupleIsActive = couple != null && activeRoomPlayers.stream()
-                .anyMatch(player -> player.getPlayerId() == couple.getFriend().getId());
+        boolean coupleIsActive = hasActiveCoupleInParty(roomPlayer, activeRoomPlayers);
         if (coupleIsActive) {
             totalHp += totalHp / 20;
             totalStr += totalStr / 20;
@@ -316,6 +311,12 @@ public class MatchplayGuardianGame extends MatchplayGame {
         });
 
         return pbs;
+    }
+
+    static boolean hasActiveCoupleInParty(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
+        Long coupleId = roomPlayer.getCoupleId();
+        return coupleId != null && activeRoomPlayers.stream()
+                .anyMatch(player -> player.getPlayerId() == coupleId);
     }
 
     private Elementable getElementalProperties(PlayerPocket pp) {
