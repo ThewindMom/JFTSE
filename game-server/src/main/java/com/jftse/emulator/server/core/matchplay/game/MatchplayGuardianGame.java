@@ -267,7 +267,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return guardians;
     }
 
-    public PlayerBattleState createPlayerBattleState(RoomPlayer roomPlayer) {
+    public PlayerBattleState createPlayerBattleState(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
         int baseHp = BattleUtils.calculatePlayerHp(roomPlayer.getLevel());
         int baseStr = roomPlayer.getStrength();
         int baseSta = roomPlayer.getStamina();
@@ -278,6 +278,15 @@ public class MatchplayGuardianGame extends MatchplayGame {
         int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta();
         int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
         int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil();
+
+        boolean coupleIsActive = hasActiveCoupleInParty(roomPlayer, activeRoomPlayers);
+        if (coupleIsActive) {
+            totalHp += totalHp / 20;
+            totalStr += totalStr / 20;
+            totalSta += totalSta / 20;
+            totalDex += totalDex / 20;
+            totalWill += totalWill / 20;
+        }
 
         PlayerBattleState pbs = new PlayerBattleState(roomPlayer.getPosition(), roomPlayer.getPlayerId(), totalHp, totalStr, totalSta, totalDex, totalWill);
 
@@ -302,6 +311,12 @@ public class MatchplayGuardianGame extends MatchplayGame {
         });
 
         return pbs;
+    }
+
+    static boolean hasActiveCoupleInParty(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
+        Long coupleId = roomPlayer.getCoupleId();
+        return coupleId != null && activeRoomPlayers.stream()
+                .anyMatch(player -> player.getPlayerId() == coupleId);
     }
 
     private Elementable getElementalProperties(PlayerPocket pp) {
