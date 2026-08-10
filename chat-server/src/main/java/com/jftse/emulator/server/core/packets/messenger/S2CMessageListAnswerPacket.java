@@ -14,7 +14,17 @@ public class S2CMessageListAnswerPacket extends Packet {
 
         this.write(listType);
 
-        int size = Math.min(messageList.size(), 128);
+        int size = 0;
+        int packetSize = 10; // 8-byte header, list type and count
+        while (size < messageList.size() && size < Byte.MAX_VALUE) {
+            AbstractMessage message = messageList.get(size);
+            String playerName = (listType % 2) == 0 ? message.getSender().getName() : message.getReceiver().getName();
+            int entrySize = 22 + 2 * (playerName.length() + message.getMessage().length());
+            if (packetSize + entrySize > 16 * 1024)
+                break;
+            packetSize += entrySize;
+            size++;
+        }
         messageList = messageList.subList(0, size);
         this.write((byte) size);
         for (AbstractMessage am : messageList) {
