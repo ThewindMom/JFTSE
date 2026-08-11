@@ -26,6 +26,11 @@ public class PacketOnlyHandler extends AbstractMessageHandler<PacketMessage> {
     public void handle(PacketMessage message) {
         final FTConnection connection = gameManager.getConnectionByPlayerId(message.getReceivingPlayerId());
         if (connection != null) {
+            if (message.getPacketId() == PacketOperations.S2CYouBrokeUpWithYourCoupleAnswer.getValue()) {
+                connection.getClient().getPlayer().setCoupleId(null);
+                connection.getClient().getPlayer().setCoupleName("");
+            }
+
             connection.sendTCP(new Packet(message.getPacket()));
             log.info("Sent packet to player {}: {}", message.getReceivingPlayerId(), String.format("0x%X(%s)", message.getPacketId(), PacketOperations.getNameByValue(message.getPacketId())));
         }
