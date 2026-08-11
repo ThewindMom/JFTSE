@@ -43,4 +43,6 @@ public class Guild extends AbstractBaseModel {
     private Boolean isPublic = true;
     private Byte[] allowedCharacterType;
     private Boolean castleOwner = false;
+    private Byte castleAccessLimit = 2;
+    private Integer castleAdmissionFee = 0;
 }

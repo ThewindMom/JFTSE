@@ -17,6 +17,11 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
         if (client.getActiveRoom() != null || !client.hasPlayer())
             return;
 
+        // Mode 3 social rooms are server-managed Club Houses.
+        if (packet.getRoomType() == 1 && packet.getMode() == 3) {
+            return;
+        }
+
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
             return;
         }

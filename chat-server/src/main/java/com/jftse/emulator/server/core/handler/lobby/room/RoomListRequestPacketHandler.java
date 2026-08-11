@@ -17,6 +17,7 @@ public class RoomListRequestPacketHandler implements PacketHandler<FTConnection,
     @Override
     public void handle(FTConnection connection, CMSGRoomList packet) {
         FTClient client = connection.getClient();
+        GameManager.getInstance().refreshClubHouses();
 
         int roomType = packet.getRoomTypeTab();
         int gameMode = switch (roomType) {

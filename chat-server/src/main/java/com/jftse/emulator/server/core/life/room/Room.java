@@ -37,6 +37,16 @@ public class Room {
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
     private int status;
 
+    // Club House (social room type 1, mode 3)
+    private Long castleGuildId;
+    private String castleGuildName;
+    private byte castleAccessLimit;
+    private int castleAdmissionFee;
+
+    public boolean isClubHouse() {
+        return castleGuildId != null;
+    }
+
     // Guardian
     private boolean isHardMode; // Guardians are very strong
     private boolean isArcade; // You have to play against all guardians there are

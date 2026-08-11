@@ -67,6 +67,8 @@ public class ServiceManager {
     @Autowired
     private GuildService guildService;
     @Autowired
+    private GuildCastleService guildCastleService;
+    @Autowired
     private ItemCharService itemCharService;
     @Autowired
     private ItemRecipeService itemRecipeService;

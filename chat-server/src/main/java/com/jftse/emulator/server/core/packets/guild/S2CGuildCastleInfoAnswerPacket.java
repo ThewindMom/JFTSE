@@ -9,9 +9,11 @@ public class S2CGuildCastleInfoAnswerPacket extends Packet {
         super(PacketOperations.S2CGuildCastleInfoAnswer);
 
         this.write(unknown1);
-        this.write(unknown2);
-        this.write(unknown3);
-        this.write(accessLimit);
-        this.write(admissionFee);
+        if (unknown1 == 0) {
+            this.write(unknown2);
+            this.write(unknown3);
+            this.write(accessLimit);
+            this.write(admissionFee);
+        }
     }
 }

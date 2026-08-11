@@ -15,7 +15,7 @@ public class RoomMapChangeRequestPacketHandler implements PacketHandler<FTConnec
     public void handle(FTConnection connection, CMSGRoomChangeMap packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
-        if (room != null) {
+        if (room != null && !room.isClubHouse()) {
             synchronized (room) {
                 room.setMap(packet.getMap());
             }

@@ -20,6 +20,7 @@ fi
 
 # Ordered list of SQL files to be executed
 SQL_FILES=(
+    "clubcastle.sql"
     "config.sql"
     "status.sql"
     "maps.sql"

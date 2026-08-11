@@ -3,8 +3,10 @@ package com.jftse.entities.database.repository.guild;
 import com.jftse.entities.database.model.guild.Guild;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +21,11 @@ public interface GuildRepository extends JpaRepository<Guild, Long> {
 
     List<Guild> findAllByOrderByClubPointsDescIdAsc(Pageable pageable);
     List<Guild> findAllByOrderByLeaguePointsDescIdAsc(Pageable pageable);
+    List<Guild> findAllByCastleOwnerTrueOrderByIdAsc();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT g FROM Guild g WHERE g.id = :id")
+    Optional<Guild> findByIdForUpdate(Long id);
 
     @Query("""
               SELECT DISTINCT g

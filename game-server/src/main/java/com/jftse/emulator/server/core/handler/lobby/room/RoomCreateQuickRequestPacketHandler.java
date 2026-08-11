@@ -30,6 +30,11 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
             return;
         }
 
+        // Mode 3 social rooms are server-managed Club Houses on the chat server.
+        if (packet.getRoomType() == 1 && packet.getMode() == 3) {
+            return;
+        }
+
         FTPlayer player = client.getPlayer();
 
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {

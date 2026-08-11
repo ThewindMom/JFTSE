@@ -15,7 +15,7 @@ public class RoomQuickSlotChangePacketHandler implements PacketHandler<FTConnect
     public void handle(FTConnection connection, CMSGRoomChangeQuickSlot packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
-        if (room != null) {
+        if (room != null && !room.isClubHouse()) {
             synchronized (room) {
                 room.setQuickSlot(packet.getEnable());
             }
