@@ -587,6 +587,10 @@ public class FTPacketGen {
             final String sizeType = o.get("type");
             final boolean supportedType = supportedType(sizeType);
             if (supportedType && f.repeated) {
+                if (o.containsKey("len")) {
+                    return fixedLengthGuard("msg." + f.name, f.name, o.get("len"), "\t\t")
+                            + "msg." + f.name + ".forEach(msg::write);";
+                }
                 return "msg.write((" + mapType(new Field(sizeType, "tmp", false, o)) + ") msg." + f.name + ".size());\n\t\tmsg." + f.name + ".forEach(msg::write);";
             }
             if (supportedType) {
@@ -604,7 +608,12 @@ public class FTPacketGen {
 
         // default behavior
         if (f.repeated && !f.type.equals("bytes")) {
-            return "msg.write((" + mapType(new Field("byte", "tmp", false, o)) + ") msg." + f.name + ".size());\n\t\tmsg." + f.name + ".forEach(msg::write);";
+            if (o.containsKey("len")) {
+                return fixedLengthGuard("msg." + f.name, f.name, o.get("len"), "\t\t")
+                        + "msg." + f.name + ".forEach(msg::write);";
+            }
+            return "msg.write((" + mapType(new Field("byte", "tmp", false, o)) + ") msg." + f.name + ".size());\n\t\t"
+                    + "msg." + f.name + ".forEach(msg::write);";
         }
 
         if (f.type.equals("string")) {
@@ -694,11 +703,15 @@ public class FTPacketGen {
 
         String param = deriveLambdaName(f.type);
 
-        sb.append("msg.write((")
-                .append(mapType(new Field(sizeType, "tmp", false, o)))
-                .append(") ")
-                .append(accessor)
-                .append(".size());\n");
+        if (o.containsKey("len")) {
+            sb.append(fixedLengthGuard(accessor, f.name, o.get("len"), tabs));
+        } else {
+            sb.append("msg.write((")
+                    .append(mapType(new Field(sizeType, "tmp", false, o)))
+                    .append(") ")
+                    .append(accessor)
+                    .append(".size());\n");
+        }
 
         sb.append(tabs).append(accessor)
                 .append(".forEach(")
@@ -708,6 +721,13 @@ public class FTPacketGen {
                 .append("\n").append(tabs).append("});");
 
         return sb.toString();
+    }
+
+    private static String fixedLengthGuard(String accessor, String fieldName, String length, String indentation) {
+        return "if (" + accessor + " == null || " + accessor + ".size() != " + length + ") {\n"
+                + indentation + "\tthrow new IllegalArgumentException(\"" + fieldName
+                + " must contain exactly " + length + " elements\");\n"
+                + indentation + "}\n" + indentation;
     }
 
     private static String deriveLambdaName(String type) {
