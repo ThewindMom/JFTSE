@@ -497,11 +497,11 @@ The capture contains exact binary examples for Castle info/settings, successful 
 |---|---|
 | `runtime-client-server.pcap` | primary binary client/server traffic |
 | `pcap-summary.txt` | capture metadata, hash, representative hex |
-| `runtime-castle-change-packets.log` | decoded `0x2046/0x2047` settings flow |
-| `runtime-paid-join-packets.log` | decoded successful join and money update |
-| `runtime-insufficient-funds-packets.log` | decoded rejected join |
-| `runtime-movement-packets.log` | decoded movement requests/broadcasts |
-| `runtime-leave-packets.log` | decoded leave/result/room-list refresh |
+| `runtime-castle-change-packets.txt` | decoded `0x2046/0x2047` settings flow |
+| `runtime-paid-join-packets.txt` | decoded successful join and money update |
+| `runtime-insufficient-funds-packets.txt` | decoded rejected join |
+| `runtime-movement-packets.txt` | decoded movement requests/broadcasts |
+| `runtime-leave-packets.txt` | decoded leave/result/room-list refresh |
 | `database-validation.txt` | before/after positive and negative balance snapshots |
 | `migration-validation.txt` | idempotence and optional-audit-table checks |
 | `static-fantacastle-map-and-spawn.txt` | decrypted map and exit-tile findings |

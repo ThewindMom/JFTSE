@@ -1,0 +1,23 @@
+2026-08-11T14:12:08+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:08,067 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:12:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:14,311 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:12:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:14,328 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:12:18+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:18,090 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:12:18+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:18,452 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [16 bytes]
+2026-08-11T14:12:18+0000 e2b.local amp-svc-jftse-chat[507118]: CMSGChatHouseMove { "id": "0x18A5", "len": 8, "data": { "unk0": 0, "unk1": 5, "x": 20, "y": 15, "animationType": 1, "unk2": 0 } }
+2026-08-11T14:12:18+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:18,457 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [18 bytes]
+2026-08-11T14:12:18+0000 e2b.local amp-svc-jftse-chat[507118]: SMSGChatHouseMove { "id": "0x18A6", "len": 10, "data": { "position": 0, "unk0": 0, "unk1": 5, "x": 20, "y": 15, "animationType": 1, "unk2": 0 } }
+2026-08-11T14:12:28+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:28,098 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:12:38+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:38,104 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:12:44+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:44,312 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:12:44+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:44,343 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:12:48+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:48,109 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:12:58+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:12:58,129 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:13:08+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:08,171 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:13:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:14,314 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:13:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:14,319 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:13:18+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:18,185 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:13:22+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:22,128 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [16 bytes]
+2026-08-11T14:13:22+0000 e2b.local amp-svc-jftse-chat[507118]: CMSGChatHouseMove { "id": "0x18A5", "len": 8, "data": { "unk0": 0, "unk1": 5, "x": 17, "y": 27, "animationType": 1, "unk2": 0 } }
+2026-08-11T14:13:22+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:22,130 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [18 bytes]
+2026-08-11T14:13:22+0000 e2b.local amp-svc-jftse-chat[507118]: SMSGChatHouseMove { "id": "0x18A6", "len": 10, "data": { "position": 0, "unk0": 0, "unk1": 5, "x": 17, "y": 27, "animationType": 1, "unk2": 0 } }
+2026-08-11T14:13:28+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:13:28,190 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]

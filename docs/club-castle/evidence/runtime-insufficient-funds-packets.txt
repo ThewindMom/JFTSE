@@ -1,0 +1,16 @@
+2026-08-11T14:22:02+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:02,784 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [16 bytes]
+2026-08-11T14:22:02+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:02,790 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [10 bytes]
+2026-08-11T14:22:06+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:06,112 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [16 bytes]
+2026-08-11T14:22:06+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:06,117 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [135 bytes]
+2026-08-11T14:22:08+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:08,998 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:22:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:14,342 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:22:14+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:14,347 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:22:19+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:19,015 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:22:29+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:29,026 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:22:39+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:39,048 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:22:40+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:40,345 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [11 bytes]
+2026-08-11T14:22:40+0000 e2b.local amp-svc-jftse-chat[507118]: CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 1, "unk0": 0, "password": "" } }
+2026-08-11T14:22:40+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:40,369 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:22:40+0000 e2b.local amp-svc-jftse-chat[507118]: SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 65526, "roomType": 0, "mode": 0, "mapId": 0 } }
+2026-08-11T14:22:44+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:44,344 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:22:44+0000 e2b.local amp-svc-jftse-chat[507118]: 2026-08-11 14:22:44,356 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
