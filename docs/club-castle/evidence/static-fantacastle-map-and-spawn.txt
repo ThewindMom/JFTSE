@@ -1,0 +1,12 @@
+MapHouseRes entry:
+[Add_MapHouse]
+House_Index = 5
+House_ID    = "Castle"
+House_Path  = "Res/MapRes/DecoRes/Mesh01/Castle_Inside00.dat
+
+FantaCastle interior transition records (x, y, destination):
+offset=1873, x=15, y=36, EVENT_COMMAND_CHANGE_FTM4CHANGE_FTM_Res/MapSet/FantaCastle/FantaCastleOutSideCHANGE_FTM_50CHANGE_FTM_10
+offset=2065, x=16, y=36, EVENT_COMMAND_CHANGE_FTM4CHANGE_FTM_Res/MapSet/FantaCastle/FantaCastleOutSideCHANGE_FTM_50CHANGE_FTM_10
+offset=2257, x=17, y=36, EVENT_COMMAND_CHANGE_FTM4CHANGE_FTM_Res/MapSet/FantaCastle/FantaCastleOutSideCHANGE_FTM_50CHANGE_FTM_10
+
+Derived interior spawn: x=16 (center of 15..17), y=32 (four tiles inside y=36), matching the existing home-room convention.

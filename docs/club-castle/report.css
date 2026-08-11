@@ -1,0 +1,199 @@
+@page {
+  size: A4;
+  margin: 16mm 17mm 18mm;
+}
+
+html {
+  color: #172033;
+  font-family: "DejaVu Sans", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: #102548;
+  font-weight: 650;
+  line-height: 1.2;
+  page-break-after: avoid;
+}
+
+h1 {
+  border-bottom: 2px solid #3a72b8;
+  font-size: 24pt;
+  margin-top: 0;
+  padding-bottom: 7px;
+}
+
+h2 {
+  border-bottom: 1px solid #b9c9df;
+  font-size: 17pt;
+  margin-top: 1.3em;
+  padding-bottom: 4px;
+}
+
+h3 {
+  font-size: 13pt;
+  margin-top: 1.15em;
+}
+
+h4 {
+  font-size: 11pt;
+}
+
+p,
+li,
+table,
+pre,
+figure {
+  page-break-inside: avoid;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 9.2pt;
+  margin: 0.8em 0 1.2em;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #afbdd0;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eaf0f8;
+  color: #102548;
+}
+
+tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+code {
+  background: #eef2f7;
+  border-radius: 3px;
+  color: #27364d;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 0.88em;
+  padding: 1px 3px;
+}
+
+pre {
+  background: #172033;
+  border-left: 4px solid #4e88cf;
+  color: #f1f5fa;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.2pt;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 9px 11px;
+  white-space: pre-wrap;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+blockquote {
+  background: #f0f5fb;
+  border-left: 4px solid #3a72b8;
+  color: #263b5b;
+  margin: 1em 0;
+  padding: 7px 12px;
+}
+
+a {
+  color: #215d9c;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  height: auto;
+  margin: 0.6em auto 0.3em;
+  max-height: 205mm;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+figure {
+  margin: 0.8em 0 1.2em;
+  text-align: center;
+}
+
+figcaption {
+  color: #4a596e;
+  font-size: 8.8pt;
+  margin-top: 4px;
+}
+
+.title-page {
+  padding-top: 28mm;
+  text-align: center;
+}
+
+.title-page h1 {
+  border: 0;
+  font-size: 30pt;
+  margin-bottom: 0.3em;
+}
+
+.subtitle {
+  color: #34547c;
+  font-size: 16pt;
+  margin-bottom: 2em;
+}
+
+.metadata {
+  background: #f0f5fb;
+  border: 1px solid #c3d2e6;
+  margin: 2em auto;
+  max-width: 150mm;
+  padding: 13px 18px;
+  text-align: left;
+}
+
+.callout {
+  background: #edf7ef;
+  border: 1px solid #8ab796;
+  border-left: 5px solid #2f7d45;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.warning {
+  background: #fff7e7;
+  border: 1px solid #d9b46a;
+  border-left: 5px solid #b6790f;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.page-break {
+  page-break-before: always;
+}
+
+.small {
+  color: #4a596e;
+  font-size: 8.5pt;
+}
+
+#TOC {
+  font-size: 9.5pt;
+}
+
+#TOC ul {
+  padding-left: 1.4em;
+}

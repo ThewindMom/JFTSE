@@ -1,0 +1,35 @@
+JFTSE Club Castle database validation
+Date: 2026-08-11 UTC
+
+Paid admission, fee 755
+BEFORE
+  Player id=1, name=Master, gold=8490
+  Guild id=1, name=CastleClub, gold=1510, access=3, fee=755
+AFTER
+  Player id=1, name=Master, gold=7735
+  Guild id=1, name=CastleClub, gold=2265, access=3, fee=755
+ASSERTION
+  Player delta: -755
+  Guild delta:  +755
+  Conservation: passed
+
+Insufficient-funds admission, fee 1000
+BEFORE
+  Player id=1, name=Master, gold=500
+  Guild id=1, name=CastleClub, gold=2265, access=3, fee=1000
+AFTER
+  Player id=1, name=Master, gold=500
+  Guild id=1, name=CastleClub, gold=2265, access=3, fee=1000
+ASSERTION
+  Join rejected; neither balance changed.
+
+Movement and leave with fee 0
+AFTER
+  Player id=1, name=Master, gold=7735
+  Guild id=1, name=CastleClub, gold=2265, access=3, fee=0
+ASSERTION
+  Join, movement, and leave did not change either balance.
+
+Restored final fixture state
+  Player id=1, name=Master, gold=7735
+  Guild id=1, name=CastleClub, gold=2265, access=3, fee=0
