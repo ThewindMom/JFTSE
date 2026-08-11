@@ -1,0 +1,51 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 39/39   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+ FantaTennis.exe-276494  [003] DNZff 20506.933124: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=0 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20506.933176: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20f830
+ FantaTennis.exe-276494  [003] DNZff 20506.933211: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=0 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20516.888381: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20516.888416: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [000] DNZff 20516.888452: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20526.897991: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20526.898033: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [003] DNZff 20526.898069: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20536.917718: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20536.917752: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [001] DNZff 20536.917787: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20546.933899: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20546.933932: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [000] DNZff 20546.933967: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20556.981619: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20556.981661: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [001] DNZff 20556.981697: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [002] DNZff 20566.973208: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [002] DNZff 20566.973241: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [002] DNZff 20566.973276: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [002] DNZff 20576.987524: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [002] DNZff 20576.987559: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [002] DNZff 20576.987594: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20587.009599: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20587.009631: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [003] DNZff 20587.009666: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20597.035062: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [003] DNZff 20597.035097: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [003] DNZff 20597.035132: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20607.055269: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20607.055304: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [001] DNZff 20607.055340: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20617.058646: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [000] DNZff 20617.058718: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [000] DNZff 20617.058752: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20627.084406: c3_count: (0x5c9dcd) obj=0x30858098 loaded=1 complete=1 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-276494  [001] DNZff 20627.084439: c3_compare: (0x5c9deb) got=0xf expected=0xf obj=0x30858098 packet=0x20b930
+ FantaTennis.exe-276494  [001] DNZff 20627.084474: c3_ok: (0x5ca1c0) obj=0x30858098 loaded=1 complete=1 expected=15

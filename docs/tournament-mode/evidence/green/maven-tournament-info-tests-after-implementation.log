@@ -1,0 +1,1114 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Detecting the operating system and CPU architecture
+[INFO] ------------------------------------------------------------------------
+[INFO] os.detected.name: linux
+[INFO] os.detected.arch: x86_64
+[INFO] os.detected.bitness: 64
+[INFO] os.detected.version: 6.1
+[INFO] os.detected.version.major: 6
+[INFO] os.detected.version.minor: 1
+[INFO] os.detected.release: debian
+[INFO] os.detected.release.version: 12
+[INFO] os.detected.release.like.debian: true
+[INFO] os.detected.classifier: linux-x86_64
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO]
+[INFO] JFTSE Emulator                                                     [pom]
+[INFO] entities                                                           [jar]
+[INFO] commons                                                            [jar]
+[INFO] packet-generator                                                   [jar]
+[INFO] server-core                                                        [jar]
+[INFO] commons-proto                                                      [jar]
+[INFO] game-server                                                        [jar]
+[INFO]
+[INFO] ---------------------< com.jftse:emulator-parent >----------------------
+[INFO] Building JFTSE Emulator 1.0.0-SNAPSHOT                             [1/7]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO]
+[INFO] -------------------------< com.jftse:entities >-------------------------
+[INFO] Building entities 1.0.0-SNAPSHOT                                   [2/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ entities ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/entities/src/main/resources
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/entities/src/main/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ entities ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ entities ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/entities/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ entities ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ entities ---
+[INFO] No tests to run.
+[INFO]
+[INFO] -------------------------< com.jftse:commons >--------------------------
+[INFO] Building commons 1.0.0-SNAPSHOT                                    [3/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ commons ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons/src/main/resources
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons/src/main/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ commons ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ commons ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ commons ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ commons ---
+[INFO] No tests to run.
+[INFO]
+[INFO] ---------------------< com.jftse:packet-generator >---------------------
+[INFO] Building packet-generator 1.0.0-SNAPSHOT                           [4/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ packet-generator ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/packet-generator/src/main/resources
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/packet-generator/src/main/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ packet-generator ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ packet-generator ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/packet-generator/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ packet-generator ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ packet-generator ---
+[INFO] No tests to run.
+[INFO]
+[INFO] -----------------------< com.jftse:server-core >------------------------
+[INFO] Building server-core 1.0.0-SNAPSHOT                                [5/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- git-commit-id-plugin:4.9.10:revision (default) @ server-core ---
+[INFO] dotGitDirectory /home/user/workspace/repo/.git
+[INFO] Collected git.branch with value feature/tournament-mode
+[INFO] Collected git.commit.id.abbrev with value e817af5
+[INFO] Collected git.commit.time with value 2026-08-11 08:50:55
+[INFO] including property git.commit.id.abbrev in results
+[INFO] including property git.branch in results
+[INFO] including property git.commit.time in results
+[INFO]
+[INFO] --- exec-maven-plugin:3.3.0:java (generate-ft-packets) @ server-core ---
+[FTPacketGen] Scanning /home/user/workspace/repo/server-core/src/main/packets
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDevPacket.java
+[FTPacketGen] Generating packet class CMSGDevPacket with ID 0x0555
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDevPacket.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatClientRegister.java
+[FTPacketGen] Generating packet class CMSGAntiCheatClientRegister with ID 0x9791
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatClientRegister.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatFTGlobalVars.java
+[FTPacketGen] Generating packet class CMSGAntiCheatFTGlobalVars with ID 0x9796
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatFTGlobalVars.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatHeartBeat.java
+[FTPacketGen] Generating packet class CMSGAntiCheatHeartBeat with ID 0x9792
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatHeartBeat.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatSetFTGlobalVars.java
+[FTPacketGen] Generating packet class CMSGAntiCheatSetFTGlobalVars with ID 0x9798
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/CMSGAntiCheatSetFTGlobalVars.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/SMSGAntiCheatClientRegister.java
+[FTPacketGen] Generating packet class SMSGAntiCheatClientRegister with ID 0x9791
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/SMSGAntiCheatClientRegister.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/SMSGAntiCheatHeartBeat.java
+[FTPacketGen] Generating packet class SMSGAntiCheatHeartBeat with ID 0x9793
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ac/SMSGAntiCheatHeartBeat.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGAuthLogin.java
+[FTPacketGen] Generating packet class CMSGAuthLogin with ID 0x0FA9
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGAuthLogin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGLogin.java
+[FTPacketGen] Generating packet class CMSGLogin with ID 0x0FA1
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGLogin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGLoginFirstPlayer.java
+[FTPacketGen] Generating packet class CMSGLoginFirstPlayer with ID 0x101E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGLoginFirstPlayer.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerCreate.java
+[FTPacketGen] Generating packet class CMSGPlayerCreate with ID 0x101B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerCreate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerDelete.java
+[FTPacketGen] Generating packet class CMSGPlayerDelete with ID 0x1B6B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerDelete.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerNameChange.java
+[FTPacketGen] Generating packet class CMSGPlayerNameChange with ID 0x1022
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerNameChange.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerNameCheck.java
+[FTPacketGen] Generating packet class CMSGPlayerNameCheck with ID 0x1019
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGPlayerNameCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGRequestChannelList.java
+[FTPacketGen] Generating packet class CMSGRequestChannelList with ID 0x100F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGRequestChannelList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGRequestPlayerList.java
+[FTPacketGen] Generating packet class CMSGRequestPlayerList with ID 0x1009
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/CMSGRequestPlayerList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGAuthLogin.java
+[FTPacketGen] Generating packet class SMSGAuthLogin with ID 0x0FAA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGAuthLogin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Channel.java
+[FTPacketGen] Generating class Channel
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Channel.java (Channel)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGChannelList.java
+[FTPacketGen] Generating packet class SMSGChannelList with ID 0x1010
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGChannelList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGLogin.java
+[FTPacketGen] Generating packet class SMSGLogin with ID 0x0FA2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGLogin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGLoginFirstPlayer.java
+[FTPacketGen] Generating packet class SMSGLoginFirstPlayer with ID 0x101F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGLoginFirstPlayer.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerCreate.java
+[FTPacketGen] Generating packet class SMSGPlayerCreate with ID 0x101C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerCreate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerDelete.java
+[FTPacketGen] Generating packet class SMSGPlayerDelete with ID 0x1B6C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerDelete.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Account.java
+[FTPacketGen] Generating class Account
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Account.java (Account)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/ClothEquipment.java
+[FTPacketGen] Generating class ClothEquipment
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/ClothEquipment.java (ClothEquipment)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Player.java
+[FTPacketGen] Generating class Player
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/Player.java (Player)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerList.java
+[FTPacketGen] Generating packet class SMSGPlayerList with ID 0x1005
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameChange.java
+[FTPacketGen] Generating packet class SMSGPlayerNameChange with ID 0x1021
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameChange.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameChangeMessage.java
+[FTPacketGen] Generating packet class SMSGPlayerNameChangeMessage with ID 0x1023
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameChangeMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameCheck.java
+[FTPacketGen] Generating packet class SMSGPlayerNameCheck with ID 0x101A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/auth/SMSGPlayerNameCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDisconnectRequest.java
+[FTPacketGen] Generating packet class CMSGDisconnectRequest with ID 0x0FA7
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDisconnectRequest.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGHeartbeat.java
+[FTPacketGen] Generating packet class CMSGHeartbeat with ID 0x0FA3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGHeartbeat.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGServerTime.java
+[FTPacketGen] Generating packet class CMSGServerTime with ID 0x0FAB
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGServerTime.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGServerTimeSync.java
+[FTPacketGen] Generating packet class CMSGServerTimeSync with ID 0x1453
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGServerTimeSync.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGSessionTime.java
+[FTPacketGen] Generating packet class CMSGSessionTime with ID 0x0FA5
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGSessionTime.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGUnknown0x1071.java
+[FTPacketGen] Generating packet class CMSGUnknown0x1071 with ID 0x1071
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGUnknown0x1071.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGDisconnectMessage.java
+[FTPacketGen] Generating packet class SMSGDisconnectMessage with ID 0x2329
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGDisconnectMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGDisconnectResponse.java
+[FTPacketGen] Generating packet class SMSGDisconnectResponse with ID 0x0FA8
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGDisconnectResponse.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGInitHandshake.java
+[FTPacketGen] Generating packet class SMSGInitHandshake with ID 0xFF9A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGInitHandshake.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGInitSinglePlayGame.java
+[FTPacketGen] Generating packet class SMSGInitSinglePlayGame with ID 0x220D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGInitSinglePlayGame.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerNotice.java
+[FTPacketGen] Generating packet class SMSGServerNotice with ID 0x0FA6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerNotice.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerTime.java
+[FTPacketGen] Generating packet class SMSGServerTime with ID 0x0FAC
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerTime.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerTimeSync.java
+[FTPacketGen] Generating packet class SMSGServerTimeSync with ID 0x1452
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/SMSGServerTimeSync.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeDamage.java
+[FTPacketGen] Generating packet class CMSGChallengeDamage with ID 0x2211
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeDamage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeInitHp.java
+[FTPacketGen] Generating packet class CMSGChallengeInitHp with ID 0x2209
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeInitHp.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengePoint.java
+[FTPacketGen] Generating packet class CMSGChallengePoint with ID 0x220A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengePoint.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeProgress.java
+[FTPacketGen] Generating packet class CMSGChallengeProgress with ID 0x2206
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeProgress.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeSet.java
+[FTPacketGen] Generating packet class CMSGChallengeSet with ID 0x220B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGChallengeSet.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGRequestChallengeBegin.java
+[FTPacketGen] Generating packet class CMSGRequestChallengeBegin with ID 0x2208
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/challenge/CMSGRequestChallengeBegin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageLobby.java
+[FTPacketGen] Generating packet class CMSGChatMessageLobby with ID 0x1705
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageLobby.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGChatHouseMove.java
+[FTPacketGen] Generating packet class CMSGChatHouseMove with ID 0x18A5
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGChatHouseMove.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGChatHousePosition.java
+[FTPacketGen] Generating packet class CMSGChatHousePosition with ID 0x190A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGChatHousePosition.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGFishingEnd.java
+[FTPacketGen] Generating packet class CMSGFishingEnd with ID 0x2BDA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGFishingEnd.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGReturnBait.java
+[FTPacketGen] Generating packet class CMSGReturnBait with ID 0x2BCC
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGReturnBait.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGSetBaitLocation.java
+[FTPacketGen] Generating packet class CMSGSetBaitLocation with ID 0x2BC8
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGSetBaitLocation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeFail.java
+[FTPacketGen] Generating packet class CMSGShakeTreeFail with ID 0x2C30
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeFail.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeRequest.java
+[FTPacketGen] Generating packet class CMSGShakeTreeRequest with ID 0x2C29
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeRequest.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeSuccess.java
+[FTPacketGen] Generating packet class CMSGShakeTreeSuccess with ID 0x2C3E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGShakeTreeSuccess.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGSyncFish.java
+[FTPacketGen] Generating packet class CMSGSyncFish with ID 0x2B02
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGSyncFish.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGThrowBait.java
+[FTPacketGen] Generating packet class CMSGThrowBait with ID 0x2BC5
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/CMSGThrowBait.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGChatHouseMove.java
+[FTPacketGen] Generating packet class SMSGChatHouseMove with ID 0x18A6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGChatHouseMove.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGChatHousePosition.java
+[FTPacketGen] Generating packet class SMSGChatHousePosition with ID 0x190B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGChatHousePosition.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGInitFishWithDetails.java
+[FTPacketGen] Generating packet class SMSGInitFishWithDetails with ID 0x2B0C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGInitFishWithDetails.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGReturnBait.java
+[FTPacketGen] Generating packet class SMSGReturnBait with ID 0x2B75
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGReturnBait.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGSetBaitLocation.java
+[FTPacketGen] Generating packet class SMSGSetBaitLocation with ID 0x2BC9
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGSetBaitLocation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeFail.java
+[FTPacketGen] Generating packet class SMSGShakeTreeFail with ID 0x2C3D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeFail.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeResponse.java
+[FTPacketGen] Generating packet class SMSGShakeTreeResponse with ID 0x2C2A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeResponse.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeSuccess.java
+[FTPacketGen] Generating packet class SMSGShakeTreeSuccess with ID 0x2C42
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGShakeTreeSuccess.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGThrowBait.java
+[FTPacketGen] Generating packet class SMSGThrowBait with ID 0x2BC6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/house/SMSGThrowBait.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageRoom.java
+[FTPacketGen] Generating packet class CMSGChatMessageRoom with ID 0x1777
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageRoom.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageWhisper.java
+[FTPacketGen] Generating packet class CMSGChatMessageWhisper with ID 0x1702
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGChatMessageWhisper.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGFireCracker.java
+[FTPacketGen] Generating packet class CMSGFireCracker with ID 0x0C9E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/CMSGFireCracker.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageLobby.java
+[FTPacketGen] Generating packet class SMSGChatMessageLobby with ID 0x1706
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageLobby.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageRoom.java
+[FTPacketGen] Generating packet class SMSGChatMessageRoom with ID 0x1778
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageRoom.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageWhisper.java
+[FTPacketGen] Generating packet class SMSGChatMessageWhisper with ID 0x1703
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGChatMessageWhisper.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGFireCracker.java
+[FTPacketGen] Generating packet class SMSGFireCracker with ID 0x0C9F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/SMSGFireCracker.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/square/CMSGChatSquareMove.java
+[FTPacketGen] Generating packet class CMSGChatSquareMove with ID 0x18A2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/square/CMSGChatSquareMove.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/square/SMSGChatSquareMove.java
+[FTPacketGen] Generating packet class SMSGChatSquareMove with ID 0x18A3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/chat/square/SMSGChatSquareMove.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDefault.java
+[FTPacketGen] Generating packet class CMSGDefault with ID 0x0000
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/CMSGDefault.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/emblem/CMSGEmblemList.java
+[FTPacketGen] Generating packet class CMSGEmblemList with ID 0x226A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/emblem/CMSGEmblemList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/CMSGEnchantAnnounce.java
+[FTPacketGen] Generating packet class CMSGEnchantAnnounce with ID 0x2459
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/CMSGEnchantAnnounce.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/CMSGEnchantRequest.java
+[FTPacketGen] Generating packet class CMSGEnchantRequest with ID 0x2455
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/CMSGEnchantRequest.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/SMSGEnchantAnswer.java
+[FTPacketGen] Generating packet class SMSGEnchantAnswer with ID 0x2456
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/enchant/SMSGEnchantAnswer.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/gacha/CMSGOpenGacha.java
+[FTPacketGen] Generating packet class CMSGOpenGacha with ID 0x1F86
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/gacha/CMSGOpenGacha.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/CMSGLoginData.java
+[FTPacketGen] Generating packet class CMSGLoginData with ID 0x1069
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/CMSGLoginData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/CMSGReceiveData.java
+[FTPacketGen] Generating packet class CMSGReceiveData with ID 0x105E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/CMSGReceiveData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/SMSGLoginData.java
+[FTPacketGen] Generating packet class SMSGLoginData with ID 0x106A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/SMSGLoginData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/SMSGReceiveData.java
+[FTPacketGen] Generating packet class SMSGReceiveData with ID 0x105F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/game/SMSGReceiveData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildCastleChangeInformation.java
+[FTPacketGen] Generating packet class CMSGGuildCastleChangeInformation with ID 0x2046
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildCastleChangeInformation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeInformation.java
+[FTPacketGen] Generating packet class CMSGGuildChangeInformation with ID 0x2017
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeInformation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeLogo.java
+[FTPacketGen] Generating packet class CMSGGuildChangeLogo with ID 0x2034
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeLogo.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeMaster.java
+[FTPacketGen] Generating packet class CMSGGuildChangeMaster with ID 0x201F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeMaster.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeNotice.java
+[FTPacketGen] Generating packet class CMSGGuildChangeNotice with ID 0x202E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeNotice.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeReverseMember.java
+[FTPacketGen] Generating packet class CMSGGuildChangeReverseMember with ID 0x203F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeReverseMember.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeSubMaster.java
+[FTPacketGen] Generating packet class CMSGGuildChangeSubMaster with ID 0x2021
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChangeSubMaster.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChatMessage.java
+[FTPacketGen] Generating packet class CMSGGuildChatMessage with ID 0x2030
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildChatMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildCreate.java
+[FTPacketGen] Generating packet class CMSGGuildCreate with ID 0x200B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildCreate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildData.java
+[FTPacketGen] Generating packet class CMSGGuildData with ID 0x200D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildDelete.java
+[FTPacketGen] Generating packet class CMSGGuildDelete with ID 0x2026
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildDelete.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildDismissMember.java
+[FTPacketGen] Generating packet class CMSGGuildDismissMember with ID 0x2023
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildDismissMember.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildJoin.java
+[FTPacketGen] Generating packet class CMSGGuildJoin with ID 0x2011
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildLeagueList.java
+[FTPacketGen] Generating packet class CMSGGuildLeagueList with ID 0x26F2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildLeagueList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildLeave.java
+[FTPacketGen] Generating packet class CMSGGuildLeave with ID 0x2014
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildLeave.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildList.java
+[FTPacketGen] Generating packet class CMSGGuildList with ID 0x200F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildMemberData.java
+[FTPacketGen] Generating packet class CMSGGuildMemberData with ID 0x201A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildMemberData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildNameCheck.java
+[FTPacketGen] Generating packet class CMSGGuildNameCheck with ID 0x2009
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildNameCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildNotice.java
+[FTPacketGen] Generating packet class CMSGGuildNotice with ID 0x1FFE
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildNotice.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildReverseMemberData.java
+[FTPacketGen] Generating packet class CMSGGuildReverseMemberData with ID 0x2018
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildReverseMemberData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildSearch.java
+[FTPacketGen] Generating packet class CMSGGuildSearch with ID 0x203A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/CMSGGuildSearch.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildCastleChangeInformation.java
+[FTPacketGen] Generating packet class SMSGGuildCastleChangeInformation with ID 0x2047
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildCastleChangeInformation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeLogo.java
+[FTPacketGen] Generating packet class SMSGGuildChangeLogo with ID 0x2035
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeLogo.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeMaster.java
+[FTPacketGen] Generating packet class SMSGGuildChangeMaster with ID 0x2020
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeMaster.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeNotice.java
+[FTPacketGen] Generating packet class SMSGGuildChangeNotice with ID 0x202F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeNotice.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeReverseMember.java
+[FTPacketGen] Generating packet class SMSGGuildChangeReverseMember with ID 0x2040
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeReverseMember.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeSubMaster.java
+[FTPacketGen] Generating packet class SMSGGuildChangeSubMaster with ID 0x2022
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChangeSubMaster.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChatMessage.java
+[FTPacketGen] Generating packet class SMSGGuildChatMessage with ID 0x2031
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildChatMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildCreate.java
+[FTPacketGen] Generating packet class SMSGGuildCreate with ID 0x200C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildCreate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildDelete.java
+[FTPacketGen] Generating packet class SMSGGuildDelete with ID 0x2027
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildDelete.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildDismissMember.java
+[FTPacketGen] Generating packet class SMSGGuildDismissMember with ID 0x2024
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildDismissMember.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildJoin.java
+[FTPacketGen] Generating packet class SMSGGuildJoin with ID 0x2012
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/GuildLeagueInfo.java
+[FTPacketGen] Generating class GuildLeagueInfo
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/GuildLeagueInfo.java (GuildLeagueInfo)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildLeagueList.java
+[FTPacketGen] Generating packet class SMSGGuildLeagueList with ID 0x26F3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildLeagueList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildLeave.java
+[FTPacketGen] Generating packet class SMSGGuildLeave with ID 0x2015
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildLeave.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildNameCheck.java
+[FTPacketGen] Generating packet class SMSGGuildNameCheck with ID 0x200A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildNameCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildNotice.java
+[FTPacketGen] Generating packet class SMSGGuildNotice with ID 0x1FFF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/guild/SMSGGuildNotice.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGClearHomeItems.java
+[FTPacketGen] Generating packet class CMSGClearHomeItems with ID 0x2552
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGClearHomeItems.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGHomeData.java
+[FTPacketGen] Generating packet class CMSGHomeData with ID 0x1518
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGHomeData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGLoadHomeItems.java
+[FTPacketGen] Generating packet class CMSGLoadHomeItems with ID 0x254E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGLoadHomeItems.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/HomeItem.java
+[FTPacketGen] Generating class HomeItem
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/HomeItem.java (HomeItem)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGPlaceHomeItems.java
+[FTPacketGen] Generating packet class CMSGPlaceHomeItems with ID 0x2550
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGPlaceHomeItems.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGRemoveHomeItems.java
+[FTPacketGen] Generating packet class CMSGRemoveHomeItems with ID 0x2551
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/home/CMSGRemoveHomeItems.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGCombineNowRecipe.java
+[FTPacketGen] Generating packet class CMSGCombineNowRecipe with ID 0x23BE
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGCombineNowRecipe.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryItemTimeExpired.java
+[FTPacketGen] Generating packet class CMSGInventoryItemTimeExpired with ID 0x1BBC
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryItemTimeExpired.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventorySell.java
+[FTPacketGen] Generating packet class CMSGInventorySell with ID 0x1D06
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventorySell.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventorySellItemCheck.java
+[FTPacketGen] Generating packet class CMSGInventorySellItemCheck with ID 0x1D08
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventorySellItemCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearBattlemon.java
+[FTPacketGen] Generating packet class CMSGInventoryWearBattlemon with ID 0x1BDB
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearBattlemon.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearCard.java
+[FTPacketGen] Generating packet class CMSGInventoryWearCard with ID 0x1C21
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearCard.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearCloth.java
+[FTPacketGen] Generating packet class CMSGInventoryWearCloth with ID 0x1B63
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearCloth.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearQuick.java
+[FTPacketGen] Generating packet class CMSGInventoryWearQuick with ID 0x1BD8
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearQuick.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearSpecial.java
+[FTPacketGen] Generating packet class CMSGInventoryWearSpecial with ID 0x1B70
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearSpecial.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearTool.java
+[FTPacketGen] Generating packet class CMSGInventoryWearTool with ID 0x1D04
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGInventoryWearTool.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGUnknownInventoryOpen.java
+[FTPacketGen] Generating packet class CMSGUnknownInventoryOpen with ID 0x237C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/CMSGUnknownInventoryOpen.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventoryRemoveItem.java
+[FTPacketGen] Generating packet class SMSGInventoryRemoveItem with ID 0x1B74
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventoryRemoveItem.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventorySell.java
+[FTPacketGen] Generating packet class SMSGInventorySell with ID 0x1D07
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventorySell.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventorySellItemCheck.java
+[FTPacketGen] Generating packet class SMSGInventorySellItemCheck with ID 0x1D09
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/inventory/SMSGInventorySellItemCheck.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/ItemSetting.java
+[FTPacketGen] Generating class ItemSetting
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/ItemSetting.java (ItemSetting)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGItemSettings.java
+[FTPacketGen] Generating packet class CMSGItemSettings with ID 0x18B7
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGItemSettings.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGPersonalBoard.java
+[FTPacketGen] Generating packet class CMSGPersonalBoard with ID 0x22CD
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGPersonalBoard.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGPlayerAnnounce.java
+[FTPacketGen] Generating packet class CMSGPlayerAnnounce with ID 0x22C5
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/CMSGPlayerAnnounce.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/SMSGItemSettings.java
+[FTPacketGen] Generating packet class SMSGItemSettings with ID 0x18B6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/SMSGItemSettings.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/SMSGPlayerAnnounce.java
+[FTPacketGen] Generating packet class SMSGPlayerAnnounce with ID 0x22C7
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/item/SMSGPlayerAnnounce.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyJoin.java
+[FTPacketGen] Generating packet class CMSGLobbyJoin with ID 0x237A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGClientBackInRoom.java
+[FTPacketGen] Generating packet class CMSGClientBackInRoom with ID 0x1773
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGClientBackInRoom.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeAllowBattlemon.java
+[FTPacketGen] Generating packet class CMSGRoomChangeAllowBattlemon with ID 0x1793
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeAllowBattlemon.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeGameMode.java
+[FTPacketGen] Generating packet class CMSGRoomChangeGameMode with ID 0x18B2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeGameMode.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeIsPrivate.java
+[FTPacketGen] Generating packet class CMSGRoomChangeIsPrivate with ID 0x178E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeIsPrivate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeLevelRange.java
+[FTPacketGen] Generating packet class CMSGRoomChangeLevelRange with ID 0x178F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeLevelRange.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeMap.java
+[FTPacketGen] Generating packet class CMSGRoomChangeMap with ID 0x1788
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeMap.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeName.java
+[FTPacketGen] Generating packet class CMSGRoomChangeName with ID 0x1791
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeName.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangePosition.java
+[FTPacketGen] Generating packet class CMSGRoomChangePosition with ID 0x1785
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangePosition.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeQuickSlot.java
+[FTPacketGen] Generating packet class CMSGRoomChangeQuickSlot with ID 0x17A2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeQuickSlot.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeReady.java
+[FTPacketGen] Generating packet class CMSGRoomChangeReady with ID 0x1775
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeReady.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeSkillFree.java
+[FTPacketGen] Generating packet class CMSGRoomChangeSkillFree with ID 0x1795
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomChangeSkillFree.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCloseSlot.java
+[FTPacketGen] Generating packet class CMSGRoomCloseSlot with ID 0x1D4C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCloseSlot.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCreate.java
+[FTPacketGen] Generating packet class CMSGRoomCreate with ID 0x1389
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCreate.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCreateQuick.java
+[FTPacketGen] Generating packet class CMSGRoomCreateQuick with ID 0x138F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomCreateQuick.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomFitting.java
+[FTPacketGen] Generating packet class CMSGRoomFitting with ID 0x1D60
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomFitting.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomJoin.java
+[FTPacketGen] Generating packet class CMSGRoomJoin with ID 0x138B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomKickPlayer.java
+[FTPacketGen] Generating packet class CMSGRoomKickPlayer with ID 0x178B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomKickPlayer.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomLeave.java
+[FTPacketGen] Generating packet class CMSGRoomLeave with ID 0x1771
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomLeave.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomList.java
+[FTPacketGen] Generating packet class CMSGRoomList with ID 0x13EC
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomUserInfo.java
+[FTPacketGen] Generating packet class CMSGRoomUserInfo with ID 0x139A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/CMSGRoomUserInfo.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGClientBackInRoom.java
+[FTPacketGen] Generating packet class SMSGClientBackInRoom with ID 0x1774
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGClientBackInRoom.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeAllowBattlemon.java
+[FTPacketGen] Generating packet class SMSGRoomChangeAllowBattlemon with ID 0x1794
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeAllowBattlemon.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeMap.java
+[FTPacketGen] Generating packet class SMSGRoomChangeMap with ID 0x1789
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeMap.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangePosition.java
+[FTPacketGen] Generating packet class SMSGRoomChangePosition with ID 0x1786
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangePosition.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeQuickSlot.java
+[FTPacketGen] Generating packet class SMSGRoomChangeQuickSlot with ID 0x17A3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeQuickSlot.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeReady.java
+[FTPacketGen] Generating packet class SMSGRoomChangeReady with ID 0x1776
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeReady.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeSkillFree.java
+[FTPacketGen] Generating packet class SMSGRoomChangeSkillFree with ID 0x1796
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomChangeSkillFree.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomCloseSlot.java
+[FTPacketGen] Generating packet class SMSGRoomCloseSlot with ID 0x1D4E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomCloseSlot.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomFitting.java
+[FTPacketGen] Generating packet class SMSGRoomFitting with ID 0x1D61
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomFitting.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomJoin.java
+[FTPacketGen] Generating packet class SMSGRoomJoin with ID 0x138C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomLeave.java
+[FTPacketGen] Generating packet class SMSGRoomLeave with ID 0x1772
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomLeave.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomSwapPosition.java
+[FTPacketGen] Generating packet class SMSGRoomSwapPosition with ID 0x1787
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/room/SMSGRoomSwapPosition.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyLeave.java
+[FTPacketGen] Generating packet class CMSGLobbyLeave with ID 0x2379
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyLeave.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyOption.java
+[FTPacketGen] Generating packet class CMSGLobbyOption with ID 0x189E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyOption.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserInfo.java
+[FTPacketGen] Generating packet class CMSGLobbyUserInfo with ID 0x139C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserInfo.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserInfoCloth.java
+[FTPacketGen] Generating packet class CMSGLobbyUserInfoCloth with ID 0x1BDF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserInfoCloth.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserList.java
+[FTPacketGen] Generating packet class CMSGLobbyUserList with ID 0x1707
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGLobbyUserList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGRoomLobbyJoin.java
+[FTPacketGen] Generating packet class CMSGRoomLobbyJoin with ID 0x189C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/CMSGRoomLobbyJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/SMSGLobbyOption.java
+[FTPacketGen] Generating packet class SMSGLobbyOption with ID 0x189F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/SMSGLobbyOption.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/SMSGRoomLobbyJoin.java
+[FTPacketGen] Generating packet class SMSGRoomLobbyJoin with ID 0x189D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/lobby/SMSGRoomLobbyJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGConnectedToRelay.java
+[FTPacketGen] Generating packet class CMSGConnectedToRelay with ID 0x03F3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGConnectedToRelay.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPickupItemReward.java
+[FTPacketGen] Generating packet class CMSGPickupItemReward with ID 0x1D52
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPickupItemReward.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPlayerPickupCrystal.java
+[FTPacketGen] Generating packet class CMSGPlayerPickupCrystal with ID 0x18E7
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPlayerPickupCrystal.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPlayerUseSkill.java
+[FTPacketGen] Generating packet class CMSGPlayerUseSkill with ID 0x18E9
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPlayerUseSkill.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPoint.java
+[FTPacketGen] Generating packet class CMSGPoint with ID 0x183F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGPoint.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGReadyToSkip.java
+[FTPacketGen] Generating packet class CMSGReadyToSkip with ID 0x17DD
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGReadyToSkip.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGRelayServerProblem.java
+[FTPacketGen] Generating packet class CMSGRelayServerProblem with ID 0x03F1
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGRelayServerProblem.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSkipped.java
+[FTPacketGen] Generating packet class CMSGSkipped with ID 0x17E1
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSkipped.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSpellHitsTarget.java
+[FTPacketGen] Generating packet class CMSGSpellHitsTarget with ID 0x22F1
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSpellHitsTarget.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGStartGame.java
+[FTPacketGen] Generating packet class CMSGStartGame with ID 0x177B
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGStartGame.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSwapSpell.java
+[FTPacketGen] Generating packet class CMSGSwapSpell with ID 0x0C97
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/CMSGSwapSpell.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGAllowSkip.java
+[FTPacketGen] Generating packet class SMSGAllowSkip with ID 0x17E0
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGAllowSkip.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGCancelStartGame.java
+[FTPacketGen] Generating packet class SMSGCancelStartGame with ID 0x17F3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGCancelStartGame.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGConnectedToRelay.java
+[FTPacketGen] Generating packet class SMSGConnectedToRelay with ID 0x03EF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGConnectedToRelay.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGPickupItemReward.java
+[FTPacketGen] Generating packet class SMSGPickupItemReward with ID 0x1D53
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGPickupItemReward.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGPlayerUseSkill.java
+[FTPacketGen] Generating packet class SMSGPlayerUseSkill with ID 0x18EA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGPlayerUseSkill.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSetHost.java
+[FTPacketGen] Generating packet class SMSGSetHost with ID 0x177E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSetHost.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSetHostUnknown.java
+[FTPacketGen] Generating packet class SMSGSetHostUnknown with ID 0x17DA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSetHostUnknown.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSkipped.java
+[FTPacketGen] Generating packet class SMSGSkipped with ID 0x17E2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGSkipped.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGStartGame.java
+[FTPacketGen] Generating packet class SMSGStartGame with ID 0x17DE
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGStartGame.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGUnsetHost.java
+[FTPacketGen] Generating packet class SMSGUnsetHost with ID 0x17D6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/matchplay/SMSGUnsetHost.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAcceptParcel.java
+[FTPacketGen] Generating packet class CMSGAcceptParcel with ID 0x21A2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAcceptParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAcceptProposal.java
+[FTPacketGen] Generating packet class CMSGAcceptProposal with ID 0x2521
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAcceptProposal.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAddFriend.java
+[FTPacketGen] Generating packet class CMSGAddFriend with ID 0x1F41
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAddFriend.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAddFriendApproval.java
+[FTPacketGen] Generating packet class CMSGAddFriendApproval with ID 0x1F45
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGAddFriendApproval.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGCancelParcel.java
+[FTPacketGen] Generating packet class CMSGCancelParcel with ID 0x21A4
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGCancelParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDeleteFriend.java
+[FTPacketGen] Generating packet class CMSGDeleteFriend with ID 0x1F55
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDeleteFriend.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDeleteMessage.java
+[FTPacketGen] Generating packet class CMSGDeleteMessage with ID 0x1F62
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDeleteMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDenyParcel.java
+[FTPacketGen] Generating packet class CMSGDenyParcel with ID 0x21A0
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGDenyParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGFriendList.java
+[FTPacketGen] Generating packet class CMSGFriendList with ID 0x1F49
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGFriendList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGGuildMemberList.java
+[FTPacketGen] Generating packet class CMSGGuildMemberList with ID 0x1FBA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGGuildMemberList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGMessageList.java
+[FTPacketGen] Generating packet class CMSGMessageList with ID 0x1F63
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGMessageList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGParcelList.java
+[FTPacketGen] Generating packet class CMSGParcelList with ID 0x219C
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGParcelList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGProposalList.java
+[FTPacketGen] Generating packet class CMSGProposalList with ID 0x2526
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGProposalList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSeeMessage.java
+[FTPacketGen] Generating packet class CMSGSeeMessage with ID 0x1F67
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSeeMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendGift.java
+[FTPacketGen] Generating packet class CMSGSendGift with ID 0x1F73
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendGift.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendMessage.java
+[FTPacketGen] Generating packet class CMSGSendMessage with ID 0x1F5F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendMessage.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendParcel.java
+[FTPacketGen] Generating packet class CMSGSendParcel with ID 0x2199
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendProposal.java
+[FTPacketGen] Generating packet class CMSGSendProposal with ID 0x251D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/CMSGSendProposal.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGAcceptParcel.java
+[FTPacketGen] Generating packet class SMSGAcceptParcel with ID 0x21A3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGAcceptParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGAddFriend.java
+[FTPacketGen] Generating packet class SMSGAddFriend with ID 0x1F42
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGAddFriend.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGCancelParcel.java
+[FTPacketGen] Generating packet class SMSGCancelParcel with ID 0x21A5
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGCancelParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGDeleteParcel.java
+[FTPacketGen] Generating packet class SMSGDeleteParcel with ID 0x21A6
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGDeleteParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGReceivedPresent.java
+[FTPacketGen] Generating packet class SMSGReceivedPresent with ID 0x2135
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGReceivedPresent.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGSendParcel.java
+[FTPacketGen] Generating packet class SMSGSendParcel with ID 0x219A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGSendParcel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGSendProposal.java
+[FTPacketGen] Generating packet class SMSGSendProposal with ID 0x251E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/messenger/SMSGSendProposal.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPetData.java
+[FTPacketGen] Generating packet class CMSGPetData with ID 0x151A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPetData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPetNameCheck.java
+[FTPacketGen] Generating class CMSGPetNameCheck
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPetNameCheck.java (CMSGPetNameCheck)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPickupPet.java
+[FTPacketGen] Generating packet class CMSGPickupPet with ID 0x151E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGPickupPet.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGRequestPet.java
+[FTPacketGen] Generating packet class CMSGRequestPet with ID 0x1D56
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGRequestPet.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGRevivePet.java
+[FTPacketGen] Generating class CMSGRevivePet
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/CMSGRevivePet.java (CMSGRevivePet)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/SMSGPickupPet.java
+[FTPacketGen] Generating packet class SMSGPickupPet with ID 0x151F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/pet/SMSGPickupPet.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/CMSGChangePlayerStatPoints.java
+[FTPacketGen] Generating packet class CMSGChangePlayerStatPoints with ID 0x1B6D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/CMSGChangePlayerStatPoints.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/CMSGUseQuickSlot.java
+[FTPacketGen] Generating packet class CMSGUseQuickSlot with ID 0x1BDA
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/CMSGUseQuickSlot.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/SMSGSetCouplePoints.java
+[FTPacketGen] Generating packet class SMSGSetCouplePoints with ID 0x252D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/player/SMSGSetCouplePoints.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingData.java
+[FTPacketGen] Generating packet class CMSGRankingData with ID 0x206F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingPersonalData.java
+[FTPacketGen] Generating packet class CMSGRankingPersonalData with ID 0x206D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingPersonalData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingClubData.java
+[FTPacketGen] Generating packet class CMSGRankingClubData with ID 0x4000
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/CMSGRankingClubData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/RankingClubDataRow.java
+[FTPacketGen] Generating class RankingClubDataRow
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/RankingClubDataRow.java (RankingClubDataRow)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/SMSGRankingClubData.java
+[FTPacketGen] Generating packet class SMSGRankingClubData with ID 0x4001
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/ranking/SMSGRankingClubData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGBallAnimation.java
+[FTPacketGen] Generating packet class CMSGBallAnimation with ID 0x10E3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGBallAnimation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGPlayerAnimation.java
+[FTPacketGen] Generating packet class CMSGPlayerAnimation with ID 0x32C9
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGPlayerAnimation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGPlayerJoinSession.java
+[FTPacketGen] Generating packet class CMSGPlayerJoinSession with ID 0x03ED
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGPlayerJoinSession.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGRelay.java
+[FTPacketGen] Generating packet class CMSGRelay with ID 0x0414
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGRelay.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGSpiderMineExplode.java
+[FTPacketGen] Generating packet class CMSGSpiderMineExplode with ID 0x3391
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGSpiderMineExplode.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGSpiderMinePlaced.java
+[FTPacketGen] Generating packet class CMSGSpiderMinePlaced with ID 0x3390
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/CMSGSpiderMinePlaced.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGBallAnimation.java
+[FTPacketGen] Generating packet class SMSGBallAnimation with ID 0x10E3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGBallAnimation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGPlayerAnimation.java
+[FTPacketGen] Generating packet class SMSGPlayerAnimation with ID 0x32C9
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGPlayerAnimation.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGPlayerJoinSessionResult.java
+[FTPacketGen] Generating packet class SMSGPlayerJoinSessionResult with ID 0x03EF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGPlayerJoinSessionResult.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGSpiderMineExplode.java
+[FTPacketGen] Generating packet class SMSGSpiderMineExplode with ID 0x3391
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGSpiderMineExplode.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGSpiderMinePlaced.java
+[FTPacketGen] Generating packet class SMSGSpiderMinePlaced with ID 0x3390
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/relay/SMSGSpiderMinePlaced.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGGetMoney.java
+[FTPacketGen] Generating packet class CMSGGetMoney with ID 0x1B60
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGGetMoney.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/ShopBuy.java
+[FTPacketGen] Generating class ShopBuy
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/ShopBuy.java (ShopBuy)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopBuy.java
+[FTPacketGen] Generating packet class CMSGShopBuy with ID 0x1B67
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopBuy.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGRedeemCouponCode.java
+[FTPacketGen] Generating packet class CMSGRedeemCouponCode with ID 0x2137
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGRedeemCouponCode.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopData.java
+[FTPacketGen] Generating packet class CMSGShopData with ID 0x2387
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopData.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopDataPrepare.java
+[FTPacketGen] Generating packet class CMSGShopDataPrepare with ID 0x2389
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopDataPrepare.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopMaintenance.java
+[FTPacketGen] Generating packet class CMSGShopMaintenance with ID 0x2382
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/CMSGShopMaintenance.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGSetMoney.java
+[FTPacketGen] Generating packet class SMSGSetMoney with ID 0x1B61
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGSetMoney.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGShopDataPrepare.java
+[FTPacketGen] Generating packet class SMSGShopDataPrepare with ID 0x238A
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGShopDataPrepare.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGShopMaintenance.java
+[FTPacketGen] Generating packet class SMSGShopMaintenance with ID 0x2383
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/shop/SMSGShopMaintenance.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGRequestTutorialBegin.java
+[FTPacketGen] Generating packet class CMSGRequestTutorialBegin with ID 0x220D
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGRequestTutorialBegin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGTutorialEnd.java
+[FTPacketGen] Generating packet class CMSGTutorialEnd with ID 0x220E
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGTutorialEnd.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGTutorialProgress.java
+[FTPacketGen] Generating packet class CMSGTutorialProgress with ID 0x220F
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tutorial/CMSGTutorialProgress.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/TournamentReward.java
+[FTPacketGen] Generating class TournamentReward
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/TournamentReward.java (TournamentReward)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/TournamentPair.java
+[FTPacketGen] Generating class TournamentPair
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/TournamentPair.java (TournamentPair)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/Tournament.java
+[FTPacketGen] Generating class Tournament
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/Tournament.java (Tournament)
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentJoin.java
+[FTPacketGen] Generating packet class CMSGTournamentJoin with ID 0x26AD
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentJoin.java
+[FTPacketGen] Generating packet class SMSGTournamentJoin with ID 0x26AE
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentJoin.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentList.java
+[FTPacketGen] Generating packet class CMSGTournamentList with ID 0x26AF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentList.java
+[FTPacketGen] Generating packet class SMSGTournamentList with ID 0x26B0
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentList.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentApply.java
+[FTPacketGen] Generating packet class CMSGTournamentApply with ID 0x26B1
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentApply.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentApply.java
+[FTPacketGen] Generating packet class SMSGTournamentApply with ID 0x26B2
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentApply.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentCancel.java
+[FTPacketGen] Generating packet class CMSGTournamentCancel with ID 0x26B3
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentCancel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentCancel.java
+[FTPacketGen] Generating packet class SMSGTournamentCancel with ID 0x26B4
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentCancel.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentInfo.java
+[FTPacketGen] Generating packet class CMSGTournamentInfo with ID 0x26BE
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/CMSGTournamentInfo.java
+[FTPacketGen] Generating /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentInfo.java
+[FTPacketGen] Generating packet class SMSGTournamentInfo with ID 0x26BF
+[FTPacketGen] Generated /home/user/workspace/repo/server-core/target/generated-sources/packets/com/jftse/server/core/shared/packets/tournament/SMSGTournamentInfo.java
+[FTPacketGen] Generated PacketAutoRegister with 172 packets.
+[FTPacketGen] Done. Generated classes in /home/user/workspace/repo/server-core/target/generated-sources/packets
+[INFO]
+[INFO] --- build-helper-maven-plugin:3.5.0:add-source (add-generated-packets) @ server-core ---
+[INFO] Source directory: /home/user/workspace/repo/server-core/target/generated-sources/packets added.
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ server-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 3 resources
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (filter-build-info) @ server-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 3 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ server-core ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 492 source files to /home/user/workspace/repo/server-core/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ server-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/server-core/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ server-core ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ server-core ---
+[INFO] No tests to run.
+[INFO]
+[INFO] ----------------------< com.jftse:commons-proto >-----------------------
+[INFO] Building commons-proto 1.0.0-SNAPSHOT                              [6/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- protobuf-maven-plugin:0.6.1:compile (default) @ commons-proto ---
+[INFO] Compiling 2 proto file(s) to /home/user/workspace/repo/commons-proto/target/generated-sources/protobuf/java
+[WARNING] PROTOC: action.proto:3:1: warning: Import google/protobuf/empty.proto is unused.
+
+[INFO]
+[INFO] --- protobuf-maven-plugin:0.6.1:compile-custom (default) @ commons-proto ---
+[INFO] Compiling 2 proto file(s) to /home/user/workspace/repo/commons-proto/target/generated-sources/protobuf/grpc-java
+[WARNING] PROTOC: action.proto:3:1: warning: Import google/protobuf/empty.proto is unused.
+
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ commons-proto ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons-proto/src/main/resources
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons-proto/src/main/resources
+[INFO] Copying 2 resources
+[INFO] Copying 2 resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ commons-proto ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 7 source files to /home/user/workspace/repo/commons-proto/target/classes
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ commons-proto ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/commons-proto/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ commons-proto ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ commons-proto ---
+[INFO] No tests to run.
+[INFO]
+[INFO] -----------------------< com.jftse:game-server >------------------------
+[INFO] Building game-server 1.0.0-SNAPSHOT                                [7/7]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ game-server ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 1 resource
+[INFO] Copying 135 resources
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:copy-resources (copy-resources) @ game-server ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 22 resources
+[INFO] Copying 1 resource
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ game-server ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 436 source files to /home/user/workspace/repo/game-server/target/classes
+[INFO] /home/user/workspace/repo/game-server/src/main/java/com/jftse/emulator/server/core/matchplay/GameSessionManager.java: Some input files use or override a deprecated API.
+[INFO] /home/user/workspace/repo/game-server/src/main/java/com/jftse/emulator/server/core/matchplay/GameSessionManager.java: Recompile with -Xlint:deprecation for details.
+[INFO]
+[INFO] --- maven-resources-plugin:3.2.0:testResources (default-testResources) @ game-server ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] skip non existing resourceDirectory /home/user/workspace/repo/game-server/src/test/resources
+[INFO]
+[INFO] --- maven-compiler-plugin:3.10.1:testCompile (default-testCompile) @ game-server ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 6 source files to /home/user/workspace/repo/game-server/target/test-classes
+[INFO]
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ game-server ---
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.jftse.emulator.server.core.tournament.TournamentPacketProtocolTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.885 s - in com.jftse.emulator.server.core.tournament.TournamentPacketProtocolTest
+[INFO] Running com.jftse.emulator.server.core.handler.tournament.TournamentInfoPacketHandlerTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in com.jftse.emulator.server.core.handler.tournament.TournamentInfoPacketHandlerTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for JFTSE Emulator 1.0.0-SNAPSHOT:
+[INFO]
+[INFO] JFTSE Emulator ..................................... SUCCESS [  0.002 s]
+[INFO] entities ........................................... SUCCESS [  1.135 s]
+[INFO] commons ............................................ SUCCESS [  0.169 s]
+[INFO] packet-generator ................................... SUCCESS [  0.031 s]
+[INFO] server-core ........................................ SUCCESS [ 14.666 s]
+[INFO] commons-proto ...................................... SUCCESS [  1.115 s]
+[INFO] game-server ........................................ SUCCESS [  8.908 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  26.846 s
+[INFO] Finished at: 2026-08-11T11:22:53Z
+[INFO] ------------------------------------------------------------------------

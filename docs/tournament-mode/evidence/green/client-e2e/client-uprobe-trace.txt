@@ -1,0 +1,18 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 6/6   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+ FantaTennis.exe-201030  [001] DNZff 15259.465844: lookup_call: (0x5c7920) id=1 esi=0x21377c eax=0xd
+ FantaTennis.exe-201030  [001] DNZff 15259.465848: lookup_return: (0x5c792c) result=0x39a14888 esi=0x21377c
+ FantaTennis.exe-201030  [002] DNZff 15303.012444: modal_call: (0x5ac050) caller=6057896 arg1=1576877120 arg2=3 arg3=108 arg4=0 arg5=0 ecx=0x41f16c18
+ FantaTennis.exe-201030  [002] DNZff 15334.112675: modal_call: (0x5ac050) caller=6058885 arg1=1576877584 arg2=1 arg3=0 arg4=0 arg5=0 ecx=0x41f16c18
+ FantaTennis.exe-201030  [003] DNZff 15367.832129: modal_call: (0x5ac050) caller=6057923 arg1=1576877344 arg2=3 arg3=109 arg4=0 arg5=0 ecx=0x41f16c18
+ FantaTennis.exe-201030  [001] DNZff 15433.405111: modal_call: (0x5ac050) caller=6059396 arg1=1576878120 arg2=1 arg3=0 arg4=0 arg5=0 ecx=0x41f16c18
