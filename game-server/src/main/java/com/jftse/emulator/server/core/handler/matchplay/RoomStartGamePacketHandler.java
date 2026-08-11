@@ -152,12 +152,12 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                                     c.getConnection().sendTCP(roomPlayerInformationPacket);
 
                                     for (RoomPlayer rp : filteredRoomPlayerList) {
-                                        short pos = rp.getPosition();
                                         PetView pet = rp.getPet();
-                                        byte slot = pos == 0 ? (byte) 0 : (byte) 1;
-
-                                        S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet);
-                                        c.getConnection().sendTCP(petRequestRoomAnswerPacket);
+                                        if (pet != null) {
+                                            byte slot = rp.getPosition() == 0 ? (byte) 0 : (byte) 1;
+                                            S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet);
+                                            c.getConnection().sendTCP(petRequestRoomAnswerPacket);
+                                        }
                                     }
                                 }
                             });
