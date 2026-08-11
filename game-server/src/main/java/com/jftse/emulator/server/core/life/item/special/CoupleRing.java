@@ -69,6 +69,7 @@ public class CoupleRing extends BaseItem {
 
         S2CYouBrokeUpWithYourCoupleAnswer brokeUpWithYourCoupleAnswer = new S2CYouBrokeUpWithYourCoupleAnswer();
         this.packetsToSend.add(this.localPlayerId, brokeUpWithYourCoupleAnswer);
+        this.packetsToSend.add(this.playerCoupleId, brokeUpWithYourCoupleAnswer);
 
         int newGold = player.getGold() - 20000;
         player.syncGold(newGold);
