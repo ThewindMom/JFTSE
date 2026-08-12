@@ -2,7 +2,6 @@ package com.jftse.emulator.server.core.life.room;
 
 import com.jftse.emulator.server.core.client.*;
 import com.jftse.emulator.server.core.manager.ServiceManager;
-import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.server.core.item.EItemCategory;
@@ -29,7 +28,8 @@ public class RoomPlayer {
     private AtomicBoolean fitting = new AtomicBoolean(false);
     private AtomicBoolean gameAnimationSkipReady = new AtomicBoolean(false);
     private AtomicBoolean connectedToRelay = new AtomicBoolean(false);
-    private Long petId;
+
+    private PetView pet;
 
     private Queue<SkillCrystal> pickedUpSkillCrystals = new LinkedBlockingQueue<>(2);
 
@@ -117,13 +117,6 @@ public class RoomPlayer {
 
     public void setPosition(short position) {
         this.position.set(position);
-    }
-
-    public Pet getPet() {
-        if (petId == null)
-            return null;
-
-        return ServiceManager.getInstance().getPetService().findById(petId);
     }
 
     public long getAccountId() {

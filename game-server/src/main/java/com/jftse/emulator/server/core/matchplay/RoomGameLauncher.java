@@ -1,5 +1,6 @@
 package com.jftse.emulator.server.core.matchplay;
 
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.life.room.ClubMatchRules;
@@ -13,6 +14,7 @@ import com.jftse.emulator.server.core.matchplay.game.MatchplayBasicGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.handler.MatchplayBasicModeHandler;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CClubMatchGameTimePacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CGameNetworkSettingsPacket;
@@ -380,6 +382,14 @@ public class RoomGameLauncher {
         GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(client -> {
             if (client.getConnection() != null) {
                 client.getConnection().sendTCP(playerListPacket);
+                for (RoomPlayer player : visiblePlayers) {
+                    PetView pet = player.getPet();
+                    if (pet != null) {
+                        byte slot = player.getPosition() == 0 ? (byte) 0 : (byte) 1;
+                        client.getConnection().sendTCP(new S2CPetRequestRoomAnswerPacket(
+                                S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet));
+                    }
+                }
             }
         });
 

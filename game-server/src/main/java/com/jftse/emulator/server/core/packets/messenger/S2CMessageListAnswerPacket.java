@@ -14,7 +14,7 @@ public class S2CMessageListAnswerPacket extends Packet {
 
         this.write(listType);
 
-        int size = Math.min(messageList.size(), 128);
+        int size = Math.min(messageList.size(), 127);
         messageList = messageList.subList(0, size);
         this.write((byte) size);
         for (AbstractMessage am : messageList) {
