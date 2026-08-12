@@ -2,15 +2,15 @@
 
 - **Repository:** `sstokic-tgm/JFTSE`
 - **Branch:** `feature/tournament-mode`
-- **Base:** current `origin/development` (`65c36651`)
-- **Implementation commit:** `75e61191`
+- **Original implementation:** `75e61191`; continuation base: `516a3073`
+- **Continuation implementation:** `da6e435e47744318fb16998478dcdd3e1d1b2ea7`
 - **Faulty commit removal:** `e817af5a` reverts `fcdeb89a94bb17337f8b8f499b79c5892370004e`
-- **Validation date:** 11 August 2026
+- **Validation date:** 12 August 2026
 - **Client:** the public `FantaTennis.7z` build from `https://www.jftse.com/client/FantaTennis.7z`
 
 ## Executive result
 
-This work restores a client-validated Tournament Mode vertical slice that did not exist on the development branch:
+This continuation turns the original client-validated protocol slice into a durable tournament engine while retaining the recovered wire contract:
 
 - the real client lists a scheduled `JFTSE Open Cup`;
 - tournament metadata, dates, mode, entry type, and winner rewards render;
@@ -18,10 +18,16 @@ This work restores a client-validated Tournament Mode vertical slice that did no
 - the enabled final-tournament-bracket control opens a real bracket screen;
 - the client renders a 16-entry final bracket and continuously polls its 15 internal match records;
 - the bracket zoom, round-reward panel, close, and back controls work without disconnecting the client;
-- all recovered request/response packets are generated, registered, handled, and covered by byte-level tests;
-- fixed-cardinality schema arrays now serialize without an erroneous count prefix.
+- qualifying is modeled as 64 entrants, 32 first-round matches, and 16 qualifier matches shown as eight six-row pages;
+- completed matches advance winners through qualifying and the 16→8→4→2→1 final bracket;
+- tournament definitions, enrollment, matches, runtime bindings, and settlements are persisted in MariaDB;
+- a scheduler creates a recurring default cup, advances due lifecycle states, aborts underfilled stages, and recovers stale runtime bindings after restart;
+- assigned players create and join locked `T#<tournamentId>` rooms, connect through relay, play a real Basic match, and return to the room;
+- ordinary room positions above the four player positions remain available to spectators, without treating spectators as relay-readiness participants;
+- the winner receives the configured inventory product through an idempotent settlement record;
+- all recovered request/response packets and the added lifecycle policies are covered by byte-level, service, concurrency, scheduler, room, relay, and MariaDB tests.
 
-This is not represented as a completed production tournament engine. The wiki describes the original broader mode as a 64-player tournament. The client evidence recovered here is specifically the 16-entry **final-stage bracket** selected by `bracketType = 1`. Qualifying, tournament match orchestration, archives, prize settlement, durable scheduling, and database persistence remain deliberately unimplemented because their contracts were not observed. Disabled client controls were not made to send invented packets.
+The distinction between **retail facts** and **emulator policy** is essential. The client and wiki prove lifecycle/status vocabulary, a six-row qualifying-page view, a 16-entry final view, and the recovered packet family. They do not prove retail seeding, timer policy, server-side administration, live spectator admission, archive transport, or prize-award transactions. The branch implements conservative server policy for those gaps; it does not present that policy as recovered original-server behavior. There is no high-confidence native create/admin request in this client build, so tournament creation is server-side.
 
 No client binary patch was required. The downloaded archive was preserved, while a runtime copy was configured for the loopback services and instrumented only during protocol diagnosis.
 
@@ -33,7 +39,7 @@ The JFTSE wiki was treated as first-party project documentation:
 2. [Game Modes](https://wiki.jftse.com/index.php/Game_Modes) describes registration into available tournaments and a 64-player bracket in the original overall mode.
 3. [Packet Structure](https://wiki.jftse.com/index.php/Packet_Structure) defines the fixed eight-byte header, little-endian fields, packet ID, and payload length.
 4. [Packet Schema (.packet) Format](https://wiki.jftse.com/index.php/Packet_Schema_%28.packet%29_Format) defines generated CMSG parsing, server packet serialization, UTF-16LE strings, Windows FILETIME dates, repeated fields, and `[len = N]` fixed arrays.
-5. [Database Schema & Cheatsheet](https://wiki.jftse.com/index.php/Database_Schema_%26_Cheatsheet) documents the existing schema and configuration model. It does not document tournament tables. No speculative migration was added.
+5. [Database Schema & Cheatsheet](https://wiki.jftse.com/index.php/Database_Schema_%26_Cheatsheet) documents the existing schema and configuration model. It does not document tournament tables; the added tables are explicitly emulator-owned persistence policy.
 6. [All Pages](https://wiki.jftse.com/index.php/Special:AllPages) was reviewed to identify all relevant protocol, schema, mode, and roadmap material.
 
 The wiki establishes the product intent and common wire conventions. Exact Tournament Mode bytes were derived from the client, not guessed from prose.
@@ -44,17 +50,20 @@ The wiki establishes the product intent and common wire conventions. Exact Tourn
 | --- | --- | --- |
 | Tournament list | Implemented | Real-client request/response and visible row |
 | Detail and rewards | Implemented | Real-client `0x26AD/AE` and `0x26BE/BF` exchange |
-| Apply | Implemented in memory | Confirmation, success modal, applied state |
-| Cancel | Implemented in memory | Confirmation, success modal, restored state |
+| Apply and cancel | Durable | Native UI plus serializable MariaDB mutation tests |
 | Final bracket | Implemented | Visible 16-entry bracket, parser `c3_ok` trace |
 | Match-state polling | Implemented | Repeated `0x26C2/C3` every approximately 10 seconds |
 | Bracket zoom/reward/back UI | Validated | Real-client screenshots |
-| Qualifying bracket | Not implemented | Client control disabled; no observed request contract |
-| Tournament game start | Not implemented | Client control disabled; no complete lifecycle contract |
-| Archives | Not implemented | Client control disabled; no observed request contract |
-| 64-player qualifying stage | Not implemented | Wiki-level requirement only; no validated wire structure |
-| Durable database state | Not implemented | No documented tournament schema; current slice is deterministic/in-memory |
-| Prize settlement | Not implemented | Display contract recovered; award transaction contract not recovered |
+| Qualifying pages | Implemented as policy | Static client RE proves six visible rows; server exposes pages 0–7 |
+| 64→16 qualifying | Implemented as policy | 32 first-round plus 16 qualifier matches; deterministic service tests |
+| Final progression | Implemented | 16→8→4→2→1 winner advancement with concurrent-completion tests |
+| Tournament room and relay | Implemented | Two unmodified clients created/joined `T#2`, started, and registered on one relay session |
+| Spectators | Ordinary room support | Positions `>3`; running-match admission remains unsupported/unproven |
+| Archives | Durable service API | Finished/canceled records persist; no recovered native archive packet endpoint |
+| Prize settlement | Implemented as policy | Native final inventory delta plus unique settlement, rollback, and exactly-once tests |
+| Scheduling and restart | Durable | 10-second scheduler, recurring default cup, stale-binding packaged-JAR recovery |
+| Tournament creation | Server-side | Validated 64/16 creation API plus idempotent recurring default creation |
+| Authoritative scoring | Not implemented | Match completion still trusts existing client-reported score/end packets |
 
 ## Branch and faulty commit removal
 
@@ -142,7 +151,7 @@ Every field below is little-endian after the standard eight-byte packet header.
 | `0x26C2` | C→S | Bracket match-state poll | `tournamentId:int32, bracketType:uint8, matchIndex:uint8` |
 | `0x26C3` | S→C | Bracket match-state result | status plus selectors, `count:int16`, two-byte records |
 
-Only final selector `(bracketType = 1, page/matchIndex = 0)` is accepted. Unsupported selectors receive a terminal nonzero response instead of final-stage bytes disguised as another structure.
+The server accepts qualifying selector `bracketType = 0` on pages 0–7 and final selector `bracketType = 1` on page 0. Each qualifying page contains six persisted matches/rows; the final contains 16 entries and 15 match records. Other selectors receive a terminal nonzero response instead of bytes from a different stage.
 
 ### `0x26B0` fixed tournament arrays
 
@@ -230,6 +239,32 @@ c3_ok:      loaded=1 complete=0 expected=15
 
 Subsequent polls show `complete=1` and continue through `c3_ok`.
 
+### Additional static client findings
+
+The continuation rechecked the exact executable hash above and recovered these additional high-confidence client facts:
+
+- lifecycle values `0..8` map to `PREPARE`, `APPLY`, `PREPARE_QUALIFYING`, `QUALIFYING`, `PREPARE_FINAL`, `FINAL`, `FINISHED`, `SUSPENDED`, and `CANCELED`;
+- personal values `0..4` map to not applied, applied, entered, dropped, and winner;
+- C1 type 0 selects a qualifying model by page index, and the qualifying UI performs exactly six row lookups per visible page;
+- a row is structurally three fixed 12-byte UTF-16 fields, but their retail semantic names remain unknown;
+- C6 contains only `tournamentId:int32` and is reachable only for `myState == 2`; it is participant-only and therefore is not evidence of spectator entry;
+- C7 is a tagged server update capable of replacing tournament/player state; static evidence does not prove it is a direct C6 response;
+- B5/B6 and B7/B8 have parsers in a separate qualifying-screen controller. Their exact layouts are recovered, but their business verbs are not, so the emulator does not claim them as room or archive packets;
+- there is no high-confidence create/config/admin packet, archive-list transport, prize-claim packet, or retail settlement routine in this client build.
+
+Structurally recovered but semantically unresolved packets:
+
+| ID | Direction | Static layout | Proven behavior |
+| --- | --- | --- | --- |
+| `0x26B5` | C→S | `i32 contextId, i32 fieldA, u16 fieldB, i32 fieldC, u16 fieldD` | qualifying-screen action |
+| `0x26B6` | S→C | `i8 result`; success adds `i32 value` | success updates screen context |
+| `0x26B7` | C→S | `i32 contextId, i32 selectedEntryId` | selects one row from `page × 6 + row` |
+| `0x26B8` | S→C | `i8 result` | success mutates/removes selected model row |
+| `0x26C6` | C→S | `i32 tournamentId` | reachable only for entered participant state 2 |
+| `0x26C7` | S→C | tagged result plus full update or state byte | server-driven model/player-state update |
+
+The wiki states the overall tournament supports 64 players. The six-row page and 16-entry final are client facts; connecting them as eight qualifying pages, 48 qualifying matches, and a 64→16 reduction is emulator policy chosen to satisfy the observed views and wiki capacity without inventing new wire fields.
+
 ## Server implementation
 
 ### Packet schema
@@ -250,15 +285,51 @@ Success-only tails are written manually where the response is a protocol union: 
 
 ### State model
 
-[`TournamentManager`](../../game-server/src/main/java/com/jftse/emulator/server/core/tournament/TournamentManager.java) owns the smallest deterministic state needed to validate the recovered flow:
+[`TournamentManager`](../../game-server/src/main/java/com/jftse/emulator/server/core/tournament/TournamentManager.java) remains the protocol-facing adapter. When Spring services are available it reads authoritative state from `TournamentService`; its old deterministic in-memory data remains only a narrow fallback for isolated protocol tests.
 
-- one scheduled `JFTSE Open Cup`;
-- UTC dates relative to server start;
-- a concurrent per-tournament player-ID application set;
-- deterministic bracket labels;
-- 15 immutable unresolved match records.
+The durable model is deliberately emulator-owned:
 
-Application state is isolated per player and safe for concurrent apply/cancel operations. Restarting the game server clears it. This is intentional for the recovered slice: adding entities or migrations before the tournament schema and lifecycle are known would convert guesses into long-lived compatibility obligations.
+| Table | Responsibility | Important constraints |
+| --- | --- | --- |
+| `TournamentDefinition` | format, lifecycle, deadlines, reward | unique title; only 64/16 accepted by creation API |
+| `TournamentEnrollment` | player, seed, personal state, timestamps | unique tournament/player and tournament/seed |
+| `TournamentMatch` | stage/round/slot, assigned pair, winner, runtime binding | unique bracket slot, room, and session; optimistic version |
+| `TournamentSettlement` | immutable prize decision | unique tournament/player/place/product |
+
+All four tables are installed by [`scripts/sql/tournament.sql`](../../scripts/sql/tournament.sql) and [`scripts/import_sql.sh`](../../scripts/import_sql.sh). Apply/cancel, seeding, room claims, activation, completion, progression, cancellation, and settlement run inside transaction boundaries with pessimistic reads where a cross-row invariant must be serialized.
+
+### Lifecycle, scheduling, and creation policy
+
+`TournamentServiceImpl` validates strict deadline ordering and exposes server-side creation. The scheduler calls `ensureDefaultTournament` and `advanceDueTournaments` every ten seconds. If no active or future definition exists, it creates one recurring 64→16 `JFTSE Open Cup`, currently configured with product 287 ×1. Creation is idempotent under concurrent startup.
+
+Lifecycle transitions are:
+
+```text
+PREPARE → APPLY → PREPARE_QUALIFYING → QUALIFYING
+        → PREPARE_FINAL → FINAL → FINISHED
+```
+
+`SUSPENDED` and `CANCELED` remain terminal operational states. Exactly 64 enrollments are required when qualifying begins; an underfilled cup is canceled, unfinished matches are aborted, and enrollments are eliminated. Startup recovery removes stale room/session/start bindings and makes fully assigned matches retryable.
+
+### Bracket policy and progression
+
+Qualifying pairs seed 1 with 64, 2 with 63, and so on. The durable graph contains 32 round-0 matches and 16 round-1 qualifier matches. Every completed round-0 match fills one side of its target; when both sides are present, that target becomes ready. Completing all 16 qualifier matches marks those winners qualified and moves the tournament to `PREPARE_FINAL`.
+
+Final seeding creates a complete 16→8→4→2→1 tree. Completion is accepted only when stage, match status, room ID, game-session ID, reporter, and claimed winner all match the locked durable assignment. Concurrent duplicate completions cannot advance twice.
+
+### Room, relay, spectators, and teardown
+
+Tournament rooms use the explicit compatibility convention `T#<tournamentId>`. Creation resolves that player's current persisted match in the tournament and forces a public, two-player Basic room. The assigned pair occupy player positions, first creator becomes master, and assignment cannot be changed by normal room mutation handlers. Start requires exactly the two assigned participants and the non-master to be ready.
+
+The game session is persisted before relay handoff. Both participants must connect within 30 seconds; spectators neither count toward nor block readiness. Ordinary room positions above 3 can contain spectators before start, but this does **not** prove retail spectator protocol and does not add admission to an already running match.
+
+Normal leave, disconnect, failed startup, relay failure, rejected completion, and timeout all use central game-session teardown. Teardown cancels scheduled work, clears every client's session ID, clears the session roster, removes the session, and returns the durable match to a retryable state where appropriate.
+
+### Archives and prize settlement
+
+Finished definitions remain queryable through the durable archive service/manager API, while canceled definitions remain persisted in the main durable listing. No native archive-list request was recovered, so no invented client packet is exposed.
+
+The emulator awards first place by inserting `TournamentSettlement` and adding the configured product to inventory in one transaction. The unique settlement key makes retries idempotent; an inventory failure rolls the settlement back. Reward rendering proves only display in retail—the award behavior here is emulator policy.
 
 ## Red/green development record
 
@@ -330,10 +401,23 @@ All 11 reactor modules: SUCCESS
 BUILD SUCCESS
 ```
 
+Continuation validation after adding the durable engine:
+
+```text
+Focused protocol/service/scheduler/room/session suite: BUILD SUCCESS
+MariaDB persistence/concurrency suite: 15 tests, 0 failures/errors
+Full reactor: 59 tests, 0 failures, 0 errors, 4 skipped
+Package: BUILD SUCCESS
+```
+
+The MariaDB suite includes concurrent 65-player enrollment, concurrent qualifying seeding, concurrent final completion, restart recovery, progression, rollback, and exactly-once settlement. The packaged `game-server.jar` was also restarted with a synthetic ACTIVE match; its stale `roomId`, `gameSessionId`, and `startedAt` were cleared and status returned to READY.
+
 Artifacts:
 
 - [`maven-tournament-final-review-fixes.log`](evidence/green/maven-tournament-final-review-fixes.log)
 - [`maven-full-reactor-tests-final.log`](evidence/green/maven-full-reactor-tests-final.log)
+- [`maven-full-reactor-continuation.log`](evidence/continuation/maven-full-reactor-continuation.log)
+- [`packaged-restart-before-after.txt`](evidence/continuation/packaged-restart-before-after.txt)
 
 ## Real-client end-to-end visual evidence
 
@@ -411,6 +495,66 @@ The panel is empty because no round-progression rewards were invented. The alrea
 
 ![Back to tournament details](evidence/green/client-e2e/21-final-bracket-back-green.png)
 
+## Native two-client tournament match continuation
+
+Two isolated, unmodified clients were run on separate Wine prefixes and Xvfb displays with accounts `NativeOne` and `NativeTwo`. The fixture was server-created and used only player IDs and the durable bracket graph; no client packet was injected.
+
+### 16. Assigned players joined a locked tournament room
+
+`NativeOne` created `T#2`. The server resolved match 2, forced the title `Tournament 2-Q1-1`, Basic mode, two participant slots, and immutable assignment. `NativeTwo` saw the ordinary lobby row and joined the second player position.
+
+![Both assigned players in tournament room](evidence/continuation/native-room-two-participants.png)
+
+### 17. Ready/start and relay handoff succeeded
+
+The guest readied, the master sent native `CMSGStartGame (0x177B)`, and both clients sent `CMSGConnectedToRelay (0x03F3)`. Relay decoded both clients on the same session, each with `isSpectator=false` and the same assigned player set.
+
+![NativeOne in live tournament match](evidence/continuation/native-match-client-1.png)
+
+![NativeTwo in live tournament match](evidence/continuation/native-match-client-2.png)
+
+The durable transition captured around start was:
+
+```text
+READY:  status=1, roomId=0, gameSessionId=NULL, startedAt=NULL
+ACTIVE: status=2, roomId=0, gameSessionId=53363, startedAt=<timestamp>
+```
+
+Room ID 0 is valid in the existing room allocator; SQL `NULL`, not zero, means unbound.
+
+### 18. Completed native match advanced the durable bracket
+
+The Basic match ran to its ordinary client-reported completion. The service accepted completion only for the persisted room/session/participants, marked the source match complete, eliminated the loser, and placed the winner into the next qualifying slot. The before/after snapshot is preserved in [`native-match-db-before-after.txt`](evidence/continuation/native-match-db-before-after.txt), with decisive game and relay events in [`native-match-protocol.log`](evidence/continuation/native-match-protocol.log).
+
+![Both clients returned to the tournament room](evidence/continuation/native-match-return-client-1.png)
+
+This proves multi-client room creation, assigned admission, readiness, game start, relay registration, ordinary Basic gameplay, durable ACTIVE state, and bracket advancement for the emulator. It does **not** prove retail used `T#<id>` room names or the same completion policy.
+
+### 19. Native championship settled the durable first-place prize once
+
+A separate valid 16-entry final graph left only round 3/slot 0 READY, assigned to `NativeOne` and `NativeTwo`. The two unmodified clients created and joined `Tournament 3-F4-1`, entered relay session 28229, and played the championship through the normal Basic match-end path.
+
+![NativeOne in the live championship](evidence/continuation/native-final-match-client-1.png)
+
+![NativeTwo in the live championship](evidence/continuation/native-final-match-client-2.png)
+
+The durable transition was:
+
+```text
+before: tournament=FINAL, match=READY, settlement rows=0,
+        configured prize absent, pocket belongings=0
+active: match=ACTIVE, roomId=0, gameSessionId=28229
+after:  tournament=FINISHED, match=COMPLETED, winner state=4,
+        settlement rows=1, SPECIAL/itemIndex 1/Durable count=1,
+        pocket belongings=1
+```
+
+The configured product index was 287; the database resolves it to the durable SPECIAL item above. The match, settlement, and exact inventory before/after rows are preserved in [`native-final-db-before-after-restart.txt`](evidence/continuation/native-final-db-before-after-restart.txt). [`native-final-protocol.log`](evidence/continuation/native-final-protocol.log) correlates the start, both relay registrations, terminal point, accepted completion, and packaged restart. The credential-free trimmed [`native-final-match.pcap`](evidence/continuation/native-final-match.pcap) contains only the two game and two relay connections for this match.
+
+![Both clients returned after championship completion](evidence/continuation/native-final-match-return-client-1.png)
+
+The exact packaged jar, SHA-256 `78692b9d3e49d350824e49b557458957ecfcc42a3c4ae263f425dd95028bc7e8`, was restarted afterward. The finished match, one settlement, one item, and one belonging persisted without duplication. The restart proves durable retention/no startup duplicate; the MariaDB concurrent-completion test separately proves that two completion attempts produce one `COMPLETED`, one `ALREADY_COMPLETED`, and one inventory grant.
+
 ## Network and runtime evidence
 
 The complete file-integrity manifest is [`SHA256SUMS`](SHA256SUMS). It excludes itself so the recorded hashes remain reproducible.
@@ -421,6 +565,7 @@ The complete file-integrity manifest is [`SHA256SUMS`](SHA256SUMS). It excludes 
 | --- | --- |
 | [`client-server-green.pcap`](evidence/green/client-e2e/client-server-green.pcap) | Original list/detail/apply/cancel green session |
 | [`tournament-bracket-sentinel-green.pcap`](evidence/green/client-e2e/tournament-bracket-sentinel-green.pcap) | Fresh 328-frame final bracket session with accepted `FF 00` states |
+| [`native-final-match.pcap`](evidence/continuation/native-final-match.pcap) | Credential-free two-client championship game/relay traffic |
 | [`tournament-complete-packet-exchange.tsv`](evidence/green/client-e2e/tournament-complete-packet-exchange.tsv) | Human-readable tournament packet index extracted from the fresh capture |
 | [`tournament-bracket-sentinel-packets.tsv`](evidence/green/client-e2e/tournament-bracket-sentinel-packets.tsv) | Exact first `C0/C1/C2/C3` exchange |
 | [`client-bracket-parser-success-trace.txt`](evidence/green/client-e2e/client-bracket-parser-success-trace.txt) | Count, comparison, and repeated client `c3_ok` probes |
@@ -453,7 +598,11 @@ TOURNAMENT_TESTS=\
 'TournamentJoinPacketHandlerTest,'\
 'TournamentManagerTest,'\
 'TournamentPacketProtocolTest,'\
-'TournamentInfoPacketHandlerTest'
+'TournamentInfoPacketHandlerTest,'\
+'TournamentRoomCoordinatorTest,'\
+'TournamentSchedulerTest,'\
+'TournamentServicePersistenceTest,'\
+'GameSessionManagerTest'
 
 mvn -pl game-server -am \
   -Dtest="$TOURNAMENT_TESTS" \
@@ -509,27 +658,33 @@ The test suite covers:
 - rejection of wrong fixed-array cardinality;
 - full 16-row C1 serialization;
 - exact 15-record `FF 00` C3 success payload;
-- rejection of unrecovered bracket selectors;
-- per-player apply/cancel isolation;
-- unknown tournament rejection.
+- qualifying pages 0–7 with six entries and page rejection outside that range;
+- durable per-player apply/cancel isolation, duplicate and capacity rejection;
+- 64→16 seeding, all qualifying/final rounds, and completed-match bracket advancement;
+- lifecycle deadlines, underfilled cancellation, archives, and recurring default creation;
+- room claim/admission, immutable assignments, readiness, spectators, and mutation rejection;
+- relay activation, timeout, leave/disconnect/failure teardown, and restart recovery;
+- concurrent 65th-player admission, concurrent seeding, and concurrent completion;
+- inventory prize grant, settlement idempotency, and transaction rollback on grant failure;
+- unknown tournament and stale room/session/reporter/winner rejection.
 
 ## Known limitations and next evidence required
 
-These are explicit evidence gaps, not hidden TODOs:
+The requested emulator capabilities are implemented. These remaining items are retail-evidence or trust-boundary gaps and must not be erased by implementation claims:
 
-1. **Qualifying bracket:** capture and disassemble an enabled type-0 flow, including its cardinality and C1 row semantics.
-2. **64-player relationship:** determine how the wiki’s 64-player overall tournament maps to qualifying pages and the recovered 16-entry final stage.
-3. **Lifecycle states:** recover list status values and date/state transitions that enable Game Start, qualifying bracket, and archives.
-4. **Match entry:** recover `0x26B5–0x26B8` and any room/relay handoff without assuming they match ordinary lobby room creation.
-5. **Spectator entry:** recover `0x26C6` and permissions before implementing the GM spectator control.
-6. **Progression:** determine nonempty C3 result/state semantics from real completed matches; only the unresolved `FF 00` sentinel is proven.
-7. **Round rewards:** recover the source and award transaction used by the round-reward panel.
-8. **Persistence:** design entities only after the lifecycle and authoritative data source are known. The current wiki schema does not define tournament tables.
-9. **Restart recovery:** persist registration, bracket, and settlement atomically once the database model is evidence-backed.
-10. **Multi-client match E2E:** validate two or more real clients through tournament assignment, relay connection, result reporting, bracket advancement, and prize settlement.
+1. **Type-0 row semantics:** static RE proves six visible fixed-width rows per page, but not the retail meaning of each of the three strings or final-page padding behavior.
+2. **B5–B8 business verbs:** request/response layouts are recovered, but the selected-row mutation and success transition are not identified confidently enough to expose.
+3. **C6/C7 relationship:** C6 is participant-only and C7 is a server update; native timing/dataflow still needs to identify the retail action and whether C7 is its response.
+4. **Retail room handoff:** `T#<tournamentId>`, ordinary room creation, 30-second timeout, and first-place-only settlement are compatibility policy, not original-server facts.
+5. **Archives:** durable records and a service query exist, but this client has no recovered archive-list transport or enabled archive walkthrough.
+6. **Spectator admission:** spectators in pre-start room positions are supported. Native admission to an already running match remains unsupported and unproven.
+7. **Completed C3 rendering:** persisted result/state records are supplied, but the full retail visual semantics of every nonempty C3 value remain incompletely characterized.
+8. **Rewards:** winner-reward descriptors prove display only. The emulator's exactly-once inventory award is policy; retail claim/award transport is unknown.
+9. **Result authority:** the emulator validates assignment, room, session, reporter, and winner membership, but still consumes the existing client-reported match-end/score path. A server-authoritative tennis simulation is outside this work.
+10. **Native administration:** no create/config/admin request exists with high confidence. Custom creation is intentionally server-side rather than an invented client protocol.
 
 ## Conclusion
 
-The development branch previously exposed a Tournament entry point with no supporting server protocol. The recovered slice now drives the real client from login through listing, details, participation changes, and a visibly rendered final bracket. The strongest evidence is not a screenshot alone: the accepted PCAP, exact golden bytes, repeated runtime `c3_ok` traces, and full Java 21 reactor pass agree on the same contract.
+The development branch previously exposed a Tournament entry point with no supporting server protocol. The combined work now drives the real client through listing, details, participation, qualifying/final views, assigned room creation and join, readiness, relay handoff, two-client Basic matches, durable bracket advancement, championship completion, and inventory settlement. MariaDB concurrency tests cover the complete 64→16→winner lifecycle, restart recovery, archives, and exactly-once prize policy.
 
-The implementation remains intentionally conservative. It implements observed behavior and rejects unsupported selector variants. The remaining original-mode work is documented as a concrete evidence plan rather than filled with speculative packet fields or database tables.
+The result is a complete emulator tournament engine for the selected 64/16 Basic format, not a claim that every original-server business rule has been recovered. Native facts, static facts, compatibility choices, and remaining unknowns are kept separate so future captures can replace policy without rewriting history.

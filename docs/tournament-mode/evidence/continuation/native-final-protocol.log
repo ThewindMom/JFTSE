@@ -1,0 +1,57 @@
+Native final tournament match, 12 August 2026 UTC
+Unmodified clients: NativeOne (player 1) and NativeTwo (player 2)
+Tournament 3, final stage round 3 slot 0, durable match 18
+Room 0, game session 28229
+
+PCAP: native-final-match.pcap
+PCAP SHA-256: e58b808d33fe6ad75016bae507c761423f512c97095b19a7a5f3c469dc70c57e
+Frames: 4,378
+Capture interval: 2026-08-12 19:11:47.696878 through 19:17:28.356995 UTC
+TCP endpoints: two game connections on 5895 and two relay connections on 5896 only.
+The trimmed capture contains no auth-server (5894) or chat-server (5897) connection.
+
+GAME START AND RELAY HANDOFF
+
+PCAP frame 25, 2026-08-12 19:12:09.587806 UTC, client -> game:5895
+CMSGStartGame 0x177B, 8 bytes
+5c4755077b170000
+
+PCAP frame 53, 2026-08-12 19:12:09.719511 UTC, client -> game:5895
+CMSGConnectedToRelay 0x03F3, 8 bytes
+c3311d08f3030000
+
+PCAP frame 55, 2026-08-12 19:12:09.772239 UTC, client -> game:5895
+CMSGConnectedToRelay 0x03F3, 8 bytes
+d1635d08f3030000
+
+Game log:
+2026-08-12 19:12:09.588 CMSGStartGame { id=0x177B, len=0 }
+2026-08-12 19:12:09.719 CMSGConnectedToRelay { id=0x03F3, len=0 }
+2026-08-12 19:12:09.772 CMSGConnectedToRelay { id=0x03F3, len=0 }
+2026-08-12 19:12:10.613 SMSGStartGame { id=0x17DE, result=0 } -> both clients
+
+Relay log:
+2026-08-12 19:12:09.662 CMSGPlayerJoinSession { sessionId=28229, isSpectator=false, playerIds=[1,2,0,0] }
+2026-08-12 19:12:09.662 playerId 1 connected for session 28229
+2026-08-12 19:12:09.671 CMSGPlayerJoinSession { sessionId=28229, isSpectator=false, playerIds=[2,1,0,0] }
+2026-08-12 19:12:09.671 playerId 2 connected for session 28229
+
+COMPLETION
+
+Game log:
+2026-08-12 19:17:12.580 CMSGPoint { id=0x183F, pointsTeam=0, ballState=4, playerPosition=0 }
+2026-08-12 19:17:12.785 Tournament match 18 completion result: COMPLETED
+2026-08-12 19:17:12.895 MATCH_FINISHED message sent by MatchplaySystem
+
+PACKAGED RESTART
+
+game-server.jar SHA-256:
+78692b9d3e49d350824e49b557458957ecfcc42a3c4ae263f425dd95028bc7e8
+
+2026-08-12 19:18:57.320 Starting GameServerStart v1.0.0-SNAPSHOT using Java 21.0.12
+2026-08-12 19:19:21.700 Tournament schedule initialized and stale runtime bindings recovered
+2026-08-12 19:19:24 game-server successfully started on port 5895
+
+Database verification after restart retained match COMPLETED, tournament FINISHED,
+one settlement row, itemCount=1, and pocket belongings=1. See
+native-final-db-before-after-restart.txt.

@@ -1,0 +1,108 @@
+Native final fixture: tournament 3, championship match 18
+Stage 1 is the final bracket; round 3/slot 0 is the sole terminal match in a 16-entry final.
+Match status: 1 READY, 2 ACTIVE, 3 COMPLETED.
+Tournament status: 5 FINAL, 6 FINISHED.
+Enrollment state: 2 active participant, 3 eliminated, 4 winner.
+Reward product 287 resolves to SPECIAL/itemIndex 1/Durable in this database.
+
+BEFORE NATIVE MATCH (captured UTC 2026-08-12 18:55:34.525539)
+
+tournament
+id  title                            status  capacity  finalSize  rewardProductIndex  rewardQuantity  tournamentEnd
+3   Native Final Settlement Fixture 5       64        16         287                 1               2026-08-13 18:55:34.480046
+
+enrollment state counts
+tournamentId  state  count
+3             2      2
+3             3      14
+
+final graph
+id  stage  round  slot  playerOne  playerTwo  winner  status  roomId  gameSessionId  version
+4   1      0      0     1          1014       1       3       NULL    NULL           0
+5   1      0      1     1001       1013       1001    3       NULL    NULL           0
+6   1      0      2     1002       1012       1002    3       NULL    NULL           0
+7   1      0      3     1003       1011       1003    3       NULL    NULL           0
+8   1      0      4     1004       1010       1004    3       NULL    NULL           0
+9   1      0      5     1005       1009       1005    3       NULL    NULL           0
+10  1      0      6     1006       1008       1006    3       NULL    NULL           0
+11  1      0      7     2          1007       2       3       NULL    NULL           0
+12  1      1      0     1          1001       1       3       NULL    NULL           0
+13  1      1      1     1002       1003       1002    3       NULL    NULL           0
+14  1      1      2     1004       1005       1004    3       NULL    NULL           0
+15  1      1      3     1006       2          2       3       NULL    NULL           0
+16  1      2      0     1          1002       1       3       NULL    NULL           0
+17  1      2      1     1004       2          2       3       NULL    NULL           0
+18  1      3      0     1          2          NULL    1       NULL    NULL           0
+
+settlement rows for tournament 3: 0
+
+winner prize pocket
+playerId  name       pocketId  playerPocketId  category  itemIndex  useType  itemCount
+1         NativeOne  1         NULL            NULL      NULL       NULL     NULL
+
+winner pocket belongings
+playerId  name       pocketId  belongings
+1         NativeOne  1         0
+
+ACTIVE AFTER BOTH NATIVE CLIENTS JOINED RELAY (captured UTC 2026-08-12 19:12:19.519633)
+
+matchId  status  roomId  gameSessionId  startedAt                   version
+18       2       0       28229          2026-08-12 21:12:09.000000  2
+
+AFTER NATIVE MATCH (captured UTC 2026-08-12 19:17:43.319722)
+
+tournament
+id  title                            status  capacity  finalSize  rewardProductIndex  rewardQuantity  tournamentEnd
+3   Native Final Settlement Fixture 6       64        16         287                 1               2026-08-12 21:17:12.000000
+
+final match
+id  stage  round  slot  playerOne  playerTwo  winner  status  roomId  gameSessionId  startedAt                   completedAt                 version
+18  1      3      0     1          2          1       3       NULL    NULL           2026-08-12 21:12:09.000000  2026-08-12 21:17:12.000000  3
+
+final enrollments
+playerId  playerName  seed  state  qualifiedAt                 eliminatedAt
+1         NativeOne   1     4      2026-08-10 18:55:34.000000  NULL
+2         NativeTwo   8     3      2026-08-10 18:55:34.000000  2026-08-12 21:17:12.000000
+
+settlement
+id  tournamentId  playerId  place  productIndex  quantity  created
+1   3             1         1      287           1         2026-08-12 21:17:12.000000
+
+winner prize pocket
+playerId  name       pocketId  playerPocketId  category  itemIndex  useType  itemCount
+1         NativeOne  1         1               SPECIAL   1          Durable  1
+
+winner pocket belongings
+playerId  name       pocketId  belongings
+1         NativeOne  1         1
+
+AFTER PACKAGED GAME-SERVER RESTART (captured UTC 2026-08-12 19:19:07.753767)
+
+game-server.jar SHA-256
+78692b9d3e49d350824e49b557458957ecfcc42a3c4ae263f425dd95028bc7e8
+
+tournament
+id  title                            status  rewardProductIndex  rewardQuantity  tournamentEnd
+3   Native Final Settlement Fixture 6       287                 1               2026-08-12 21:17:12.000000
+
+final match
+id  winner  status  roomId  gameSessionId  completedAt                 version
+18  1       3       NULL    NULL           2026-08-12 21:17:12.000000  3
+
+settlement
+id  tournamentId  playerId  place  productIndex  quantity  created
+1   3             1         1      287           1         2026-08-12 21:17:12.000000
+
+winner prize pocket
+playerId  name       pocketId  playerPocketId  category  itemIndex  useType  itemCount
+1         NativeOne  1         1               SPECIAL   1          Durable  1
+
+winner pocket belongings
+playerId  name       pocketId  belongings
+1         NativeOne  1         1
+
+VERDICT
+The native championship changed FINAL to FINISHED, match 18 from ACTIVE to COMPLETED,
+NativeOne from participant to winner, NativeTwo to eliminated, inserted exactly one
+settlement row, and increased the configured durable inventory item from absent/0 to 1.
+Restarting the exact packaged jar retained one settlement row and one item; neither was duplicated.
