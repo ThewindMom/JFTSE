@@ -1,0 +1,37 @@
+JFTSE Quest / Emblem / Card artifact hashes
+Algorithm: SHA-256
+
+Native client provenance
+c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e  FantaTennis.7z
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  FantaTennis.exe
+
+Imported resources
+c3261d2231da834dc7263795936148315f02e1425f3e79210ca0c9871feff81c  Item_Stat_Cards_Ini3.xml
+fd32fde838817635ec8be5e9163a143320e9d8449f22deabdc013d97dd54c6f0  EmblemQuest.xml
+
+Finalized native packet capture (raw capture intentionally not committed)
+7a41145cbe21a0b5d18f1b4d63254918c6a5ba62fc12dc12df1a6759037ca748  qec-native-final.pcap
+packets: 5101
+
+Final packaged servers
+d7f92907859a815a827626fd45b4b2654bf5e8cbbf2253fb6f0eefc87212273b  auth-server.jar
+5d93be142296e2e1b34c1794aef49c3f6f0c55e415943a606e6e6afb13a38d1d  chat-server.jar
+c2d155cd50f34b1502d66cfe971eb20f08ba551a0c34eb3d63e3d2f0c8563c14  game-server.jar
+bde80e0c663cf7fc392b9ebdbb922ed102282c4423b94292a81f6f3af1da5961  relay-server.jar
+d3aefa23866ad78c4c78b1116ec7f1816f59a44555c047c24c82f3885403c783  ac-server.jar
+
+Known-good Wine prefix archive (preserved outside Git)
+438ce02e2d3d1e7188848e64107a65f9e772df89084584a9b2fb61f39e339f4b  jftse-known-good-wine-prefix.tar.zst (138016303 bytes)
+e4de4371ea722127866773fb7ccb8e20b54d9d33d6da27f6f430fa566070e3bb  part-00 (94371840 bytes)
+62e390cc3b3507c2d17d709c0059e6d0e317ae0180b7c434a4765236dfd5e4ee  part-01 (43644463 bytes)
+
+Committed visual evidence
+5a58742879675751e3c4527a64f219afe9aacc80396a312b42f1b2288bd9144c  01-card-before.png
+5e42ecd2a1ff87115ce0ddc4fbc66b4d14153584760cefeb5cf88ca361f3f1ea  02-card-preview-and-capacity-rejection.png
+dd996fd8afe643a976e76b6af68aa0aa3b247cc1b673d7636bc21f806184d809  03-card-negative-no-slot.png
+a4403dc859da4c0453adae22c9e9eb1fdcf72fcf782a850af292a54066b19918  04-card-reconnect.png
+0fa3d97c8ed7199a4bf9c1d653300452e9e7a4f8e5c9950d3bc2215826dcbcf7  05-quest-completable.png
+8974f5b967a82ad9c956e4532998b085903b1014abcf15b61281035510cadf7f  06-quest-completed.png
+81f3216c0545a3f1a305fe1ccfbf8e8cdb74eb716eec44b37c56b011387492b8  07-emblem-unlocked.png
+91d7da7aaa9124130a4a296080f2b4c0a0f917aa2d0372e930d442c72c9593da  08-emblem-equipped.png
+d9fdb193bf60c44f4d2077ab0ebc3802a887e47d6d293b49f763afce6c1031c1  09-emblem-reconnect.png

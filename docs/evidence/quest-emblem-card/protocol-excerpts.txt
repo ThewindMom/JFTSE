@@ -1,0 +1,64 @@
+JFTSE Quest / Emblem / Card native packet excerpts
+Capture: qec-native-final.pcap (not committed; hash recorded in artifact-hashes.txt)
+Listener: game server, TCP 5895
+Byte order: little-endian
+
+Card equipment submit and authoritative acknowledgement
+2026-08-12T17:00:36.723Z frame 253 C2S 0x1C21 len=16
+payload: 01 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+decoded PlayerPocket slots: [1, 0, 0, 0]
+
+2026-08-12T17:00:36.765Z frame 255 S2C 0x1C22 len=16
+payload: 01 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+decoded authoritative slots: [1, 0, 0, 0]
+
+Lifetime statistics delivered during player-data initialization
+2026-08-12T19:41:47.289Z frame 2406, TCP-segment offset 48, S2C 0x2292 len=52
+payload: 0a 00
+         06 00 00 00 00
+         0a c7 00 00 00
+         0c 00 00 00 00
+         0e 00 00 00 00
+         10 00 00 00 00
+         12 00 00 00 00
+         14 00 00 00 00
+         16 00 00 00 00
+         18 00 00 00 00
+         1a 00 00 00 00
+decoded: uint16 count=10; records are uint8 selector + signed int32 value.
+selector 0x0a (TotalSmash) carries 199 in this fixture.
+
+Quest/emblem list request and first response record
+2026-08-12T19:48:14.070Z frame 2557 C2S 0x226A len=0
+payload: <empty>
+
+2026-08-12T19:48:14.257Z frame 2561 S2C 0x226B len=1109
+payload prefix: 00 00 41 00  e8 03 01 00 00 01 63 00 00 00 00 00 00 00 00 00 00
+decoded prefix: status=0, count=65, first questIndex=1000, active=1,
+completionCount=0, condition1 present=1, transmitted baseline=99.
+Each quest record is 17 bytes after the status/count prefix.
+
+Quest completion using authoritative absolute player totals
+2026-08-12T20:31:43.995Z frame 3364 C2S 0x227C len=2
+payload: e8 03
+decoded questIndex: 1000
+
+2026-08-12T20:31:44.079Z frame 3366 S2C 0x227D len=12
+payload: 00 02 74 27 00 00 64 00 00 00 00 00
+decoded: status=0, level=2, absolute gold=10100, absolute EXP=100,
+reward count=0.
+
+Emblem equipment submit
+2026-08-12T21:15:01.529Z frame 4201 C2S 0x2295 len=8
+payload: e8 03 00 00 00 00 00 00
+decoded emblem quest IDs: [1000, 0, 0, 0]
+
+Authoritative emblem equipment restored during fresh player initialization
+2026-08-12T22:27:17.058Z frame 4978 S2C 0x2297 len=8
+full frame bytes: 57 38 83 07 97 22 08 00 e8 03 00 00 00 00 00 00
+decoded emblem quest IDs: [1000, 0, 0, 0]
+
+Card equipment restored in the same fresh session
+2026-08-12T22:27:17.174Z frame 5001 S2C 0x1C22 len=16
+payload: 01 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00
+decoded PlayerPocket slots: [1, 0, 0, 0]

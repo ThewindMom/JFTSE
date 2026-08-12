@@ -1,0 +1,60 @@
+JFTSE Quest / Emblem / Card verification summary
+Validation date: 2026-08-12 UTC
+Build JDK: Temurin 21.0.12+8 LTS
+Maven: 3.8.7
+
+RED: native completion contract
+Focused game-server tests intentionally encoded the newly observed native
+completion contract before implementation was corrected.
+Result: 23 tests run, 3 failures, BUILD FAILURE.
+Decisive failures included a completion-packet byte mismatch and an absolute
+EXP assertion of 1025 receiving the prior delta-only value 25.
+
+GREEN: native completion contract
+EmblemCompletePacketHandlerTest: 1 passed
+EmblemPacketContractTest: 5 passed
+EmblemQuestServiceTest: 17 passed
+Total: 23 passed, 0 failures, 0 errors, BUILD SUCCESS.
+
+RED: emblem equipment restoration
+The packet contract test referenced S2CEmblemEquipmentPacket before it existed.
+Compilation failed with "cannot find symbol: class S2CEmblemEquipmentPacket".
+
+GREEN: emblem equipment restoration
+EmblemEquipPacketHandlerTest: 2 passed
+EmblemPacketContractTest: 6 passed
+Total: 8 passed, 0 failures, 0 errors, BUILD SUCCESS.
+
+CARD RELEASE AUDIT
+An initial test incorrectly expected a full 24-byte card block in a packet whose
+existing native contract carries only the 8-byte status subset. The 24-versus-21
+failure was a test-expectation error, not presented as a server regression.
+After correcting the expectation, the card service, handler, full-stat packet,
+and match-end status subset all passed:
+CardSlotEquipmentServiceTest: 4 passed
+InventoryWearCardPacketHandlerTest: 2 passed
+CardPacketContractTest: 3 passed
+Total: 9 passed, 0 failures, 0 errors, BUILD SUCCESS.
+
+DATABASE AUTHORITY REGRESSION
+DBDataLoaderTest: 1 passed, 0 failures, 0 errors, BUILD SUCCESS.
+The bundled EmblemQuest.xml seeds missing quest indexes but does not overwrite
+existing operator-managed definitions or rewards.
+
+FULL REACTOR TEST GATE
+Command: mvn test
+auth-server: 1 test passed
+game-server: 44 tests passed
+Total: 45 passed, 0 failures, 0 errors
+All 11 reactor modules: SUCCESS
+BUILD SUCCESS
+
+FINAL PACKAGE GATE
+Command: mvn package -DskipTests
+All 11 reactor modules: SUCCESS
+BUILD SUCCESS
+
+SOURCE HYGIENE
+git diff --check: PASS
+CRCRLF scan across changed files: 0 findings
+potential secret scan across changed files: 0 findings
