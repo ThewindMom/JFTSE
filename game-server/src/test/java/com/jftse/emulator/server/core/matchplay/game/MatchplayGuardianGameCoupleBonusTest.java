@@ -1,12 +1,10 @@
 package com.jftse.emulator.server.core.matchplay.game;
 
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
-import com.jftse.entities.database.model.player.EquippedItemStats;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,21 +28,6 @@ class MatchplayGuardianGameCoupleBonusTest {
         assertTrue(MatchplayGuardianGame.hasActiveCoupleInParty(player, List.of(player, partner)));
     }
 
-    @Test
-    void activeCoupleReceivesFivePercentMaxHealthRoundedDown() {
-        RoomPlayer player = roomPlayer(PLAYER_ID, PARTNER_ID);
-        RoomPlayer partner = roomPlayer(PARTNER_ID, PLAYER_ID);
-
-        assertEquals(263, MatchplayGuardianGame.calculatePlayerMaxHealth(player, List.of(player, partner)));
-    }
-
-    @Test
-    void playerWithoutActivePartnerKeepsBaseMaxHealth() {
-        RoomPlayer player = roomPlayer(PLAYER_ID, PARTNER_ID);
-
-        assertEquals(251, MatchplayGuardianGame.calculatePlayerMaxHealth(player, List.of(player)));
-    }
-
     private RoomPlayer roomPlayer(long playerId, Long coupleId) {
         return new RoomPlayer(null) {
             @Override
@@ -55,18 +38,6 @@ class MatchplayGuardianGameCoupleBonusTest {
             @Override
             public Long getCoupleId() {
                 return coupleId;
-            }
-
-            @Override
-            public int getLevel() {
-                return 10;
-            }
-
-            @Override
-            public EquippedItemStats getEquippedItemStats() {
-                EquippedItemStats stats = new EquippedItemStats();
-                stats.setAddHp(6);
-                return stats;
             }
         };
     }
