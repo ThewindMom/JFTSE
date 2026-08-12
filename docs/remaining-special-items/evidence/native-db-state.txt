@@ -1,0 +1,46 @@
+Native laboratory database state
+================================
+
+Fixture disclosure
+------------------
+The account, character, pocket, and item rows below were inserted directly in
+the disposable laboratory database. The native client did not create them.
+
+Account  1  special_items_lab  loggedInServer=NONE
+Player   1  SpecialLab         online=false
+Pocket   1  belongings=12      maxBelongings=150
+SpecialSlotEquipment  1  slot1=0 slot2=0 slot3=0 slot4=0
+
+PlayerPocket rows shown by the native Magic Pocket screenshot:
+1   itemIndex=23  SPECIAL Count   x2
+2   itemIndex=24  SPECIAL Count   x1
+3   itemIndex=25  SPECIAL Count   x1
+4   itemIndex=27  SPECIAL Durable x2
+5   itemIndex=29  SPECIAL Durable x2
+6   itemIndex=30  SPECIAL Durable x2
+7   itemIndex=32  SPECIAL Durable x2
+8   itemIndex=34  SPECIAL Durable x2
+9   itemIndex=36  SPECIAL Durable x2
+10  itemIndex=39  SPECIAL Durable x2
+11  itemIndex=40  SPECIAL Durable x2
+12  itemIndex=41  SPECIAL Durable x2
+
+Negative special-slot experiment
+--------------------------------
+The client UI preview displayed itemIndex 29 in its first special slot and HP
+400. A post-action database query still returned:
+
+SpecialSlotEquipment  1  0  0  0  0
+
+No received CMSGInventoryWearSpecial (0x1B70) was found in the owning server
+log for that action. The preview is therefore not server equip/persistence
+proof. It is retained as a negative evidence boundary.
+
+Final release smoke cleanup
+---------------------------
+After stopping the final native client:
+
+Account  1  special_items_lab  loggedInServer=NONE
+Player   1  SpecialLab         online=false
+SpecialSlotEquipment  1  0  0  0  0
+Pocket   1  belongings=12      maxBelongings=150

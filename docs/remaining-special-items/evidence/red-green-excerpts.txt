@@ -1,0 +1,63 @@
+Remaining special items: decisive red/green excerpts
+====================================================
+
+RED 1 - missing effect implementation
+Command:
+  mvn -pl game-server -am -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dtest=SpecialItemEffectsTest#resolvesNativeNecklaceAndEarringEffects test
+
+Result:
+  Tests run: 1, Failures: 1, Errors: 0, Skipped: 0
+  ClassNotFoundException: com.jftse.server.core.item.SpecialItemEffects
+  BUILD FAILURE
+
+RED 2 - correctness audit after the first implementation pass
+Result:
+  Promotional aliases 39/40/41: expected true but was false (3 cases)
+  Generic status packet HP: expected 220 but was 420
+  BUILD FAILURE
+
+The HP failure was decisive: a battle-only +200 necklace had leaked into a
+generic/basic status packet. The alias failures showed that promotional rings
+were not recognized by reward lookup. Additional strict-Mockito errors in the
+same red run were diagnostic noise and are not presented as product failures.
+
+GREEN - exact row and alias regression
+Command:
+  mvn -pl game-server -am -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dtest=PromotionalRingAliasTest test
+
+Result:
+  Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+  BUILD SUCCESS
+
+GREEN - final full reactor test gate
+Command:
+  mvn test
+
+Result:
+  auth-server: PlayerNameChangeHandlerTest 1/1 passed
+  game-server: Tests run: 65, Failures: 0, Errors: 0, Skipped: 0
+  all 11 reactor modules: SUCCESS
+  BUILD SUCCESS
+
+GREEN - final package gate
+Command:
+  mvn package -DskipTests
+
+Result:
+  all 11 reactor modules: SUCCESS
+  BUILD SUCCESS
+
+GREEN - post-commit focused rerun
+Command:
+  mvn -pl game-server,auth-server -am \
+    -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dtest=SpecialItemEffectsTest,SpecialSlotEquipmentServiceImplTest,\
+SpecialItemPacketSerializationTest,PromotionalRingAliasTest,\
+ProposalServiceImplTest,SendProposalRequestHandlerTest,\
+MatchplayGameSettlementTest,PlayerNameChangeHandlerTest test
+
+Result:
+  Tests run: 58, Failures: 0, Errors: 0, Skipped: 0
+  BUILD SUCCESS
