@@ -52,6 +52,7 @@ import com.jftse.entities.database.model.scenario.MScenarios;
 import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.matchplay.battle.GuardianBattleState;
+import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.packets.S2CDCMsgPacket;
@@ -66,6 +67,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Log4j2
 public class MatchplayGuardianModeHandler implements MatchplayHandleable {
@@ -147,9 +149,12 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        if (!game.getFinished().compareAndSet(false, true))
+        if (!game.getFinished().compareAndSet(false, true) ||
+                !gameSession.getCompletionHandled().compareAndSet(false, true))
             return;
 
+        boolean completionSucceeded = false;
+        try {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (game.getEndTime() == null)
             game.setEndTime(new AtomicReference<>(cal.getTime()));
@@ -213,17 +218,19 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 gameLog.setContent(gameLogContent.toString());
                 gameLogService.save(gameLog);
 
-                matchRallyStatsConsumer.clearSession(gameSessionId);
-
-                gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
-                if (game.getFinished().get() && gameSession.getClients().isEmpty()) {
-                    GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
-                }
                 return;
             }
         }
 
         MatchplayReward matchplayReward = game.getMatchRewards();
+        matchplayReward.getPlayerRewards().removeIf(reward ->
+                gameSession.getBattlemonActor(reward.getPlayerPosition()) != null);
+        matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
+                .filter(FTClient::hasPlayer)
+                .map(FTClient::getRoomPlayer)
+                .filter(Objects::nonNull)
+                .filter(roomPlayer -> roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() < 4)
+                .collect(Collectors.toUnmodifiableMap(RoomPlayer::getPosition, RoomPlayer::getPlayerId)));
         game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
 
         GameSessionManager.getInstance().addMatchplayReward(activeRoom.getRoomId(), matchplayReward);
@@ -371,11 +378,10 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+            eventHandler.offer(eventHandler.createDetachedSessionPacketEvent(
+                    client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
             client.setActiveGameSession(null);
         }
-
-        matchRallyStatsConsumer.clearSession(gameSessionId);
 
         GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
 
@@ -395,8 +401,6 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
         if (game.getFinished().get() && gameSession.getClients().isEmpty()) {
-            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
-
             MatchFinishedMessage message = MatchFinishedMessage.builder()
                     .gameSessionId(gameSessionId)
                     .time(game.getTimeNeeded())
@@ -410,11 +414,22 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
         }
+        completionSucceeded = true;
+        } finally {
+            if (!completionSucceeded) {
+                GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
+            }
+            GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
+        }
     }
 
     @Override
     public void onPrepare(FTClient ftClient) {
         Room room = ftClient.getActiveRoom();
+        GameSession gameSession = ftClient.getActiveGameSession();
+        if (room == null || gameSession == null || !game.getPlayerBattleStates().isEmpty()) {
+            throw new IllegalStateException("Guardian game preparation requires an empty game with an active room");
+        }
 
         game.getIsHardMode().set(room.isHardMode());
         game.getIsRandomGuardiansMode().set(room.isRandomGuardians());
@@ -478,12 +493,25 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         game.getGuardianLevelLimit().set(guardianLevelLimit);
 
         List<RoomPlayer> activeRoomPlayers = roomPlayers.stream()
-                .filter(roomPlayer -> roomPlayer.getPosition() < 4)
+                .filter(roomPlayer -> gameSession.getGameplayActorPositions().contains(roomPlayer.getPosition()))
                 .toList();
+        List<PlayerBattleState> preparedStates = new ArrayList<>();
         activeRoomPlayers.forEach(roomPlayer ->
-                game.getPlayerBattleStates().add(game.createPlayerBattleState(roomPlayer, activeRoomPlayers)));
+                preparedStates.add(game.createPlayerBattleState(roomPlayer, activeRoomPlayers)));
+        gameSession.getBattlemonActors().forEach(actor ->
+                preparedStates.add(game.createBattlemonBattleState(actor)));
 
-        int activePlayingPlayersCount = (int) roomPlayers.stream().filter(x -> x.getPosition() < 4).count();
+        Set<Short> preparedPositions = preparedStates.stream()
+                .map(state -> (short) state.getPosition())
+                .collect(Collectors.toSet());
+        if (preparedPositions.size() != preparedStates.size() ||
+                !preparedPositions.equals(new HashSet<>(gameSession.getGameplayActorPositions()))) {
+            throw new IllegalStateException("Guardian game preparation produced an invalid gameplay actor set");
+        }
+        preparedStates.sort(Comparator.comparingInt(PlayerBattleState::getPosition));
+        game.getPlayerBattleStates().addAll(preparedStates);
+
+        int activePlayingPlayersCount = preparedStates.size();
         byte guardianStartPosition = 10;
         List<GuardianBase> guardians = game.determineGuardians(game.getGuardiansInStage(), game.getGuardianLevelLimit().get());
 

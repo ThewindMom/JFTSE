@@ -1,10 +1,12 @@
 package com.jftse.entities.database.repository.player;
 
 import com.jftse.entities.database.model.player.Player;
+import javax.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -51,6 +53,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             JOIN FETCH p.toolSlotEquipment toolSlotEquipment
             JOIN FETCH p.specialSlotEquipment specialSlotEquipment
             JOIN FETCH p.cardSlotEquipment cardSlotEquipment
+            LEFT JOIN FETCH p.battlemonSlotEquipment battlemonSlotEquipment
             JOIN FETCH p.playerStatistic playerStatistic
             WHERE p.id = :playerId
             """)
@@ -63,6 +66,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             JOIN FETCH p.toolSlotEquipment toolSlotEquipment
             JOIN FETCH p.specialSlotEquipment specialSlotEquipment
             JOIN FETCH p.cardSlotEquipment cardSlotEquipment
+            LEFT JOIN FETCH p.battlemonSlotEquipment battlemonSlotEquipment
             WHERE p.id = :playerId
             """)
     Optional<Player> findWithEquipmentById(Long playerId);
@@ -76,6 +80,10 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     @Query(value = "SELECT p FROM Player p JOIN FETCH p.playerStatistic playerStatistic WHERE p.id = :playerId")
     Optional<Player> findWithStatisticById(Long playerId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(value = "SELECT p FROM Player p WHERE p.id = :playerId")
+    Optional<Player> findByIdForUpdate(@Param("playerId") Long playerId);
+
     @Query("SELECT p FROM Player p JOIN FETCH p.clothEquipment ce WHERE p.account.id = :accountId")
     List<Player> getPlayerListByAccountId(Long accountId);
 
@@ -88,6 +96,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             JOIN FETCH p.toolSlotEquipment toolSlotEquipment
             JOIN FETCH p.specialSlotEquipment specialSlotEquipment
             JOIN FETCH p.cardSlotEquipment cardSlotEquipment
+            LEFT JOIN FETCH p.battlemonSlotEquipment battlemonSlotEquipment
             JOIN FETCH p.playerStatistic playerStatistic
             WHERE p.name = :name
             """)

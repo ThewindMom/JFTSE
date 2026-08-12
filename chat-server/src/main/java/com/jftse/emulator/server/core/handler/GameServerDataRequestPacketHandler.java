@@ -15,6 +15,7 @@ import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.home.AccountHome;
 import com.jftse.entities.database.model.pet.Pet;
+import com.jftse.entities.database.model.player.BattlemonSlotEquipment;
 import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.player.PlayerStatistic;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
@@ -41,6 +42,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
     private final PlayerService playerService;
+    private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
 
     public GameServerDataRequestPacketHandler() {
         homeService = ServiceManager.getInstance().getHomeService();
@@ -50,6 +52,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
         pocketService = ServiceManager.getInstance().getPocketService();
         playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
         playerService = ServiceManager.getInstance().getPlayerService();
+        battlemonSlotEquipmentService = ServiceManager.getInstance().getBattlemonSlotEquipmentService();
     }
 
     @Override
@@ -116,7 +119,8 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
         } else if (requestType == 3) {
             PlayerStatistic playerStatistic = playerStatisticService.findPlayerStatisticById(player.getPlayerStatisticId());
             player.setPlayerStatistic(PlayerStatisticView.fromEntity(playerStatistic));
-            player.setPetSlots(EquippedPetSlots.defaultSlots());
+            BattlemonSlotEquipment battlemonSlots = battlemonSlotEquipmentService.getOrCreate(player.getPlayer());
+            player.setPetSlots(EquippedPetSlots.of(battlemonSlots));
 
             S2CPlayerInfoPlayStatsPacket playerInfoPlayStatsPacket = new S2CPlayerInfoPlayStatsPacket(playerStatistic);
             S2CInventoryWearClothAnswerPacket inventoryWearClothAnswerPacket = new S2CInventoryWearClothAnswerPacket((char) 0, player);

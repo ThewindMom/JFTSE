@@ -1,5 +1,9 @@
 package com.jftse.emulator.server.core.handler.pet;
 
+import com.jftse.emulator.server.core.client.PetView;
+import com.jftse.emulator.server.core.constants.RoomType;
+import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -28,6 +32,32 @@ public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection
         }
 
         int newActivePetType = packet.getPetType();
+        Room activeRoom = ftClient.getActiveRoom();
+        if (activeRoom != null) {
+            synchronized (activeRoom) {
+                handleSelection(connection, ftClient, activeRoom, newActivePetType);
+            }
+            return;
+        }
+        handleSelection(connection, ftClient, null, newActivePetType);
+    }
+
+    private void handleSelection(FTConnection connection, FTClient ftClient, Room activeRoom,
+                                 int newActivePetType) {
+        RoomPlayer roomPlayer = activeRoom == null ? null : ftClient.getRoomPlayer();
+        PetView roomPet = roomPlayer == null ? null : roomPlayer.getPet();
+        if (activeRoom != null && (activeRoom.getRoomType() == RoomType.BATTLEMON || roomPet != null)) {
+            PetView activePet = ftClient.getActivePet();
+            boolean unchanged = roomPet != null && activePet != null &&
+                    roomPet.id() == activePet.id() && roomPet.type() == activePet.type() &&
+                    newActivePetType == roomPet.type();
+            connection.sendTCP(SMSGPickupPet.builder()
+                    .result((short) (unchanged ? 0 : 1))
+                    .petType(newActivePetType)
+                    .build());
+            return;
+        }
+
         List<Pet> petList = petService.findAllByPlayerId(ftClient.getPlayer().getId());
         petList.removeIf(pet -> pet.getType() != (byte) newActivePetType);
 
@@ -39,11 +69,19 @@ public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection
                     .petType(newActivePetType)
                     .build();
         } else {
-            ftClient.setActivePet(petList.getFirst());
-            petPickup = SMSGPickupPet.builder()
-                    .result((short) 0)
-                    .petType(petList.getFirst().getType().intValue())
-                    .build();
+            Pet pet = petList.stream().findFirst().orElse(null);
+            if (pet == null) {
+                petPickup = SMSGPickupPet.builder()
+                        .result((short) 1)
+                        .petType(newActivePetType)
+                        .build();
+            } else {
+                ftClient.setActivePet(pet);
+                petPickup = SMSGPickupPet.builder()
+                        .result((short) 0)
+                        .petType(pet.getType().intValue())
+                        .build();
+            }
         }
         connection.sendTCP(petPickup);
     }

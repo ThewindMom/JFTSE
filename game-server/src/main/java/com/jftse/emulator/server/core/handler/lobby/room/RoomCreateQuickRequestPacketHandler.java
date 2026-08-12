@@ -25,11 +25,6 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         if (!client.hasPlayer())
             return;
 
-        if (packet.getRoomType() == RoomType.BATTLEMON) {
-            //GameManager.getInstance().handleChatLobbyJoin(client);
-            return;
-        }
-
         FTPlayer player = client.getPlayer();
 
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
@@ -49,6 +44,12 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
             packet.setMode((byte) random.nextInt(2));
         }
 
+        boolean isBattlemon = packet.getRoomType() == RoomType.BATTLEMON;
+        if (isBattlemon && packet.getMode() != GameMode.BASIC && packet.getMode() != GameMode.BATTLE) {
+            client.getIsJoiningOrLeavingRoom().set(false);
+            return;
+        }
+
         room.setMode(packet.getMode());
         room.setRule((byte) 0);
 
@@ -57,7 +58,7 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         else
             room.setPlayers(playerSize == 0 ? 2 : playerSize);
 
-        if (room.getRoomType() == RoomType.BATTLEMON)
+        if (isBattlemon)
             room.setPlayers((byte) 4);
 
         room.setPrivate(false);

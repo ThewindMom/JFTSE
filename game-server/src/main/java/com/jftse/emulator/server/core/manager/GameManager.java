@@ -5,8 +5,10 @@ import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.common.service.ConfigService;
 import com.jftse.emulator.common.utilities.StringUtils;
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
@@ -14,6 +16,7 @@ import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
@@ -21,6 +24,7 @@ import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
+import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -29,6 +33,7 @@ import com.jftse.entities.database.model.Uptime;
 import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.messenger.Friend;
+import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.player.*;
 import com.jftse.server.core.BuildInfoProperties;
 import com.jftse.server.core.ServerLoop;
@@ -56,8 +61,11 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -126,6 +134,87 @@ public class GameManager implements ServerLoopHandler {
                     .thenComparing(
                             GuildMember::getRequestDate
                     );
+
+    public void revokeRelaySession(Integer gameSessionId, GameSession gameSession) {
+        if (gameSessionId == null || gameSession == null) {
+            return;
+        }
+
+        AtomicBoolean revocationPublished = gameSession.getRelayAuthorizationRevoked();
+        synchronized (revocationPublished) {
+            if (!revocationPublished.get()) {
+                RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
+                        .gameSessionId(gameSessionId)
+                        .generation(gameSession.getRelayAuthorizationGeneration())
+                        .battlemon(gameSession.isBattlemon())
+                        .revoked(true)
+                        .expiresAt(Instant.now().plus(2, ChronoUnit.HOURS))
+                        .build();
+                try {
+                    publishRelayRevocation(message);
+                    revocationPublished.set(true);
+                } catch (RuntimeException exception) {
+                    int attempts = gameSession.getRelayAuthorizationRevocationAttempts().incrementAndGet();
+                    log.warn("Unable to revoke relay authorization for session {} (attempt {})",
+                            gameSessionId, attempts, exception);
+                    if (threadManager != null && !threadManager.isShuttingDown()) {
+                        long retryDelaySeconds = 1L << Math.min(attempts, 6);
+                        try {
+                            threadManager.schedule(() -> revokeRelaySession(gameSessionId, gameSession),
+                                    retryDelaySeconds, TimeUnit.SECONDS);
+                        } catch (RuntimeException schedulingException) {
+                            if (!threadManager.isShuttingDown()) {
+                                log.warn("Unable to schedule relay authorization revocation retry for session {}",
+                                        gameSessionId, schedulingException);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void publishRelayRevocation(RelaySessionAuthorizationMessage message) {
+        rProducerService.sendNow(message, RelaySessionAuthorizationMessage.ROUTING_KEY,
+                "MatchplaySystem(GameServer)");
+    }
+
+    public void cleanupFinishedGameSession(Integer gameSessionId, GameSession gameSession, Room room) {
+        try {
+            gameSession.clearCountDownRunnable();
+            gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+            gameSession.getFireables().clear();
+            MatchplayGame game = gameSession.getMatchplayGame();
+            if (game != null) {
+                game.getScheduledFutures().forEach(future -> future.cancel(false));
+                game.getScheduledFutures().clear();
+            }
+
+            gameSession.getClients().forEach(client -> {
+                if (client.getActiveGameSession() == gameSession) {
+                    client.setActiveGameSession(null);
+                }
+            });
+            if (gameSessionManager.getGameSessionBySessionId(gameSessionId) == gameSession) {
+                matchRallyStatsConsumer.clearSession(gameSessionId);
+            }
+            boolean removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
+            if (removed && room != null) {
+                synchronized (room) {
+                    room.setStatus(RoomStatus.NotRunning);
+                    room.getRoomPlayerList().forEach(roomPlayer -> {
+                        roomPlayer.setReady(false);
+                        roomPlayer.setGameAnimationSkipReady(false);
+                        roomPlayer.getConnectedToRelay().set(false);
+                        roomPlayer.getPickedUpSkillCrystals().clear();
+                    });
+                }
+            }
+        } finally {
+            gameSession.getBattlemonActors().clear();
+            revokeRelaySession(gameSessionId, gameSession);
+        }
+    }
 
     @PostConstruct
     public void init() {
@@ -451,6 +540,15 @@ public class GameManager implements ServerLoopHandler {
             }
         }
 
+        if (!isTownSquare && roomPlayer.map(RoomPlayer::getPet).orElse(null) != null &&
+                playerPosition >= 0 && playerPosition <= 1) {
+            int petPosition = playerPosition + 2;
+            if (room.getPositions().get(petPosition) == RoomPositionState.InUse &&
+                    roomPlayerList.stream().noneMatch(player -> player.getPosition() == petPosition)) {
+                room.getPositions().set(petPosition, RoomPositionState.Free);
+            }
+        }
+        roomPlayer.ifPresent(value -> value.setPet(null));
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
         if (room.getRoomPlayerList().isEmpty() && !isTownSquare) {
             removeRoom(room);
@@ -551,7 +649,9 @@ public class GameManager implements ServerLoopHandler {
         room.getPositions().set(0, RoomPositionState.InUse);
 
         byte players = room.getPlayers();
-        if (players == 2) {
+        if (room.getRoomType() == RoomType.BATTLEMON) {
+            IntStream.range(2, 9).forEach(position -> room.getPositions().set(position, RoomPositionState.Locked));
+        } else if (players == 2) {
             room.getPositions().set(2, RoomPositionState.Locked);
             room.getPositions().set(3, RoomPositionState.Locked);
         }
@@ -570,6 +670,15 @@ public class GameManager implements ServerLoopHandler {
         roomPlayer.setPosition((short) 0);
         roomPlayer.setMaster(true);
         roomPlayer.setFitting(false);
+        if (room.getRoomType() == RoomType.BATTLEMON) {
+            PetView selectedPet = getValidatedActiveBattlemonPet(client);
+            if (selectedPet == null) {
+                connection.sendTCP(new S2CRoomCreateAnswerPacket(
+                        (char) 1, room.getRoomType(), room.getMode(), room.getMap()));
+                return;
+            }
+            roomPlayer.setPet(selectedPet);
+        }
 
         client.setActiveRoom(room);
         client.setInLobby(false);
@@ -587,6 +696,28 @@ public class GameManager implements ServerLoopHandler {
 
         updateLobbyRoomListForAllClients(connection);
         refreshLobbyPlayerListForAllClients();
+    }
+
+    public PetView getValidatedActiveBattlemonPet(FTClient client) {
+        if (client == null || !client.hasPlayer()) {
+            return null;
+        }
+        PetView selectedPet = client.getActivePet();
+        if (selectedPet == null) {
+            return null;
+        }
+        Pet pet = serviceManager.getPetService().findByIdAndPlayerId(
+                selectedPet.id(), client.getPlayer().getId());
+        if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) ||
+                pet.getValidUntil() != null && pet.getValidUntil().before(new Date())) {
+            return null;
+        }
+        PetView currentPet = client.getActivePet();
+        if (currentPet == null || currentPet.id() != pet.getId()) {
+            return null;
+        }
+        client.setActivePet(pet);
+        return client.getActivePet();
     }
 
     public synchronized short getRoomId() {

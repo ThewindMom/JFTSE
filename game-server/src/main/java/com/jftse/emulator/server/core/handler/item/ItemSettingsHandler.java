@@ -3,8 +3,8 @@ package com.jftse.emulator.server.core.handler.item;
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
-import com.jftse.emulator.server.core.matchplay.GameSessionManager;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayBackToRoom;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -110,20 +110,27 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
 
         connection.close();
 
-        ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
-
-        for (FTClient client : clients) {
-            RoomPlayer rp = client.getRoomPlayer();
-            if (rp == null)
-                continue;
-
-            S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            client.getConnection().sendTCP(backToRoomPacket);
-
-            client.setActiveGameSession(null);
+        if (!gameSession.getCompletionHandled().compareAndSet(false, true)) {
+            return;
         }
+        try {
+            ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
 
-        gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
-        GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+            for (FTClient client : clients) {
+                RoomPlayer rp = client.getRoomPlayer();
+                if (rp == null)
+                    continue;
+
+                S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
+                client.getConnection().sendTCP(backToRoomPacket);
+
+                client.setActiveGameSession(null);
+            }
+
+            gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
+        } finally {
+            GameManager.getInstance().cleanupFinishedGameSession(
+                    gameSessionId, gameSession, ftClient.getActiveRoom());
+        }
     }
 }

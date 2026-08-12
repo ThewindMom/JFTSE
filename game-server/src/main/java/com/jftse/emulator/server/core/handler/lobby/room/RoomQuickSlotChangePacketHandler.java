@@ -1,6 +1,8 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
+import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -16,7 +18,14 @@ public class RoomQuickSlotChangePacketHandler implements PacketHandler<FTConnect
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
         if (room != null) {
+            RoomPlayer roomPlayer = client.getRoomPlayer();
+            if (roomPlayer == null || !roomPlayer.isMaster()) {
+                return;
+            }
             synchronized (room) {
+                if (room.getStatus() != RoomStatus.NotRunning) {
+                    return;
+                }
                 room.setQuickSlot(packet.getEnable());
             }
 

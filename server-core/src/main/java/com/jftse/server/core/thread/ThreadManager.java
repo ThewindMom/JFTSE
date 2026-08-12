@@ -79,6 +79,10 @@ public class ThreadManager {
         return Executors.newSingleThreadExecutor(Thread.ofVirtual().name("ThreadManager-Seq-VT-", seqThreadCounter.getAndIncrement()).factory());
     }
 
+    public boolean isShuttingDown() {
+        return virtualScheduledExecutor == null || virtualScheduledExecutor.isShutdown();
+    }
+
     @PreDestroy
     public void onExit() {
         virtualThreadExecutor.shutdown();

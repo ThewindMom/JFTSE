@@ -1,5 +1,7 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
+import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
@@ -19,9 +21,16 @@ public class RoomReadyChangeRequestPacketHandler implements PacketHandler<FTConn
             return;
         }
 
+        Room room = ftClient.getActiveRoom();
         RoomPlayer roomPlayer = ftClient.getRoomPlayer();
-        if (roomPlayer != null) {
-            roomPlayer.setReady(packet.getReady());
+        if (room != null && roomPlayer != null) {
+            synchronized (room) {
+                if (room.getStatus() != RoomStatus.NotRunning) {
+                    ftClient.getIsGoingReady().set(false);
+                    return;
+                }
+                roomPlayer.setReady(packet.getReady());
+            }
 
             SMSGRoomChangeReady answer = SMSGRoomChangeReady.builder().position(roomPlayer.getPosition()).ready(roomPlayer.isReady()).build();
             GameManager.getInstance().sendPacketToAllClientsInSameRoom(answer, connection);

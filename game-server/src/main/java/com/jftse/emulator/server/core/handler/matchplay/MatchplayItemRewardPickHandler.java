@@ -46,7 +46,7 @@ public class MatchplayItemRewardPickHandler implements PacketHandler<FTConnectio
         FTPlayer player = client.getPlayer();
         Room room = client.getActiveRoom();
         RoomPlayer roomPlayer = client.getRoomPlayer();
-        if (room == null  || roomPlayer == null) { // shouldn't happen
+        if (room == null || roomPlayer == null) { // shouldn't happen
             connection.close();
             return;
         }
@@ -55,9 +55,27 @@ public class MatchplayItemRewardPickHandler implements PacketHandler<FTConnectio
 
         byte requestingSlot = packet.getSlot();
 
-        if (GameSessionManager.getInstance().hasMatchplayReward(roomId)) {
-            final MatchplayReward matchplayReward = GameSessionManager.getInstance().getMatchplayReward(roomId);
+        final MatchplayReward matchplayReward = GameSessionManager.getInstance().getMatchplayReward(roomId);
+        if (matchplayReward != null) {
+            Long eligiblePlayerId = matchplayReward.getEligiblePlayerIdsByPosition().get(roomPlayer.getPosition());
+            if (eligiblePlayerId == null || eligiblePlayerId != player.getId() ||
+                    matchplayReward.getSlotRewards().values().stream().anyMatch(reward ->
+                            reward.getClaimed().get() &&
+                                    reward.getClaimedPlayerPosition() == roomPlayer.getPosition())) {
+                return;
+            }
             final MatchplayReward.ItemReward itemReward = matchplayReward.getSlotReward(requestingSlot);
+            if (itemReward == null) {
+                return;
+            }
+            int productIndex = itemReward.getProductIndex();
+            int productAmount = itemReward.getProductAmount();
+            Product product = productIndex > 0
+                    ? ServiceManager.getInstance().getProductService().findProductByProductItemIndex(productIndex)
+                    : null;
+            if (productIndex > 0 && product == null) {
+                return;
+            }
             if (itemReward.getClaimed().compareAndSet(false, true)) {
                 itemReward.setClaimedPlayerPosition(roomPlayer.getPosition());
 
@@ -73,13 +91,7 @@ public class MatchplayItemRewardPickHandler implements PacketHandler<FTConnectio
                 notifyOtherPlayersOfNewClaim(roomPlayer, (short) roomId, requestingSlot, itemReward);
 
                 // add reward to player pocket
-                int productIndex = itemReward.getProductIndex();
-                int productAmount = itemReward.getProductAmount();
                 if (itemReward.getProductIndex() > 0) {
-                    Product product = ServiceManager.getInstance().getProductService().findProductByProductItemIndex(productIndex);
-                    if (product == null)
-                        return;
-
                     Pocket pocket = pocketService.findById(player.getPocketId());
                     PlayerPocket playerPocket = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(product.getItem0(), product.getCategory(), pocket);
                     boolean existingItem = false;
@@ -130,11 +142,11 @@ public class MatchplayItemRewardPickHandler implements PacketHandler<FTConnectio
             }
 
             long claimedRewardCount = matchplayReward.getSlotRewards().values().stream().filter(ir -> ir.getClaimed().get()).count();
-            long activePlayerCount = room.getRoomPlayerList().stream().filter(rp -> rp.getPosition() < 4).count();
+            long activePlayerCount = matchplayReward.getEligiblePlayerIdsByPosition().size();
 
             // check if all rewards are claimed
             if (matchplayReward.getSlotRewards().values().stream().allMatch(ir -> ir.getClaimed().get()) || claimedRewardCount == activePlayerCount) {
-                GameSessionManager.getInstance().removeMatchplayReward(roomId);
+                GameSessionManager.getInstance().removeMatchplayReward(roomId, matchplayReward);
             }
         }
     }

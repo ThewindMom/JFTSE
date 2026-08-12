@@ -37,32 +37,39 @@ public class RProducerService {
         threadManager.newTask(() -> send0(message, routingKey, sender));
     }
 
-    private void send0(AbstractBaseMessage message, String routingKey, String sender) {
+    public void sendNow(AbstractBaseMessage message, String routingKey, String sender) throws AmqpException {
         String[] routingKeys = routingKey.split("\\s+");
         for (String key : routingKeys) {
-            message.setCorrelationId(RandomUtils.getUUID());
-            message.setSender(sender);
-            try {
-                final long start = Time.getNSTime();
-
-                log.debug("[{}] Sending message to {}: type={}, sender={}",
-                        message.getCorrelationId(),
-                        key,
-                        message.getMessageType(),
-                        message.getSender());
-
-                rabbitTemplate.convertAndSend(rabbitMQConfig.getExchangeName(), key, message);
-
-                final long duration = Time.getNSTimeDiffToNow(start);
-                log.debug("[{}] Message sent in {} ms",
-                        message.getCorrelationId(),
-                        Time.nanoToMillis(duration));
-
-            } catch (AmqpException ae) {
-                log.error("[{}] Failed to send message: {}",
-                        message.getCorrelationId(),
-                        ae.getMessage());
-            }
+            sendToRoutingKey(message, key, sender);
         }
+    }
+
+    private void send0(AbstractBaseMessage message, String routingKey, String sender) {
+        try {
+            sendNow(message, routingKey, sender);
+        } catch (AmqpException ae) {
+            log.error("[{}] Failed to send message: {}",
+                    message.getCorrelationId(),
+                    ae.getMessage());
+        }
+    }
+
+    private void sendToRoutingKey(AbstractBaseMessage message, String routingKey, String sender) throws AmqpException {
+        message.setCorrelationId(RandomUtils.getUUID());
+        message.setSender(sender);
+        final long start = Time.getNSTime();
+
+        log.debug("[{}] Sending message to {}: type={}, sender={}",
+                message.getCorrelationId(),
+                routingKey,
+                message.getMessageType(),
+                message.getSender());
+
+        rabbitTemplate.convertAndSend(rabbitMQConfig.getExchangeName(), routingKey, message);
+
+        final long duration = Time.getNSTimeDiffToNow(start);
+        log.debug("[{}] Message sent in {} ms",
+                message.getCorrelationId(),
+                Time.nanoToMillis(duration));
     }
 }

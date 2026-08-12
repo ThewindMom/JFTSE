@@ -17,9 +17,13 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class GuardianServeTask extends AbstractTask {
     private final FTConnection connection;
+    private final GameSession expectedGameSession;
 
     public GuardianServeTask(FTConnection connection) {
         this.connection = connection;
+        this.expectedGameSession = connection.getClient() == null
+                ? null
+                : connection.getClient().getActiveGameSession();
     }
 
     @Override
@@ -28,7 +32,7 @@ public class GuardianServeTask extends AbstractTask {
         if (client == null) return;
 
         GameSession gameSession = client.getActiveGameSession();
-        if (gameSession == null) return;
+        if (gameSession == null || gameSession != expectedGameSession) return;
         MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
 
         if (!game.getStageChangingToBoss().get()) {

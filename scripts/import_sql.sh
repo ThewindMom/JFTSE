@@ -20,6 +20,7 @@ fi
 
 # Ordered list of SQL files to be executed
 SQL_FILES=(
+    "battlemon-slot-equipment.sql"
     "config.sql"
     "status.sql"
     "maps.sql"

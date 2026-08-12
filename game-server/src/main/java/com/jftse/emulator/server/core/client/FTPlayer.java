@@ -106,6 +106,7 @@ public class FTPlayer {
                 toolSlots = EquippedToolSlots.of(getPlayer());
                 specialSlots = EquippedSpecialSlots.of(getPlayer());
                 cardSlots = EquippedCardSlots.of(getPlayer());
+                petSlots = EquippedPetSlots.of(getPlayer());
             }
             case EQUIPPED_ITEM_PARTS -> loadItemParts(getPlayer());
             case EQUIPPED_QUICK_SLOTS -> quickSlots = EquippedQuickSlots.of(getPlayer());
@@ -121,6 +122,7 @@ public class FTPlayer {
         ftPlayer.toolSlots = EquippedToolSlots.of(player);
         ftPlayer.specialSlots = EquippedSpecialSlots.of(player);
         ftPlayer.cardSlots = EquippedCardSlots.of(player);
+        ftPlayer.petSlots = EquippedPetSlots.of(player);
         ftPlayer.loadType = PlayerLoadType.FULL_EQUIPMENT;
         return ftPlayer;
     }
@@ -305,11 +307,7 @@ public class FTPlayer {
 
     public void loadPetSlots() {
         BattlemonSlotEquipment eq = sm.getBattlemonSlotEquipmentService().findById(getPetSlots().id());
-        this.petSlots = new EquippedPetSlots(
-                eq.getId(),
-                eq.getSlot1(),
-                eq.getSlot2()
-        );
+        this.petSlots = EquippedPetSlots.of(eq);
     }
 
     public Player getPlayerRef() {

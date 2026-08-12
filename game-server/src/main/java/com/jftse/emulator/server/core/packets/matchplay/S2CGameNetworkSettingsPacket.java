@@ -1,14 +1,16 @@
 package com.jftse.emulator.server.core.packets.matchplay;
 
-import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class S2CGameNetworkSettingsPacket extends Packet {
-    public S2CGameNetworkSettingsPacket(String host, int port, int gameSessionId, Room room, List<FTClient> clientsInRoom) {
+    public S2CGameNetworkSettingsPacket(String host, int port, int gameSessionId, GameSession gameSession,
+                                        List<FTClient> clientsInRoom) {
         super(PacketOperations.S2CGameNetworkSettings);
 
         this.write(host);
@@ -16,16 +18,27 @@ public class S2CGameNetworkSettingsPacket extends Packet {
 
         this.write(gameSessionId);
 
-        int clientsInRoomSize = clientsInRoom.size();
         int maxClientsInRoom = 4;
-        int missingClientsCount = maxClientsInRoom - clientsInRoomSize;
+        List<FTClient> endpointClients = clientsInRoom.stream()
+                .filter(FTClient::hasPlayer)
+                .limit(4)
+                .toList();
 
-        clientsInRoom.forEach(c -> {
-            if (c.hasPlayer())
-                this.write(Math.toIntExact(c.getPlayer().getId()));
-        });
-
-        for (int i = 1; i <= missingClientsCount; i++) {
+        List<Integer> relayEndpointIds = new ArrayList<>(maxClientsInRoom);
+        endpointClients.stream()
+                .map(FTClient::getPlayer)
+                .map(player -> Math.toIntExact(player.getId()))
+                .forEach(relayEndpointIds::add);
+        if (gameSession.isBattlemon()) {
+            endpointClients.stream()
+                    .filter(client -> gameSession.getBattlemonActorForOwner(
+                            client.getPlayer().getId()) != null)
+                    .map(client -> Math.toIntExact(client.getPlayer().getId()))
+                    .limit(maxClientsInRoom - relayEndpointIds.size())
+                    .forEach(relayEndpointIds::add);
+        }
+        relayEndpointIds.forEach(this::write);
+        for (int i = relayEndpointIds.size(); i < maxClientsInRoom; i++) {
             this.write(0);
         }
     }

@@ -236,16 +236,15 @@ public class ProductServiceImpl implements ProductService {
         CardSlotEquipment cardSlotEquipment = new CardSlotEquipment();
         cardSlotEquipment = cardSlotEquipmentService.save(cardSlotEquipment);
 
-        /* BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
+        BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
         battlemonSlotEquipment = battlemonSlotEquipmentService.save(battlemonSlotEquipment);
-        */
 
         player.setClothEquipment(clothEquipment);
         player.setQuickSlotEquipment(quickSlotEquipment);
         player.setSpecialSlotEquipment(specialSlotEquipment);
         player.setToolSlotEquipment(toolSlotEquipment);
         player.setCardSlotEquipment(cardSlotEquipment);
-        // player.setBattlemonSlotEquipment(battlemonSlotEquipment);
+        player.setBattlemonSlotEquipment(battlemonSlotEquipment);
 
         Pocket pocket = new Pocket();
         pocket = pocketService.save(pocket);

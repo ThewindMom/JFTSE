@@ -44,7 +44,7 @@ public class Room {
     private ConcurrentLinkedDeque<Long> bannedPlayers;
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
     private ArrayList<Short> positions;
-    private int status;
+    private volatile int status;
 
     private byte previousMap = 0;
 

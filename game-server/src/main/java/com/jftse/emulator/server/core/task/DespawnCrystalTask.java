@@ -18,6 +18,7 @@ public class DespawnCrystalTask extends AbstractTask {
     private final FTConnection connection;
     private final SkillCrystal skillCrystal;
     private final short gameFieldSide;
+    private final GameSession expectedGameSession;
 
     private final EventHandler eventHandler;
 
@@ -25,6 +26,9 @@ public class DespawnCrystalTask extends AbstractTask {
         this.connection = connection;
         this.skillCrystal = skillCrystal;
         this.gameFieldSide = gameFieldSide;
+        this.expectedGameSession = connection.getClient() == null
+                ? null
+                : connection.getClient().getActiveGameSession();
 
         eventHandler = GameManager.getInstance().getEventHandler();
     }
@@ -33,6 +37,9 @@ public class DespawnCrystalTask extends AbstractTask {
         this.connection = connection;
         this.skillCrystal = skillCrystal;
         this.gameFieldSide = -1;
+        this.expectedGameSession = connection.getClient() == null
+                ? null
+                : connection.getClient().getActiveGameSession();
 
         eventHandler = GameManager.getInstance().getEventHandler();
     }
@@ -42,7 +49,7 @@ public class DespawnCrystalTask extends AbstractTask {
         if (connection.getClient() == null) return;
 
         GameSession gameSession = connection.getClient().getActiveGameSession();
-        if (gameSession == null) return;
+        if (gameSession == null || gameSession != expectedGameSession) return;
 
         MatchplayGame game = gameSession.getMatchplayGame();
         boolean isBattleGame = gameSession.getMatchplayGame() instanceof MatchplayBattleGame;

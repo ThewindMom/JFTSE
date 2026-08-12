@@ -19,6 +19,7 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
         for (RoomPlayer roomPlayer : roomPlayerList) {
             EquippedItemParts equippedItemParts = roomPlayer.getEquippedItemPartsIDX();
             EquippedItemStats equippedItemStats = roomPlayer.getEquippedItemStats();
+            PetView pet = roomPlayer.getPet();
 
             boolean isSpectator = roomPlayer.getPosition() > 3;
             this.write(roomPlayer.getPosition());
@@ -30,7 +31,7 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(roomPlayer.isFitting());
             this.write((byte) roomPlayer.getPlayerType());
             this.write(isSpectator);
-            this.write((byte) 0); // read battlemon??
+            this.write(pet != null);
 
             GuildView guild = roomPlayer.getGuild();
             this.write(guild != null ? guild.name() : "");
@@ -111,7 +112,6 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(equippedItemParts.hat());
             this.write(equippedItemParts.dye());
 
-            PetView pet = roomPlayer.getPet();
             if (pet != null) {
                 this.write(pet.name());
                 this.write((byte) pet.level());
@@ -123,9 +123,6 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
                 this.write((byte) pet.willpower());
                 this.write(pet.hunger());
                 this.write(pet.energy());
-            } else {
-                for (int i = 0; i < 10; i++)
-                    this.write(0);
             }
         }
     }

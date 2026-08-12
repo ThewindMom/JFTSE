@@ -31,6 +31,7 @@ public class GameAnimationSkipTriggeredPacketHandler implements PacketHandler<FT
         if (!ftClient.hasPlayer() || ftClient.getActiveRoom() == null || ftClient.getActiveGameSession() == null)
             return;
 
+        GameSession expectedGameSession = ftClient.getActiveGameSession();
         Room room = ftClient.getActiveRoom();
         int roomStatus = room.getStatus();
         if (roomStatus != RoomStatus.AnimationSkipped) {
@@ -73,14 +74,17 @@ public class GameAnimationSkipTriggeredPacketHandler implements PacketHandler<FT
                 if (client == null) return;
 
                 Room threadRoom = client.getActiveRoom();
-                if (threadRoom == null || threadRoom.getStatus() != RoomStatus.Running) {
+                if (threadRoom == null || threadRoom != room || threadRoom.getStatus() != RoomStatus.Running) {
                     return;
                 }
+
+                GameSession gameSession = client.getActiveGameSession();
+                if (gameSession == null || gameSession != expectedGameSession)
+                    return;
 
                 S2CGameSetNameColorAndRemoveBlackBar setNameColorAndRemoveBlackBarPacket = new S2CGameSetNameColorAndRemoveBlackBar(room);
                 GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setNameColorAndRemoveBlackBarPacket, client.getConnection());
 
-                GameSession gameSession = client.getActiveGameSession();
                 MatchplayGame game = gameSession.getMatchplayGame();
                 if (game == null)
                     return;
