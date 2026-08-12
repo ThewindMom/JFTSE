@@ -122,6 +122,9 @@ class ClubMatchRulesTest {
         Room singles = singlesRoom(
                 player(1, RED_GUILD, 0),
                 player(2, BLUE_GUILD, 1));
+        Room nativeBasicDoubles = doublesRoom(
+                player(1, RED_GUILD, 0),
+                player(2, BLUE_GUILD, 1));
         Room doubles = doublesRoom(
                 player(1, RED_GUILD, 0),
                 player(2, BLUE_GUILD, 1),
@@ -129,6 +132,7 @@ class ClubMatchRulesTest {
                 player(4, BLUE_GUILD, 3));
 
         assertTrue(ClubMatchRules.hasValidTeams(singles));
+        assertTrue(ClubMatchRules.hasValidTeams(nativeBasicDoubles));
         assertTrue(ClubMatchRules.hasValidTeams(doubles));
     }
 
@@ -142,9 +146,14 @@ class ClubMatchRulesTest {
         Room sameClubOpponents = singlesRoom(
                 player(1, RED_GUILD, 0),
                 player(2, RED_GUILD, 1));
+        Room unbalanced = doublesRoom(
+                player(1, RED_GUILD, 0),
+                player(2, BLUE_GUILD, 1),
+                player(3, RED_GUILD, 2));
 
         assertFalse(ClubMatchRules.hasValidTeams(mixedSide));
         assertFalse(ClubMatchRules.hasValidTeams(sameClubOpponents));
+        assertFalse(ClubMatchRules.hasValidTeams(unbalanced));
     }
 
     @Test

@@ -147,18 +147,13 @@ public final class ClubMatchRules {
         }
 
         List<RoomPlayer> activePlayers = activePlayers(room);
-        if (activePlayers.size() != room.getPlayers()) {
-            return false;
-        }
-
         List<RoomPlayer> redTeam = activePlayers.stream()
                 .filter(player -> player.getPosition() % 2 == 0)
                 .toList();
         List<RoomPlayer> blueTeam = activePlayers.stream()
                 .filter(player -> player.getPosition() % 2 == 1)
                 .toList();
-        int teamSize = room.getPlayers() / 2;
-        if (redTeam.size() != teamSize || blueTeam.size() != teamSize) {
+        if (redTeam.isEmpty() || redTeam.size() != blueTeam.size()) {
             return false;
         }
 
