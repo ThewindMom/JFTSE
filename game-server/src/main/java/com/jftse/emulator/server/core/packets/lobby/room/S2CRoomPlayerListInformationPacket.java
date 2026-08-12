@@ -2,7 +2,6 @@ package com.jftse.emulator.server.core.packets.lobby.room;
 
 import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.client.GuildView;
-import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.entities.database.model.player.EquippedItemStats;
@@ -19,7 +18,6 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
         for (RoomPlayer roomPlayer : roomPlayerList) {
             EquippedItemParts equippedItemParts = roomPlayer.getEquippedItemPartsIDX();
             EquippedItemStats equippedItemStats = roomPlayer.getEquippedItemStats();
-            PetView pet = roomPlayer.getPet();
 
             boolean isSpectator = roomPlayer.getPosition() > 3;
             this.write(roomPlayer.getPosition());
@@ -31,7 +29,7 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(roomPlayer.isFitting());
             this.write((byte) roomPlayer.getPlayerType());
             this.write(isSpectator);
-            this.write(pet != null);
+            this.write((byte) 0); // unk3
 
             GuildView guild = roomPlayer.getGuild();
             this.write(guild != null ? guild.name() : "");
@@ -111,19 +109,6 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(equippedItemParts.bag());
             this.write(equippedItemParts.hat());
             this.write(equippedItemParts.dye());
-
-            if (pet != null) {
-                this.write(pet.name());
-                this.write((byte) pet.level());
-                this.write((byte) pet.type());
-                this.write(pet.hp());
-                this.write((byte) pet.strength());
-                this.write((byte) pet.stamina());
-                this.write((byte) pet.dexterity());
-                this.write((byte) pet.willpower());
-                this.write(pet.hunger());
-                this.write(pet.energy());
-            }
         }
     }
 }
