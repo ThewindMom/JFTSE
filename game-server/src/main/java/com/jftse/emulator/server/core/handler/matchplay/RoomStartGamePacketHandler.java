@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CGameNetworkSettingsPacket;
+import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.gameserver.GameServer;
@@ -30,12 +31,15 @@ import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
 @PacketId(CMSGStartGame.PACKET_ID)
 public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, CMSGStartGame> {
+    private static final long RELAY_CONNECTION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private final AuthenticationService authenticationService;
     private final ServerConfService serverConfService;
 
@@ -62,12 +66,23 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             return;
         }
 
+        TournamentRoomCoordinator tournamentCoordinator = TournamentRoomCoordinator.getInstance();
+        Map<Long, Short> tournamentParticipantPositions;
         synchronized (room) {
-            if (room.getStatus() != RoomStatus.NotRunning) {
+            if (room.getStatus() != RoomStatus.NotRunning
+                    || (room.isTournamentRoom()
+                    && !tournamentCoordinator.canStart(room, ftClient.getRoomPlayer()))) {
                 connection.sendTCP(roomStartGameAck);
                 return;
             }
 
+            tournamentParticipantPositions = room.isTournamentRoom()
+                    ? room.getRoomPlayerList().stream()
+                            .filter(player -> player.getPosition() < 4)
+                            .collect(Collectors.toUnmodifiableMap(
+                                    RoomPlayer::getPlayerId,
+                                    RoomPlayer::getPosition))
+                    : Map.of();
             room.setStatus(RoomStatus.StartingGame);
         }
 
@@ -77,6 +92,8 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
 
         GameSession gameSession = new GameSession();
         Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
+        gameSession.setTournamentMatchId(room.getTournamentMatchId());
+        gameSession.setTournamentParticipantPositions(tournamentParticipantPositions);
 
         gameSession.setPlayers(room.getPlayers());
         MatchplayGame game;
@@ -93,6 +110,15 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             gameSession.getClients().add(c);
         });
 
+        if (room.isTournamentRoom() && !tournamentCoordinator.activate(room, gameSessionId)) {
+            GameSessionManager.getInstance().discardGameSession(gameSessionId, gameSession);
+            synchronized (room) {
+                room.setStatus(RoomStatus.NotRunning);
+            }
+            connection.sendTCP(roomStartGameAck);
+            return;
+        }
+
         SMSGUnsetHost unsetHostPacket = SMSGUnsetHost.builder().result((byte) 0).build();
 
         List<FTClient> clientInRoomLeftShiftList = new ArrayList<>(clientsInRoom);
@@ -107,22 +133,31 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
         });
 
         int initialRoomPlayerSize = room.getRoomPlayerList().size();
+        Set<Long> initialTournamentParticipantIds = tournamentParticipantPositions.keySet();
 
         ThreadManager.getInstance().schedule(() -> {
-            Room threadRoom = ftClient.getActiveRoom();
-            if (threadRoom != null) {
-                while (threadRoom.getStatus() != RoomStatus.RelayConnectionSuccess) {
-                    boolean allReady = threadRoom.getRoomPlayerList().stream()
+            Room threadRoom = room;
+            long relayDeadline = System.nanoTime() + RELAY_CONNECTION_TIMEOUT_NANOS;
+            while (threadRoom.getStatus() != RoomStatus.RelayConnectionSuccess
+                    || (threadRoom.isTournamentRoom()
+                    && !tournamentCoordinator.canContinueStart(threadRoom, initialTournamentParticipantIds))) {
+                boolean allReady = threadRoom.isTournamentRoom()
+                        ? tournamentCoordinator.canContinueStart(threadRoom, initialTournamentParticipantIds)
+                        : threadRoom.getRoomPlayerList().stream()
                             .filter(rp -> !rp.isMaster())
                             .collect(Collectors.toList())
                             .stream()
                             .filter(rp -> rp.getPosition() < 4)
                             .allMatch(RoomPlayer::isReady);
 
-                    boolean roomPlayerSizeChanged = initialRoomPlayerSize != threadRoom.getRoomPlayerList().size();
+                boolean roomPlayerSizeChanged = !threadRoom.isTournamentRoom()
+                        && initialRoomPlayerSize != threadRoom.getRoomPlayerList().size();
+                boolean relayTimedOut = System.nanoTime() >= relayDeadline;
 
-                    synchronized (threadRoom) {
-                        if (!allReady || roomPlayerSizeChanged || threadRoom.getStatus() == RoomStatus.StartCancelled || threadRoom.getStatus() == RoomStatus.RelayConnectionFailed) {
+                synchronized (threadRoom) {
+                    if (!allReady || roomPlayerSizeChanged || relayTimedOut
+                            || threadRoom.getStatus() == RoomStatus.StartCancelled
+                            || threadRoom.getStatus() == RoomStatus.RelayConnectionFailed) {
                             threadRoom.setStatus(RoomStatus.NotRunning);
                             SMSGCancelStartGame cancelStartGamePacket = SMSGCancelStartGame.builder().result((char) 0).build();
 
@@ -130,9 +165,8 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                                 rp.setReady(false);
                                 rp.getConnectedToRelay().set(false);
                             });
-                            clientsInRoom.forEach(c -> c.setActiveGameSession(null));
-
-                            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+                            GameSessionManager.getInstance().discardGameSession(gameSessionId, gameSession);
+                            tournamentCoordinator.deactivate(threadRoom, gameSessionId);
 
                             RoomPlayer threadRoomPlayer = threadRoom.getRoomPlayerList().stream()
                                     .filter(x -> x.getPlayerId() == ftClient.getPlayer().getId())
@@ -158,13 +192,15 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                                     c.getConnection().sendTCP(unsetHostPacket);
                                 }
                             });
-                            return;
-                        }
+                        return;
                     }
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(1000);
-                    } catch (InterruptedException e) {
-                        log.error("Error while waiting for relay connection success", e);
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    synchronized (threadRoom) {
+                        threadRoom.setStatus(RoomStatus.RelayConnectionFailed);
                     }
                 }
             }

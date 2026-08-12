@@ -33,6 +33,7 @@ import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
 import com.jftse.emulator.server.core.task.AutoItemRewardPickerTask;
+import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.core.utils.RankingUtils;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -45,6 +46,7 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.packets.matchplay.CMSGPoint;
+import com.jftse.server.core.tournament.TournamentService;
 import lombok.extern.log4j.Log4j2;
 
 import java.awt.*;
@@ -127,6 +129,32 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
+        boolean redTeamWon = game.getSetsRedTeam().get() == 2;
+        if (activeRoom.isTournamentRoom()) {
+            if (!gameSession.getTournamentCompletionStarted().compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                TournamentService.CompletionResult completion = TournamentRoomCoordinator.getInstance().completeBasicMatch(
+                        activeRoom,
+                        gameSessionId,
+                        gameSession,
+                        ftClient.getPlayer().getId(),
+                        redTeamWon);
+                if (completion != TournamentService.CompletionResult.COMPLETED
+                        && completion != TournamentService.CompletionResult.ALREADY_COMPLETED) {
+                    gameSession.getTournamentCompletionStarted().set(false);
+                    resetRejectedTournamentMatch(activeRoom, gameSessionId, gameSession);
+                    return;
+                }
+            } catch (RuntimeException exception) {
+                gameSession.getTournamentCompletionStarted().set(false);
+                resetRejectedTournamentMatch(activeRoom, gameSessionId, gameSession);
+                log.error("Tournament match completion failed; the game session was reset", exception);
+                return;
+            }
+        }
+
         activeRoom.setStatus(RoomStatus.NotRunning);
 
         gameSession.getFireables().forEach(f -> f.setCancelled(true));
@@ -135,7 +163,6 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         StringBuilder gameLogContent = new StringBuilder();
 
         gameLogContent.append("Basic game finished. ");
-        boolean redTeamWon = game.getSetsRedTeam().get() == 2;
         gameLogContent.append(redTeamWon ? "Red " : "Blue ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
@@ -292,6 +319,43 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     .isHard(false)
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
+        }
+    }
+
+    private void resetRejectedTournamentMatch(Room room, int gameSessionId, GameSession gameSession) {
+        TournamentRoomCoordinator coordinator = TournamentRoomCoordinator.getInstance();
+        boolean durableRoomBindingRetained = true;
+        try {
+            durableRoomBindingRetained = coordinator.deactivate(room, gameSessionId);
+            if (!durableRoomBindingRetained) {
+                coordinator.release(room);
+            }
+        } catch (RuntimeException exception) {
+            log.error("Tournament match binding could not be reset; retaining the room for recovery", exception);
+        }
+
+        synchronized (room) {
+            room.setStatus(RoomStatus.NotRunning);
+            room.getRoomPlayerList().forEach(player -> {
+                player.setReady(false);
+                player.getConnectedToRelay().set(false);
+            });
+        }
+
+        List<FTClient> sessionClients = new ArrayList<>(gameSession.getClients());
+        S2CMatchplayBackToRoom backToRoom = new S2CMatchplayBackToRoom();
+        sessionClients.forEach(client -> {
+            client.setActiveGameSession(null);
+            if (client.getConnection() != null) {
+                client.getConnection().sendTCP(backToRoom);
+            }
+        });
+        GameSessionManager.getInstance().discardGameSession(gameSessionId, gameSession);
+
+        if (!durableRoomBindingRetained) {
+            sessionClients.stream()
+                    .filter(client -> client.getActiveRoom() == room && client.getConnection() != null)
+                    .forEach(client -> GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true));
         }
     }
 

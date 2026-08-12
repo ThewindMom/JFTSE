@@ -17,9 +17,6 @@ import java.util.stream.IntStream;
 @PacketId(CMSGTournamentList.PACKET_ID)
 public class TournamentListPacketHandler implements PacketHandler<FTConnection, CMSGTournamentList> {
     private static final int BRACKET_SIZE = 16;
-    private static final List<TournamentReward> REWARDS = IntStream.range(0, 5)
-            .mapToObj(ignored -> TournamentReward.builder().productIndex(287).useType(0).build())
-            .toList();
     private static final List<TournamentPair> EMPTY_BRACKET = IntStream.range(0, BRACKET_SIZE)
             .mapToObj(ignored -> TournamentPair.builder().first(0).second(0).build())
             .toList();
@@ -36,10 +33,16 @@ public class TournamentListPacketHandler implements PacketHandler<FTConnection, 
     }
 
     static Tournament toPacket(TournamentManager.TournamentDefinition definition) {
+        List<TournamentReward> rewards = IntStream.range(0, 5)
+                .mapToObj(ignored -> TournamentReward.builder()
+                        .productIndex(definition.rewardProductIndex())
+                        .useType(0)
+                        .build())
+                .toList();
         return Tournament.builder()
                 .tournamentId(definition.tournamentId())
-                .entryType((byte) 1)
-                .gameMode((byte) 0)
+                .entryType(definition.entryType())
+                .gameMode(definition.gameMode())
                 .title(definition.title())
                 .applicationStart(Date.from(definition.applicationStart()))
                 .applicationEnd(Date.from(definition.applicationEnd()))
@@ -50,11 +53,11 @@ public class TournamentListPacketHandler implements PacketHandler<FTConnection, 
                 .unknown2((byte) 0)
                 .unknown3(4)
                 .unknownTime(Date.from(definition.applicationStart()))
-                .status((byte) 1)
+                .status(definition.status())
                 .unknownFlag(false)
                 .unknown4(BRACKET_SIZE)
                 .bracketSize(BRACKET_SIZE)
-                .rewards(REWARDS)
+                .rewards(rewards)
                 .bracketA(EMPTY_BRACKET)
                 .bracketB(EMPTY_BRACKET)
                 .build();

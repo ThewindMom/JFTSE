@@ -39,7 +39,6 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         byte playerSize = packet.getPlayers();
 
         Room room = new Room();
-        room.setRoomId(GameManager.getInstance().getRoomId());
         room.setRoomName(String.format("%s's room", player.getName()));
         room.setRoomType(packet.getRoomType());
         room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
@@ -70,8 +69,14 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         room.setBall(1);
         room.setMap((byte) 0);
 
-        GameManager.getInstance().internalHandleRoomCreate(client.getConnection(), room);
-
-        client.getIsJoiningOrLeavingRoom().set(false);
+        GameManager gameManager = GameManager.getInstance();
+        try {
+            synchronized (gameManager) {
+                room.setRoomId(gameManager.getRoomId());
+                gameManager.internalHandleRoomCreate(client.getConnection(), room);
+            }
+        } finally {
+            client.getIsJoiningOrLeavingRoom().set(false);
+        }
     }
 }

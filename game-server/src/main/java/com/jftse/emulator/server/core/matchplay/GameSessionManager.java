@@ -7,6 +7,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -40,6 +41,25 @@ public class GameSessionManager {
     }
     public boolean removeGameSession(Integer gameSessionId, GameSession gameSession) {
         return gameSessionList.remove(gameSessionId, gameSession);
+    }
+
+    public boolean discardGameSession(Integer gameSessionId, GameSession gameSession) {
+        if (gameSessionId == null || gameSession == null) {
+            return false;
+        }
+        gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+        gameSession.getFireables().clear();
+        if (gameSession.getMatchplayGame() != null) {
+            gameSession.getMatchplayGame().getScheduledFutures().forEach(future -> future.cancel(false));
+            gameSession.getMatchplayGame().getScheduledFutures().clear();
+        }
+        gameSession.getClients().forEach(client -> {
+            if (Objects.equals(client.getGameSessionId(), gameSessionId)) {
+                client.setActiveGameSession(null);
+            }
+        });
+        gameSession.getClients().clear();
+        return removeGameSession(gameSessionId, gameSession);
     }
 
     public GameSession getGameSessionBySessionId(int sessionId) {

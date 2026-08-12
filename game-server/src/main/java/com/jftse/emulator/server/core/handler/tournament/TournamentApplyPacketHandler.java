@@ -16,7 +16,10 @@ public class TournamentApplyPacketHandler implements PacketHandler<FTConnection,
     public void handle(FTConnection connection, CMSGTournamentApply request) {
         FTClient client = connection.getClient();
         byte status = client.hasPlayer()
-                ? tournamentManager.apply(request.getTournamentId(), client.getPlayer().getId())
+                ? tournamentManager.apply(
+                        request.getTournamentId(),
+                        client.getPlayer().getId(),
+                        client.getPlayer().getName())
                 : TournamentManager.NOT_APPLIED;
 
         connection.sendTCP(SMSGTournamentApply.builder().status(status).build());

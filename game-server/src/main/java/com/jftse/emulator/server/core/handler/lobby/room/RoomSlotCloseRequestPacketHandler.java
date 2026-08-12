@@ -26,6 +26,10 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
 
         byte slot = packet.getSlot();
         Room room = client.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            client.getIsClosingSlot().set(false);
+            return;
+        }
         if (room != null) {
             room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
 

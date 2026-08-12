@@ -15,6 +15,9 @@ public class RoomLevelRangeChangePacketHandler implements PacketHandler<FTConnec
     public void handle(FTConnection connection, CMSGRoomChangeLevelRange packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             synchronized (room) {
                 room.setLevelRange(packet.getLevelRange());

@@ -1,9 +1,13 @@
 package com.jftse.emulator.server.core.tournament;
 
+import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.server.core.tournament.TournamentService;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -13,6 +17,12 @@ public final class TournamentManager {
     public static final byte NOT_FOUND = -8;
     public static final byte ALREADY_APPLIED = -3;
     public static final byte NOT_APPLIED = -1;
+    public static final byte NOT_OPEN = -2;
+    public static final byte REGISTRATION_FULL = -4;
+
+    public static final byte QUALIFYING = 0;
+    public static final byte FINAL = 1;
+    private static final int CAPACITY = 64;
 
     private static final List<BracketEntry> BRACKET_ENTRIES = List.of(
             new BracketEntry("test", "BOT01", "BOT02"),
@@ -59,32 +69,80 @@ public final class TournamentManager {
     }
 
     public List<TournamentDefinition> getTournaments() {
-        return tournaments;
+        return getTournaments(0);
     }
 
     public List<TournamentDefinition> getTournaments(int page) {
-        return page == 0 ? tournaments : List.of();
+        TournamentService service = service();
+        if (service == null) {
+            return page == 0 ? tournaments : List.of();
+        }
+        return service.findPage(page).stream().map(TournamentManager::toDefinition).toList();
     }
 
     public List<BracketEntry> getBracketEntries(int tournamentId) {
-        return hasTournament(tournamentId) ? BRACKET_ENTRIES : List.of();
+        return getBracketEntries(tournamentId, FINAL, 0);
+    }
+
+    public List<BracketEntry> getBracketEntries(int tournamentId, byte bracketType, int page) {
+        TournamentService service = service();
+        if (service == null) {
+            return hasTournament(tournamentId) && bracketType == FINAL && page == 0
+                    ? BRACKET_ENTRIES
+                    : List.of();
+        }
+        return service.bracketEntries(tournamentId, bracketType, page).stream()
+                .map(entry -> new BracketEntry(entry.first(), entry.second(), entry.third()))
+                .toList();
     }
 
     public List<BracketMatch> getBracketMatches(int tournamentId) {
-        return hasTournament(tournamentId) ? BRACKET_MATCHES : List.of();
+        return getBracketMatches(tournamentId, FINAL, 0);
+    }
+
+    public List<BracketMatch> getBracketMatches(int tournamentId, byte bracketType, int page) {
+        TournamentService service = service();
+        if (service == null) {
+            return hasTournament(tournamentId) && bracketType == FINAL && page == 0
+                    ? BRACKET_MATCHES
+                    : List.of();
+        }
+        return service.bracketMatches(tournamentId, bracketType, page).stream()
+                .map(match -> new BracketMatch(match.result(), match.state()))
+                .toList();
     }
 
     public byte apply(int tournamentId, long playerId) {
+        return apply(tournamentId, playerId, "P" + playerId);
+    }
+
+    public byte apply(int tournamentId, long playerId, String playerName) {
+        TournamentService service = service();
+        if (service != null) {
+            return service.apply(tournamentId, playerId, playerName);
+        }
         if (!hasTournament(tournamentId)) {
             return NOT_FOUND;
         }
 
-        return applications
-                .computeIfAbsent(tournamentId, ignored -> ConcurrentHashMap.newKeySet())
-                .add(playerId) ? SUCCESS : ALREADY_APPLIED;
+        Set<Long> players = applications.computeIfAbsent(tournamentId, ignored -> ConcurrentHashMap.newKeySet());
+        synchronized (players) {
+            if (players.contains(playerId)) {
+                return ALREADY_APPLIED;
+            }
+            if (players.size() >= CAPACITY) {
+                return REGISTRATION_FULL;
+            }
+            players.add(playerId);
+            return SUCCESS;
+        }
     }
 
     public byte cancel(int tournamentId, long playerId) {
+        TournamentService service = service();
+        if (service != null) {
+            return service.cancel(tournamentId, playerId);
+        }
         if (!hasTournament(tournamentId)) {
             return NOT_FOUND;
         }
@@ -94,12 +152,57 @@ public final class TournamentManager {
     }
 
     public boolean isApplied(int tournamentId, long playerId) {
+        return getPlayerState(tournamentId, playerId) != 0;
+    }
+
+    public byte getPlayerState(int tournamentId, long playerId) {
+        TournamentService service = service();
+        if (service != null) {
+            return service.playerState(tournamentId, playerId);
+        }
         Set<Long> players = applications.get(tournamentId);
-        return players != null && players.contains(playerId);
+        return (byte) (players != null && players.contains(playerId) ? 1 : 0);
     }
 
     public boolean hasTournament(int tournamentId) {
-        return tournaments.stream().anyMatch(tournament -> tournament.tournamentId() == tournamentId);
+        return getTournament(tournamentId).isPresent();
+    }
+
+    public Optional<TournamentDefinition> getTournament(int tournamentId) {
+        TournamentService service = service();
+        if (service != null) {
+            return service.find(tournamentId).map(TournamentManager::toDefinition);
+        }
+        return tournaments.stream().filter(tournament -> tournament.tournamentId() == tournamentId).findFirst();
+    }
+
+    public List<TournamentDefinition> getArchives(int page) {
+        TournamentService service = service();
+        return service == null
+                ? List.of()
+                : service.findArchives(page).stream().map(TournamentManager::toDefinition).toList();
+    }
+
+    private TournamentService service() {
+        ServiceManager serviceManager = ServiceManager.getInstance();
+        return serviceManager == null ? null : serviceManager.getTournamentService();
+    }
+
+    private static TournamentDefinition toDefinition(
+            com.jftse.entities.database.model.tournament.TournamentDefinition tournament
+    ) {
+        return new TournamentDefinition(
+                Math.toIntExact(tournament.getId()),
+                tournament.getTitle(),
+                tournament.getApplicationStart().toInstant(),
+                tournament.getApplicationEnd().toInstant(),
+                tournament.getQualifyingStart().toInstant(),
+                tournament.getTournamentEnd().toInstant(),
+                tournament.getEntryType(),
+                tournament.getGameMode(),
+                tournament.getStatus(),
+                tournament.getRewardProductIndex(),
+                tournament.getRewardQuantity());
     }
 
     public record TournamentDefinition(
@@ -108,8 +211,34 @@ public final class TournamentManager {
             Instant applicationStart,
             Instant applicationEnd,
             Instant tournamentStart,
-            Instant tournamentEnd
+            Instant tournamentEnd,
+            byte entryType,
+            byte gameMode,
+            byte status,
+            int rewardProductIndex,
+            int rewardQuantity
     ) {
+        public TournamentDefinition(
+                int tournamentId,
+                String title,
+                Instant applicationStart,
+                Instant applicationEnd,
+                Instant tournamentStart,
+                Instant tournamentEnd
+        ) {
+            this(
+                    tournamentId,
+                    title,
+                    applicationStart,
+                    applicationEnd,
+                    tournamentStart,
+                    tournamentEnd,
+                    (byte) 1,
+                    (byte) 0,
+                    (byte) 1,
+                    287,
+                    1);
+        }
     }
 
     public record BracketEntry(String first, String second, String third) {

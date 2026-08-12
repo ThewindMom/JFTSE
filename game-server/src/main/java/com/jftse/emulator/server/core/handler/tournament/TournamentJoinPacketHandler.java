@@ -26,9 +26,7 @@ public class TournamentJoinPacketHandler implements PacketHandler<FTConnection, 
     static SMSGTournamentJoin response(byte status, int tournamentId) {
         SMSGTournamentJoin response = SMSGTournamentJoin.builder().status(status).build();
         if (status == TournamentManager.SUCCESS) {
-            Tournament tournament = TournamentManager.getInstance().getTournaments().stream()
-                    .filter(definition -> definition.tournamentId() == tournamentId)
-                    .findFirst()
+            Tournament tournament = TournamentManager.getInstance().getTournament(tournamentId)
                     .map(TournamentListPacketHandler::toPacket)
                     .orElseThrow();
             response.write(

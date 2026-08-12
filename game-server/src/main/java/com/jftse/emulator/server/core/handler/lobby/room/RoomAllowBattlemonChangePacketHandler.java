@@ -15,6 +15,9 @@ public class RoomAllowBattlemonChangePacketHandler implements PacketHandler<FTCo
     public void handle(FTConnection connection, CMSGRoomChangeAllowBattlemon packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             byte allowBattlemon = packet.getAllowBattlemon();
             // disable battlemon

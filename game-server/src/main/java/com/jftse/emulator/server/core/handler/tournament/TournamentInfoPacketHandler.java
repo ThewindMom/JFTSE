@@ -19,17 +19,23 @@ public class TournamentInfoPacketHandler implements PacketHandler<FTConnection, 
         FTClient client = connection.getClient();
         int tournamentId = request.getTournamentId();
         boolean found = client.hasPlayer() && tournamentManager.hasTournament(tournamentId);
-        boolean applied = found && tournamentManager.isApplied(tournamentId, client.getPlayer().getId());
+        byte playerState = found
+                ? tournamentManager.getPlayerState(tournamentId, client.getPlayer().getId())
+                : 0;
 
-        connection.sendTCP(response(found ? TournamentManager.SUCCESS : INFO_FAILED, tournamentId, applied));
+        connection.sendTCP(response(found ? TournamentManager.SUCCESS : INFO_FAILED, tournamentId, playerState));
     }
 
     static SMSGTournamentInfo response(byte result, int tournamentId, boolean applied) {
+        return response(result, tournamentId, (byte) (applied ? 1 : 0));
+    }
+
+    static SMSGTournamentInfo response(byte result, int tournamentId, byte playerState) {
         SMSGTournamentInfo response = SMSGTournamentInfo.builder().result(result).build();
         if (result == TournamentManager.SUCCESS) {
             response.write(
                     tournamentId,
-                    (byte) (applied ? 1 : 0),
+                    playerState,
                     (byte) 0,
                     "",
                     "",

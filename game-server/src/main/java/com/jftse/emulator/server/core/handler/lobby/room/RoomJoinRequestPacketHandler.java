@@ -11,6 +11,7 @@ import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
+import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.Friend;
@@ -171,7 +172,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
         boolean useGmSlot = false;
         int gmSlot = 9;
-        if (!isTownSquare) {
+        if (!isTownSquare && !room.isTournamentRoom()) {
             if (ftClient.isGameMaster()) {
                 int i = 0;
                 boolean isGmSlotInUse = false;
@@ -217,8 +218,25 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
+        Friend couple = socialService.getRelationshipWithFriend(activePlayer.getPlayerRef());
+        if (couple != null) {
+            activePlayer.setCoupleId(couple.getFriend().getId());
+            activePlayer.setCoupleName(couple.getFriend().getName());
+        }
+
+        RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
+        roomPlayer.setGameMaster(ftClient.isGameMaster());
+        roomPlayer.setFitting(false);
+
         int newPosition = -1;
-        if (!isTownSquare) {
+        if (room.isTournamentRoom()) {
+            synchronized (room) {
+                if (room.getStatus() == RoomStatus.NotRunning) {
+                    newPosition = TournamentRoomCoordinator.getInstance()
+                            .joinPosition(room, activePlayer.getId());
+                }
+            }
+        } else if (!isTownSquare) {
             Optional<Short> num = room.getPositions().stream().filter(x -> x == RoomPositionState.Free).findFirst();
             newPosition = useGmSlot ? 9 : num.map(pos -> room.getPositions().indexOf(pos)).orElse(-1);
         } else {
@@ -248,26 +266,37 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             room.getPositions().set(newPosition, RoomPositionState.InUse);
         }
 
-        Friend couple = socialService.getRelationshipWithFriend(activePlayer.getPlayerRef());
-        if (couple != null) {
-            activePlayer.setCoupleId(couple.getFriend().getId());
-            activePlayer.setCoupleName(couple.getFriend().getName());
-        }
-
-        RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
-        roomPlayer.setGameMaster(ftClient.isGameMaster());
         roomPlayer.setPosition((short) newPosition);
-        roomPlayer.setMaster(false);
-        roomPlayer.setFitting(false);
 
-        ftClient.setActiveRoom(room);
-        if (isTownSquare) {
-            ftClient.setInLobby(true);
-        } else {
-            ftClient.setInLobby(false);
+        boolean admitted;
+        synchronized (room) {
+            admitted = !room.isTournamentRoom() || room.getStatus() == RoomStatus.NotRunning;
+            if (admitted) {
+                if (!isTownSquare) {
+                    room.getPositions().set(newPosition, RoomPositionState.InUse);
+                }
+                roomPlayer.setMaster(room.isTournamentRoom()
+                        && TournamentRoomCoordinator.getInstance().shouldBecomeMaster(room, activePlayer.getId()));
+                ftClient.setActiveRoom(room);
+                ftClient.setInLobby(isTownSquare);
+                room.getRoomPlayerList().add(roomPlayer);
+            } else {
+                room.getPositions().set(newPosition, RoomPositionState.Free);
+            }
         }
 
-        room.getRoomPlayerList().add(roomPlayer);
+        if (!admitted) {
+            SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
+                    .result((char) -1)
+                    .roomType((byte) 0)
+                    .mode((byte) 0)
+                    .mapId((byte) 0)
+                    .build();
+            connection.sendTCP(roomJoinAnswerPacket);
+            resetIsJoiningOrLeavingRoom(ftClient);
+            GameManager.getInstance().updateRoomForAllClientsInMultiplayer(ftClient.getConnection(), room);
+            return;
+        }
 
         handleRoomUponJoin(connection, room, false);
 

@@ -22,6 +22,9 @@ public class GameModeChangePacketHandler implements PacketHandler<FTConnection, 
 
         Room room = client.getActiveRoom();
 
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             synchronized (room) {
                 room.setMode(packet.getMode());

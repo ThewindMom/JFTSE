@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -18,7 +19,12 @@ public class RelayConnectionProblemHandler implements PacketHandler<FTConnection
         }
 
         Room room = ftClient.getActiveRoom();
-        if (room != null) {
+        GameSession gameSession = ftClient.getActiveGameSession();
+        boolean participantFailure = room == null
+                || !room.isTournamentRoom()
+                || (gameSession != null && ftClient.hasPlayer()
+                && gameSession.getTournamentParticipantPositions().containsKey(ftClient.getPlayer().getId()));
+        if (room != null && participantFailure) {
             synchronized (room) {
                 room.setStatus(RoomStatus.RelayConnectionFailed);
             }

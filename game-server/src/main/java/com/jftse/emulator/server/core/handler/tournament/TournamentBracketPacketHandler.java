@@ -21,12 +21,16 @@ public class TournamentBracketPacketHandler implements PacketHandler<FTConnectio
     public void handle(FTConnection connection, CMSGTournamentBracket request) {
         FTClient client = connection.getClient();
         int tournamentId = request.getTournamentId();
-        boolean found = client.hasPlayer()
+        boolean supported = client.hasPlayer()
                 && tournamentManager.hasTournament(tournamentId)
                 && supports(request.getBracketType(), request.getPage());
-        List<TournamentManager.BracketEntry> entries = found
-                ? tournamentManager.getBracketEntries(tournamentId)
+        List<TournamentManager.BracketEntry> entries = supported
+                ? tournamentManager.getBracketEntries(
+                        tournamentId,
+                        request.getBracketType(),
+                        Byte.toUnsignedInt(request.getPage()))
                 : List.of();
+        boolean found = supported && entries.size() == expectedEntryCount(request.getBracketType());
 
         connection.sendTCP(response(
                 found ? TournamentManager.SUCCESS : TournamentManager.NOT_FOUND,
@@ -38,7 +42,13 @@ public class TournamentBracketPacketHandler implements PacketHandler<FTConnectio
     }
 
     static boolean supports(byte bracketType, byte page) {
-        return bracketType == 1 && page == 0;
+        int unsignedPage = Byte.toUnsignedInt(page);
+        return (bracketType == TournamentManager.QUALIFYING && unsignedPage < 8)
+                || (bracketType == TournamentManager.FINAL && unsignedPage == 0);
+    }
+
+    private static int expectedEntryCount(byte bracketType) {
+        return bracketType == TournamentManager.QUALIFYING ? 6 : 16;
     }
 
     static SMSGTournamentBracket response(

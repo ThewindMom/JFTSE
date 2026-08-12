@@ -15,6 +15,9 @@ public class RoomSkillFreeChangePacketHandler implements PacketHandler<FTConnect
     public void handle(FTConnection connection, CMSGRoomChangeSkillFree packet) {
         FTClient ftClient = connection.getClient();
         Room room = ftClient.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             synchronized (room) {
                 room.setSkillFree(packet.getEnable());

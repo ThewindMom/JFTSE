@@ -17,6 +17,9 @@ public class RoomMapChangeRequestPacketHandler implements PacketHandler<FTConnec
     public void handle(FTConnection connection, CMSGRoomChangeMap packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             synchronized (room) {
                 if (ConfigService.getInstance().getValue("game.map.allow.snowmoon", false) && room.getMode() == GameMode.GUARDIAN) {

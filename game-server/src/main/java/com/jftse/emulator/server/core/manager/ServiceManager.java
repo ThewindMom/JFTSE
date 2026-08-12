@@ -7,6 +7,7 @@ import com.jftse.emulator.server.core.service.impl.ClothEquipmentServiceImpl;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.MetricsService;
+import com.jftse.server.core.tournament.TournamentService;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,8 @@ public class ServiceManager {
     private EnchantService enchantService;
     @Autowired
     private InventoryService inventoryService;
+    @Autowired
+    private TournamentService tournamentService;
 
     @Autowired
     private ProfaneWordsService profaneWordsService;

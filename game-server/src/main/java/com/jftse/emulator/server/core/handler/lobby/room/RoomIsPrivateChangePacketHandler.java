@@ -18,6 +18,9 @@ public class RoomIsPrivateChangePacketHandler implements PacketHandler<FTConnect
 
         String password = packet.getPassword();
         Room room = client.getActiveRoom();
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             if (StringUtils.isEmpty(password)) {
                 synchronized (room) {

@@ -31,9 +31,11 @@ class TournamentBracketMatchPacketHandlerTest {
     }
 
     @Test
-    void onlyRecoveredFinalBracketSelectorIsSupported() {
+    void finalAndEightEmulatorQualifyingPagesAreSupported() {
         assertTrue(TournamentBracketMatchPacketHandler.supports((byte) 1, (byte) 0));
-        assertFalse(TournamentBracketMatchPacketHandler.supports((byte) 0, (byte) 0));
+        assertTrue(TournamentBracketMatchPacketHandler.supports((byte) 0, (byte) 0));
+        assertTrue(TournamentBracketMatchPacketHandler.supports((byte) 0, (byte) 7));
+        assertFalse(TournamentBracketMatchPacketHandler.supports((byte) 0, (byte) 8));
         assertFalse(TournamentBracketMatchPacketHandler.supports((byte) 1, (byte) 1));
     }
 

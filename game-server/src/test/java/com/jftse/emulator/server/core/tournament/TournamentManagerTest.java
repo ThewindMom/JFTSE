@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TournamentManagerTest {
     private static final long PLAYER_ONE = 101L;
     private static final long PLAYER_TWO = 202L;
+    private static final byte REGISTRATION_FULL = -4;
 
     @Test
     void applyAndCancelAreTrackedPerPlayer() {
@@ -38,5 +39,18 @@ class TournamentManagerTest {
         assertEquals(TournamentManager.NOT_FOUND, manager.apply(9999, PLAYER_ONE));
         assertEquals(TournamentManager.NOT_FOUND, manager.cancel(9999, PLAYER_ONE));
         assertFalse(manager.isApplied(9999, PLAYER_ONE));
+    }
+
+    @Test
+    void registrationIsCappedAtTheDocumented64Players() {
+        TournamentManager manager = new TournamentManager(
+                Clock.fixed(Instant.parse("2026-08-01T00:00:00Z"), ZoneOffset.UTC));
+        int tournamentId = manager.getTournaments().get(0).tournamentId();
+
+        for (long playerId = 1; playerId <= 64; playerId++) {
+            assertEquals(TournamentManager.SUCCESS, manager.apply(tournamentId, playerId));
+        }
+
+        assertEquals(REGISTRATION_FULL, manager.apply(tournamentId, 65L));
     }
 }

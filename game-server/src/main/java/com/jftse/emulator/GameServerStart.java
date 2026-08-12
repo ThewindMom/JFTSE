@@ -1,6 +1,7 @@
 package com.jftse.emulator;
 
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.tournament.TournamentScheduler;
 import com.jftse.emulator.server.net.ConnectionInitializer;
 import com.jftse.server.core.ServerLoop;
 import com.jftse.server.core.StartupBanner;
@@ -27,6 +28,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.annotation.PreDestroy;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +41,7 @@ import java.util.concurrent.Future;
 @PropertySource(value = "classpath:build-info.yml", factory = YamlPropertySourceFactory.class)
 @Log4j2
 @EnableRabbit
+@EnableScheduling
 public class GameServerStart implements CommandLineRunner {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -49,6 +52,8 @@ public class GameServerStart implements CommandLineRunner {
     private GameManager gameManager;
     @Autowired
     private ServerConfService serverConfService;
+    @Autowired
+    private TournamentScheduler tournamentScheduler;
 
     public static void main(String[] args) {
         SpringApplication.run(GameServerStart.class, args);
@@ -56,6 +61,7 @@ public class GameServerStart implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        tournamentScheduler.recover();
         PacketAutoRegister.registerAll();
 
         if (!serverConfService.loadConf(false)) {

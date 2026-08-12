@@ -46,10 +46,18 @@ public class Room {
     private ArrayList<Short> positions;
     private int status;
 
+    // Runtime binding only. TournamentMatch remains the durable source of truth.
+    private Long tournamentMatchId;
+    private boolean tournamentSpectatorsAllowed;
+
     private byte previousMap = 0;
 
     // Guardian
     private boolean isHardMode; // Guardians are very strong
     private boolean isArcade; // You have to play against all guardians there are
     private boolean isRandomGuardians; // Always random guardians are spawned.
+
+    public boolean isTournamentRoom() {
+        return tournamentMatchId != null;
+    }
 }
