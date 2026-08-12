@@ -6,14 +6,14 @@
 
 <div class="metadata">
 
-**Server repository:** `sstokic-tgm/JFTSE`  
-**Base branch/commit:** `origin/development` / `65c3665170edc2d912a3187244de89251a809712`  
-**Work branch:** `reverse-engineering/remaining-special-items`  
-**Faulty-change revert:** `af927924ea3fa2a4cf1259d35f1e153185018d7e`  
-**Implementation:** `7079844c6d648aad89686dad5852540ffbb5e31a`  
-**Client archive SHA-256:** `c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e`  
-**FantaTennis.exe SHA-256:** `5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31`  
-**Runtime:** Wine 8.0, Win32 prefix, Xvfb `:108` at 1280×900×24  
+**Server repository:** `sstokic-tgm/JFTSE`<br>
+**Base branch/commit:** `origin/development` / `65c3665170edc2d912a3187244de89251a809712`<br>
+**Work branch:** `reverse-engineering/remaining-special-items`<br>
+**Faulty-change revert:** `af927924ea3fa2a4cf1259d35f1e153185018d7e`<br>
+**Implementation:** `7079844c6d648aad89686dad5852540ffbb5e31a`<br>
+**Client archive SHA-256:** `c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e`<br>
+**FantaTennis.exe SHA-256:** `5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31`<br>
+**Runtime:** Wine 8.0, Win32 prefix, Xvfb `:108` at 1280×900×24<br>
 **Validation date:** 2026-08-12 UTC
 
 </div>
