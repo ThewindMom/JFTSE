@@ -342,6 +342,13 @@ public enum PacketOperations {
 
     C2SEmblemListRequest(0x226A),
     S2CEmblemListAnswer(0x226B),
+    C2SEmblemAccept(0x2274),
+    C2SEmblemAbandon(0x2278),
+    C2SEmblemComplete(0x227C),
+    S2CEmblemComplete(0x227D),
+    S2CPlayerLifetimeStatistics(0x2292),
+    C2SEmblemEquip(0x2295),
+    S2CEmblemEquipment(0x2297),
 
     C2SLobbyJoin(0x237A),
     C2SLobbyLeave(0x2379),

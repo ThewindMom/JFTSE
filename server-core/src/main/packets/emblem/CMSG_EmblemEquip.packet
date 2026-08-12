@@ -1,0 +1,6 @@
+message CMSG_EmblemEquip (0x2295) {
+    char emblem1 = 1;
+    char emblem2 = 2;
+    char emblem3 = 3;
+    char emblem4 = 4;
+}

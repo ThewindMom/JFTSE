@@ -62,6 +62,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     private final LevelService levelService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -74,6 +75,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         this.levelService = ServiceManager.getInstance().getLevelService();
         this.pocketService = ServiceManager.getInstance().getPocketService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
     }
@@ -232,6 +234,11 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                         playerNewRating, serviceAces, returnAces, playerStats.getStroke(), playerStats.getSlice(), playerStats.getLob(),
                         playerStats.getSmash(), playerStats.getVolley(), playerStats.getTopSpin(), playerStats.getRising(),
                         playerStats.getServe(), playerStats.getGuardBreakShot(), playerStats.getChargeShot(), playerStats.getSkillShot());
+
+                emblemQuestService.updateMatchTotals(player.getId(), GameMode.BASIC, wonGame, serviceAces, returnAces,
+                        playerStats.getSlice(), playerStats.getLob(), playerStats.getSmash(), playerStats.getGuardBreakShot(),
+                        playerStats.getChargeShot(), playerStats.getSkillShot());
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, player.getLevel());
 
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 

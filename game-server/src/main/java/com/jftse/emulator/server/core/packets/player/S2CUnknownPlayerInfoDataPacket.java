@@ -46,8 +46,8 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write((byte) 0); // ??
 
         this.write(player.getExpPoints());
-        this.write(0); // perfect(s)
-        this.write(0); // guard break(s)
+        this.write(playerStatistic.getPerfectGames());
+        this.write(playerStatistic.getGuardBreakShot());
 
         this.write((BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp()));
 
@@ -75,20 +75,8 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write((byte) 0);
         this.write((byte) 0);
         this.write((byte) 0);
-        // cards added status points
-        this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
+        // cards added status points and elements
+        this.writeCardStats(player.getCardStats());
         this.write((byte) player.getStatusPoints());
 
         this.write(-1); // active pet type

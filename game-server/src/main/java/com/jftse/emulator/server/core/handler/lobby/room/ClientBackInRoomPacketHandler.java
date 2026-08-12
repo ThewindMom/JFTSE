@@ -9,6 +9,7 @@ import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoPlayStatsPacket;
+import com.jftse.emulator.server.core.packets.player.S2CPlayerLifetimeStatisticsPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerStatusPointChangePacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -72,6 +73,7 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
         SMSGSetCouplePoints couplePointsPacket = SMSGSetCouplePoints.builder().amount(player.getCouplePoints()).build();
         S2CPlayerStatusPointChangePacket playerStatusPointChangePacket = new S2CPlayerStatusPointChangePacket(player);
         S2CPlayerInfoPlayStatsPacket playerInfoPlayStatsPacket = new S2CPlayerInfoPlayStatsPacket(playerStatistic);
+        S2CPlayerLifetimeStatisticsPacket lifetimeStatisticsPacket = new S2CPlayerLifetimeStatisticsPacket(playerStatistic);
         S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(currentClientRoom);
 
         List<RoomPlayer> filteredRoomPlayerList = position == MiscConstants.InvisibleGmSlot
@@ -82,7 +84,7 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
         S2CRoomPlayerListInformationPacket roomPlayerListInformationPacket = new S2CRoomPlayerListInformationPacket(filteredRoomPlayerList);
 
         connection.sendTCP(couplePointsPacket);
-        connection.sendTCP(playerStatusPointChangePacket, playerInfoPlayStatsPacket);
+        connection.sendTCP(playerStatusPointChangePacket, playerInfoPlayStatsPacket, lifetimeStatisticsPacket);
         connection.sendTCP(roomInformationPacket, roomPlayerListInformationPacket);
     }
 }

@@ -80,6 +80,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
     private final BossGuardianService bossGuardianService;
     private final ScenarioService scenarioService;
     private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -95,6 +96,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         this.bossGuardianService = ServiceManager.getInstance().getBossGuardianService();
         this.scenarioService = ServiceManager.getInstance().getScenarioService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
 
@@ -343,6 +345,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                         playerNewRating, 0, 0, playerStats.getStroke(), playerStats.getSlice(), playerStats.getLob(),
                         playerStats.getSmash(), playerStats.getVolley(), playerStats.getTopSpin(), playerStats.getRising(),
                         playerStats.getServe(), playerStats.getGuardBreakShot(), playerStats.getChargeShot(), playerStats.getSkillShot());
+
+                emblemQuestService.updateMatchTotals(player.getId(), GameMode.GUARDIAN, wonGame, 0, 0,
+                        playerStats.getSlice(), playerStats.getLob(), playerStats.getSmash(), playerStats.getGuardBreakShot(),
+                        playerStats.getChargeShot(), playerStats.getSkillShot());
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, player.getLevel());
 
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 

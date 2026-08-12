@@ -15,4 +15,6 @@ public interface PlayerStatisticService {
     PlayerStatistic updatePlayerStats(Long playerStatisticId, int gameMode, boolean isWin, int rankingPoints, int serviceAces, int returnAces,
                                       int strokes, int slices, int lobs, int smashes, int volleys, int topSpins, int risings, int serves,
                                       int guardBreakShots, int chargeShots, int skillShots);
+
+    PlayerStatistic incrementHousingCollections(Long playerStatisticId, int fishes, int fruits);
 }

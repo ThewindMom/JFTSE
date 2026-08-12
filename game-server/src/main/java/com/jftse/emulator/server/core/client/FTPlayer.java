@@ -1,9 +1,11 @@
 package com.jftse.emulator.server.core.client;
 
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.item.ItemPart;
 import com.jftse.entities.database.model.player.*;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.CardStats;
 import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.shared.PlayerLoadType;
@@ -53,6 +55,9 @@ public class FTPlayer {
     @Setter private EquippedSpecialSlots specialSlots;
     @Setter private EquippedCardSlots cardSlots;
     @Setter private EquippedPetSlots petSlots;
+
+    private CardStats cardStats = CardStats.zero();
+    private PlayerEmblemEquipment emblemEquipment;
 
     private EquippedItemStats itemStats;
 
@@ -106,12 +111,17 @@ public class FTPlayer {
                 toolSlots = EquippedToolSlots.of(getPlayer());
                 specialSlots = EquippedSpecialSlots.of(getPlayer());
                 cardSlots = EquippedCardSlots.of(getPlayer());
+                cardStats = sm.getCardSlotEquipmentService().calculateCardStats(getPlayer());
+                loadEmblemEquipment();
             }
             case EQUIPPED_ITEM_PARTS -> loadItemParts(getPlayer());
             case EQUIPPED_QUICK_SLOTS -> quickSlots = EquippedQuickSlots.of(getPlayer());
             case EQUIPPED_TOOL_SLOTS -> toolSlots = EquippedToolSlots.of(getPlayer());
             case EQUIPPED_SPECIAL_SLOTS -> specialSlots = EquippedSpecialSlots.of(getPlayer());
-            case EQUIPPED_CARD_SLOTS -> cardSlots = EquippedCardSlots.of(getPlayer());
+            case EQUIPPED_CARD_SLOTS -> {
+                cardSlots = EquippedCardSlots.of(getPlayer());
+                cardStats = sm.getCardSlotEquipmentService().calculateCardStats(getPlayer());
+            }
         }
     }
 
@@ -121,6 +131,8 @@ public class FTPlayer {
         ftPlayer.toolSlots = EquippedToolSlots.of(player);
         ftPlayer.specialSlots = EquippedSpecialSlots.of(player);
         ftPlayer.cardSlots = EquippedCardSlots.of(player);
+        ftPlayer.cardStats = ftPlayer.sm.getCardSlotEquipmentService().calculateCardStats(player);
+        ftPlayer.loadEmblemEquipment();
         ftPlayer.loadType = PlayerLoadType.FULL_EQUIPMENT;
         return ftPlayer;
     }
@@ -156,6 +168,7 @@ public class FTPlayer {
     public static FTPlayer initWithEquippedCardSlots(Player player) {
         FTPlayer ftPlayer = init(player);
         ftPlayer.cardSlots = EquippedCardSlots.of(player);
+        ftPlayer.cardStats = ftPlayer.sm.getCardSlotEquipmentService().calculateCardStats(player);
         ftPlayer.loadType = PlayerLoadType.EQUIPPED_CARD_SLOTS;
         return ftPlayer;
     }
@@ -301,6 +314,11 @@ public class FTPlayer {
                 eq.getSlot3(),
                 eq.getSlot4()
         );
+        this.cardStats = sm.getCardSlotEquipmentService().calculateCardStats(getPlayer());
+    }
+
+    public void loadEmblemEquipment() {
+        this.emblemEquipment = sm.getPlayerEmblemEquipmentService().createIfAbsent(getPlayer());
     }
 
     public void loadPetSlots() {

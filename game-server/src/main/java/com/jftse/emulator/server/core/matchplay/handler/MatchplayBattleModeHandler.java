@@ -66,6 +66,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
     private final EventHandler eventHandler;
     private final LevelService levelService;
     private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
 
     private final MapService mapService;
 
@@ -77,6 +78,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         this.eventHandler = GameManager.getInstance().getEventHandler();
         this.levelService = ServiceManager.getInstance().getLevelService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
     }
@@ -251,6 +253,11 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                         playerNewRating, 0, 0, playerStats.getStroke(), playerStats.getSlice(), playerStats.getLob(),
                         playerStats.getSmash(), playerStats.getVolley(), playerStats.getTopSpin(), playerStats.getRising(),
                         playerStats.getServe(), playerStats.getGuardBreakShot(), playerStats.getChargeShot(), playerStats.getSkillShot());
+
+                emblemQuestService.updateMatchTotals(player.getId(), GameMode.BATTLE, wonGame, 0, 0,
+                        playerStats.getSlice(), playerStats.getLob(), playerStats.getSmash(), playerStats.getGuardBreakShot(),
+                        playerStats.getChargeShot(), playerStats.getSkillShot());
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, player.getLevel());
 
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 

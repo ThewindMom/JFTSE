@@ -4,6 +4,7 @@ import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.client.GuildView;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.utils.BattleUtils;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
@@ -14,6 +15,7 @@ public class S2CRoomPlayerInformationPacket extends Packet {
 
         EquippedItemParts equippedItemParts = roomPlayer.getEquippedItemPartsIDX();
         EquippedItemStats equippedItemStats = roomPlayer.getEquippedItemStats();
+        PlayerEmblemEquipment emblemEquipment = roomPlayer.getEmblemEquipment();
 
         boolean isSpectator = roomPlayer.getPosition() > 3;
 
@@ -47,10 +49,10 @@ public class S2CRoomPlayerInformationPacket extends Packet {
         this.write(roomPlayer.getCoupleName());
         this.write(0);
         this.write((byte) 0);
-        this.write((short) 0); // emblem slot 1
-        this.write((short) 0); // emblem slot 2
-        this.write((short) 0); // emblem slot 3
-        this.write((short) 0); // emblem slot 4
+        this.write(emblemEquipment.getSlot1());
+        this.write(emblemEquipment.getSlot2());
+        this.write(emblemEquipment.getSlot3());
+        this.write(emblemEquipment.getSlot4());
 
         this.write((BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equippedItemStats.getAddHp()));
 
@@ -78,20 +80,8 @@ public class S2CRoomPlayerInformationPacket extends Packet {
         this.write((byte) 0);
         this.write((byte) 0);
         this.write((byte) 0);
-        // cards added status points
-        this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
+        // cards added status points and elements
+        this.writeCardStats(roomPlayer.getCardStats());
         /* end - status points */
 
         this.write(equippedItemParts.hair());

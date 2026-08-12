@@ -42,7 +42,7 @@ public class PlayerStatisticServiceImpl implements PlayerStatisticService {
     public PlayerStatistic updatePlayerStats(Long playerStatisticId, int gameMode, boolean isWin, int rankingPoints, int serviceAces, int returnAces,
                                              int strokes, int slices, int lobs, int smashes, int volleys, int topSpins, int risings, int serves,
                                              int guardBreakShots, int chargeShots, int skillShots) {
-        PlayerStatistic playerStatistic = findPlayerStatisticById(playerStatisticId);
+        PlayerStatistic playerStatistic = playerStatisticRepository.findByIdForUpdate(playerStatisticId).orElse(null);
         if (playerStatistic == null) {
             return null;
         }
@@ -112,6 +112,19 @@ public class PlayerStatisticServiceImpl implements PlayerStatisticService {
         playerStatistic.setChargeShot(playerStatistic.getChargeShot() + chargeShots);
         playerStatistic.setSkillShot(playerStatistic.getSkillShot() + skillShots);
 
+        return playerStatisticRepository.save(playerStatistic);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PlayerStatistic incrementHousingCollections(Long playerStatisticId, int fishes, int fruits) {
+        PlayerStatistic playerStatistic = playerStatisticRepository.findByIdForUpdate(playerStatisticId).orElse(null);
+        if (playerStatistic == null) {
+            return null;
+        }
+
+        playerStatistic.setFishesCaught(playerStatistic.getFishesCaught() + Math.max(0, fishes));
+        playerStatistic.setFruitsCollected(playerStatistic.getFruitsCollected() + Math.max(0, fruits));
         return playerStatisticRepository.save(playerStatistic);
     }
 }

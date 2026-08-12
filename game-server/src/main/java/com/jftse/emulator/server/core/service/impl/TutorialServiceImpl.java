@@ -11,6 +11,7 @@ import com.jftse.entities.database.repository.tutorial.TutorialProgressRepositor
 import com.jftse.entities.database.repository.tutorial.TutorialRepository;
 import com.jftse.server.core.net.Client;
 import com.jftse.server.core.net.Connection;
+import com.jftse.server.core.service.EmblemQuestService;
 import com.jftse.server.core.service.ItemRewardService;
 import com.jftse.server.core.service.LevelService;
 import com.jftse.server.core.service.PlayerService;
@@ -34,6 +35,7 @@ public class TutorialServiceImpl implements TutorialService {
     private final ItemRewardService itemRewardService;
     private final LevelService levelService;
     private final PlayerService playerService;
+    private final EmblemQuestService emblemQuestService;
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
@@ -100,6 +102,8 @@ public class TutorialServiceImpl implements TutorialService {
         player.syncGold(player.getGold() + rewardGold);
         levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
         player.syncLevel(level);
+        emblemQuestService.setBaseline(player.getId(), EmblemQuestService.TUTORIAL, tutorial.getTutorialIndex());
+        emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, level);
 
         S2CTutorialFinishPacket tutorialFinishPacket = new S2CTutorialFinishPacket(true, (byte) level, rewardExp, rewardGold, (int) Math.ceil((double) timeNeeded / 1000), rewardItemList);
         connection.sendTCP(tutorialFinishPacket);

@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 U (http://www.altova.com) by 김정은 (EMBRACE) -->
+<Tables>
+	<Quest Index="1" Enable="1" Event="0" _QuestName_="모험의 시작" QuestNameLabel="QUESTLABEL_0001" SuccessCondition="QUESTCONDITION_0001" QuestDetail="1" QuestPreReq="0" RewardEXP="10" RewardGOLD="15" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="1"/>
+	<Quest Index="2" Enable="1" Event="0" _QuestName_="친구 만들기" QuestNameLabel="QUESTLABEL_0002" SuccessCondition="QUESTCONDITION_0002" QuestDetail="2" QuestPreReq="0" RewardEXP="20" RewardGOLD="50" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="2" RewardItem2="3"/>
+	<Quest Index="3" Enable="1" Event="0" _QuestName_="내 친구 배틀몬" QuestNameLabel="QUESTLABEL_0003" SuccessCondition="QUESTCONDITION_0003" QuestDetail="3" QuestPreReq="2" RewardEXP="15" RewardGOLD="20" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="4"/>
+	<Quest Index="4" Enable="1" Event="0" _QuestName_="할아버지의 나무" QuestNameLabel="QUESTLABEL_0004" SuccessCondition="QUESTCONDITION_0004" QuestDetail="4" QuestPreReq="0" RewardEXP="15" RewardGOLD="20" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="5" RewardItem2="6" RewardItem3="7" RewardItem4="8"/>
+	<Quest Index="5" Enable="1" Event="0" _QuestName_="자! 실전이다!" QuestNameLabel="QUESTLABEL_0005" SuccessCondition="QUESTCONDITION_0005" QuestDetail="5" QuestPreReq="0" RewardEXP="30" RewardGOLD="35" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="9"/>
+	<Quest Index="6" Enable="1" Event="0" _QuestName_="나는야 낚시왕" QuestNameLabel="QUESTLABEL_0006" SuccessCondition="QUESTCONDITION_0006" QuestDetail="6" QuestPreReq="3" RewardEXP="250" RewardGOLD="300" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="10"/>
+	<Quest Index="7" Enable="1" Event="0" _QuestName_="나는야 채집왕" QuestNameLabel="QUESTLABEL_0007" SuccessCondition="QUESTCONDITION_0007" QuestDetail="7" QuestPreReq="4" RewardEXP="250" RewardGOLD="300" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="11"/>
+	<Quest Index="8" Enable="1" Event="0" _QuestName_="날아라 공" QuestNameLabel="QUESTLABEL_0008" SuccessCondition="QUESTCONDITION_0008" QuestDetail="8" QuestPreReq="0" RewardEXP="85" RewardGOLD="45" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="12"/>
+	<Quest Index="9" Enable="1" Event="0" _QuestName_="어디로 가는거야?" QuestNameLabel="QUESTLABEL_0009" SuccessCondition="QUESTCONDITION_0009" QuestDetail="9" QuestPreReq="0" RewardEXP="90" RewardGOLD="50" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="13"/>
+	<Quest Index="10" Enable="1" Event="0" _QuestName_="레벨 10 달성! " QuestNameLabel="QUESTLABEL_0010" SuccessCondition="QUESTCONDITION_0010" QuestDetail="10" QuestPreReq="0" RewardEXP="50" RewardGOLD="55" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="14"/>
+	<Quest Index="11" Enable="1" Event="0" _QuestName_="승리를 위한 열정" QuestNameLabel="QUESTLABEL_0011" SuccessCondition="QUESTCONDITION_0011" QuestDetail="11" QuestPreReq="0" RewardEXP="70" RewardGOLD="60" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="15"/>
+	<Quest Index="12" Enable="1" Event="0" _QuestName_="집 안 꾸미기" QuestNameLabel="QUESTLABEL_0012" SuccessCondition="QUESTCONDITION_0012" QuestDetail="12" QuestPreReq="0" RewardEXP="80" RewardGOLD="80" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="16" RewardItem2="17"/>
+	<Quest Index="13" Enable="1" Event="0" _QuestName_="배틀몬 길들이기" QuestNameLabel="QUESTLABEL_0013" SuccessCondition="QUESTCONDITION_0013" QuestDetail="13" QuestPreReq="2" RewardEXP="100" RewardGOLD="150" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="18" RewardItem2="19"/>
+	<Quest Index="14" Enable="1" Event="0" _QuestName_="판타랜드의 요리사" QuestNameLabel="QUESTLABEL_0014" SuccessCondition="QUESTCONDITION_0014" QuestDetail="14" QuestPreReq="2,3" RewardEXP="150" RewardGOLD="0" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="20" RewardItem2="21" RewardItem3="22" RewardItem4="23"/>
+	<Quest Index="15" Enable="1" Event="0" _QuestName_="피아니스트의 건반" QuestNameLabel="QUESTLABEL_0015" SuccessCondition="QUESTCONDITION_0015" QuestDetail="15" QuestPreReq="0" RewardEXP="300" RewardGOLD="1000" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="24"/>
+	<Quest Index="16" Enable="1" Event="0" _QuestName_="트릭" QuestNameLabel="QUESTLABEL_0016" SuccessCondition="QUESTCONDITION_0016" QuestDetail="16" QuestPreReq="0" RewardEXP="95" RewardGOLD="35" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="25"/>
+	<Quest Index="17" Enable="1" Event="0" _QuestName_="약하지 않아!" QuestNameLabel="QUESTLABEL_0017" SuccessCondition="QUESTCONDITION_0017" QuestDetail="17" QuestPreReq="0" RewardEXP="100" RewardGOLD="50" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="26"/>
+	<Quest Index="18" Enable="1" Event="0" _QuestName_="너를 지켜줄께!" QuestNameLabel="QUESTLABEL_0018" SuccessCondition="QUESTCONDITION_0018" QuestDetail="18" QuestPreReq="0" RewardEXP="120" RewardGOLD="100" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="27" RewardItem2="28"/>
+	<Quest Index="19" Enable="1" Event="0" _QuestName_="스킬 샷 작렬!" QuestNameLabel="QUESTLABEL_0019" SuccessCondition="QUESTCONDITION_0019" QuestDetail="19" QuestPreReq="0" RewardEXP="50" RewardGOLD="200" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="29"/>
+	<Quest Index="20" Enable="1" Event="0" _QuestName_="집들이 선물" QuestNameLabel="QUESTLABEL_0020" SuccessCondition="QUESTCONDITION_0020" QuestDetail="20" QuestPreReq="12" RewardEXP="95" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="30" RewardItem2="31"/>
+	<Quest Index="21" Enable="1" Event="0" _QuestName_="레벨 20 달성! " QuestNameLabel="QUESTLABEL_0021" SuccessCondition="QUESTCONDITION_0021" QuestDetail="21" QuestPreReq="10" RewardEXP="100" RewardGOLD="105" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="32"/>
+	<Quest Index="22" Enable="1" Event="0" _QuestName_="알케미스트의 실험" QuestNameLabel="QUESTLABEL_0022" SuccessCondition="QUESTCONDITION_0022" QuestDetail="22" QuestPreReq="0" RewardEXP="500" RewardGOLD="0" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="33"/>
+	<Quest Index="23" Enable="1" Event="0" _QuestName_="반짝 반짝 작은별" QuestNameLabel="QUESTLABEL_0023" SuccessCondition="QUESTCONDITION_0023" QuestDetail="23" QuestPreReq="0" RewardEXP="300" RewardGOLD="500" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="34"/>
+	<Quest Index="24" Enable="1" Event="0" _QuestName_="참 잘했어요!" QuestNameLabel="QUESTLABEL_0024" SuccessCondition="QUESTCONDITION_0024" QuestDetail="24" QuestPreReq="11" RewardEXP="150" RewardGOLD="150" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="35"/>
+	<Quest Index="25" Enable="1" Event="0" _QuestName_="패셔니스타" QuestNameLabel="QUESTLABEL_0025" SuccessCondition="QUESTCONDITION_0025" QuestDetail="25" QuestPreReq="0" RewardEXP="120" RewardGOLD="145" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="36"/>
+	<Quest Index="26" Enable="1" Event="0" _QuestName_="레벨 30 달성! " QuestNameLabel="QUESTLABEL_0026" SuccessCondition="QUESTCONDITION_0026" QuestDetail="26" QuestPreReq="10,21" RewardEXP="150" RewardGOLD="155" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="37"/>
+	<Quest Index="27" Enable="1" Event="0" _QuestName_="사랑의 메신져" QuestNameLabel="QUESTLABEL_0027" SuccessCondition="QUESTCONDITION_0027" QuestDetail="27" QuestPreReq="0" RewardEXP="250" RewardGOLD="0" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="38"/>
+	<Quest Index="28" Enable="1" Event="0" _QuestName_="반지의 제왕" QuestNameLabel="QUESTLABEL_0028" SuccessCondition="QUESTCONDITION_0028" QuestDetail="28" QuestPreReq="0" RewardEXP="350" RewardGOLD="175" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="39" RewardItem2="40"/>
+	<Quest Index="29" Enable="1" Event="0" _QuestName_="너무하잖아!" QuestNameLabel="QUESTLABEL_0029" SuccessCondition="QUESTCONDITION_0029" QuestDetail="29" QuestPreReq="0" RewardEXP="200" RewardGOLD="100" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="41"/>
+	<Quest Index="30" Enable="1" Event="0" _QuestName_="막을 수 없을껄!" QuestNameLabel="QUESTLABEL_0030" SuccessCondition="QUESTCONDITION_0030" QuestDetail="30" QuestPreReq="0" RewardEXP="250" RewardGOLD="150" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="42"/>
+	<Quest Index="31" Enable="1" Event="0" _QuestName_="월동준비" QuestNameLabel="QUESTLABEL_0031" SuccessCondition="QUESTCONDITION_0031" QuestDetail="31" QuestPreReq="6,7" RewardEXP="500" RewardGOLD="1500" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="43"/>
+	<Quest Index="32" Enable="1" Event="0" _QuestName_="레벨 40 달성! " QuestNameLabel="QUESTLABEL_0032" SuccessCondition="QUESTCONDITION_0032" QuestDetail="32" QuestPreReq="10,21,26" RewardEXP="200" RewardGOLD="205" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="44"/>
+	<Quest Index="33" Enable="1" Event="0" _QuestName_="철벽 수비" QuestNameLabel="QUESTLABEL_0033" SuccessCondition="QUESTCONDITION_0033" QuestDetail="33" QuestPreReq="17" RewardEXP="300" RewardGOLD="350" QuestRepeat="Yes" ItemRewardRepeat="Yes" RewardItem1="45"/>
+	<Quest Index="34" Enable="1" Event="0" _QuestName_="절대 승리" QuestNameLabel="QUESTLABEL_0034" SuccessCondition="QUESTCONDITION_0034" QuestDetail="34" QuestPreReq="11,24" RewardEXP="300" RewardGOLD="400" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="46"/>
+	<Quest Index="35" Enable="1" Event="0" _QuestName_="판타랜드 탐험" QuestNameLabel="QUESTLABEL_0035" SuccessCondition="QUESTCONDITION_0035" QuestDetail="35" QuestPreReq="1" RewardEXP="350" RewardGOLD="300" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="47"/>
+	<Quest Index="36" Enable="1" Event="0" _QuestName_="골리아스를 무찔러라!" QuestNameLabel="QUESTLABEL_0036" SuccessCondition="QUESTCONDITION_0036" QuestDetail="36" QuestPreReq="0" RewardEXP="500" RewardGOLD="500" QuestRepeat="Yes" ItemRewardRepeat="No" RewardItem1="48"/>
+	<Quest Index="37" Enable="1" Event="0" _QuestName_="지존 등극 " QuestNameLabel="QUESTLABEL_0037" SuccessCondition="QUESTCONDITION_0037" QuestDetail="37" QuestPreReq="10,21,26" RewardEXP="0" RewardGOLD="3000" QuestRepeat="No" ItemRewardRepeat="No" RewardItem1="49"/>
+	<Quest Index="1000" Enable="1" Event="0" _QuestName_="스매시 스타" Icon="EmblemIcon00_00" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001000" SuccessCondition="QUESTCONDITION_001000" QuestDetail="1000" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1001" Enable="1" Event="0" _QuestName_="스매시 마스터" Icon="EmblemIcon00_00" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001001" SuccessCondition="QUESTCONDITION_001001" QuestDetail="1001" QuestPreReq="1000" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1002" Enable="1" Event="0" _QuestName_="스매시 킹" Icon="EmblemIcon00_00" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001002" SuccessCondition="QUESTCONDITION_001002" QuestDetail="1002" QuestPreReq="1000,1001" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1003" Enable="1" Event="0" _QuestName_="슬라이스 스타" Icon="EmblemIcon00_01" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001003" SuccessCondition="QUESTCONDITION_001003" QuestDetail="1003" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1004" Enable="1" Event="0" _QuestName_="슬라이스 마스터" Icon="EmblemIcon00_01" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001004" SuccessCondition="QUESTCONDITION_001004" QuestDetail="1004" QuestPreReq="1003" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1005" Enable="1" Event="0" _QuestName_="슬라이스 킹" Icon="EmblemIcon00_01" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001005" SuccessCondition="QUESTCONDITION_001005" QuestDetail="1005" QuestPreReq="1003,1004" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1006" Enable="1" Event="0" _QuestName_="차지샷 스타" Icon="EmblemIcon00_02" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001006" SuccessCondition="QUESTCONDITION_001006" QuestDetail="1006" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1007" Enable="1" Event="0" _QuestName_="차지샷 마스터" Icon="EmblemIcon00_02" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001007" SuccessCondition="QUESTCONDITION_001007" QuestDetail="1007" QuestPreReq="1006" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1008" Enable="1" Event="0" _QuestName_="차지샷 킹" Icon="EmblemIcon00_02" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001008" SuccessCondition="QUESTCONDITION_001008" QuestDetail="1008" QuestPreReq="1006,1007" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1009" Enable="1" Event="0" _QuestName_="로브 스타" Icon="EmblemIcon00_03" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001009" SuccessCondition="QUESTCONDITION_001009" QuestDetail="1009" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1010" Enable="1" Event="0" _QuestName_="로브 마스터" Icon="EmblemIcon00_03" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001010" SuccessCondition="QUESTCONDITION_001010" QuestDetail="1010" QuestPreReq="1009" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1011" Enable="1" Event="0" _QuestName_="로브 킹" Icon="EmblemIcon00_03" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001011" SuccessCondition="QUESTCONDITION_001011" QuestDetail="1011" QuestPreReq="1009,1010" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1012" Enable="1" Event="0" _QuestName_="서비스에이스 스타" Icon="EmblemIcon00_04" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001012" SuccessCondition="QUESTCONDITION_001012" QuestDetail="1012" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1013" Enable="1" Event="0" _QuestName_="서비스에이스 마스터" Icon="EmblemIcon00_04" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001013" SuccessCondition="QUESTCONDITION_001013" QuestDetail="1013" QuestPreReq="1012" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1014" Enable="1" Event="0" _QuestName_="서비스에이스 킹" Icon="EmblemIcon00_04" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001014" SuccessCondition="QUESTCONDITION_001014" QuestDetail="1014" QuestPreReq="1012,1013" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1015" Enable="1" Event="0" _QuestName_="리턴에이스 스타" Icon="EmblemIcon00_07" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001015" SuccessCondition="QUESTCONDITION_001015" QuestDetail="1015" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1016" Enable="1" Event="0" _QuestName_="리턴에이스 마스터" Icon="EmblemIcon00_07" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001016" SuccessCondition="QUESTCONDITION_001016" QuestDetail="1016" QuestPreReq="1015" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1017" Enable="1" Event="0" _QuestName_="리턴에이스 킹" Icon="EmblemIcon00_07" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001017" SuccessCondition="QUESTCONDITION_001017" QuestDetail="1017" QuestPreReq="1015,1016" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1018" Enable="1" Event="0" _QuestName_="스킬 샷 프로" Icon="EmblemIcon00_06" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001018" SuccessCondition="QUESTCONDITION_001018" QuestDetail="1018" QuestPreReq="0" RewardEXP="500" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1019" Enable="1" Event="0" _QuestName_="루비크랩의 주인" Icon="EmblemIcon00_08" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001019" SuccessCondition="QUESTCONDITION_001019" QuestDetail="1019" QuestPreReq="0" RewardEXP="50" RewardGOLD="50" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1020" Enable="1" Event="0" _QuestName_="에메랄드 비치 베이직 주니어" Icon="EmblemIcon00_09" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001020" SuccessCondition="QUESTCONDITION_001020" QuestDetail="1020" QuestPreReq="1019" RewardEXP="10" RewardGOLD="20" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1021" Enable="1" Event="0" _QuestName_="에메랄드 비치 배틀 주니어" Icon="EmblemIcon00_09" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001021" SuccessCondition="QUESTCONDITION_001021" QuestDetail="1021" QuestPreReq="1019,1020" RewardEXP="30" RewardGOLD="30" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1022" Enable="1" Event="0" _QuestName_="에메랄드 비치의 주인" Icon="EmblemIcon00_09" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001022" SuccessCondition="QUESTCONDITION_001022" QuestDetail="1022" QuestPreReq="1019,1020,1021" RewardEXP="50" RewardGOLD="40" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1023" Enable="1" Event="0" _QuestName_="트윙클 타운 베이직 주니어" Icon="EmblemIcon00_23" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001023" SuccessCondition="QUESTCONDITION_001023" QuestDetail="1023" QuestPreReq="1019" RewardEXP="15" RewardGOLD="25" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1024" Enable="1" Event="0" _QuestName_="트윙클 타운 배틀 주니어" Icon="EmblemIcon00_23" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001024" SuccessCondition="QUESTCONDITION_001024" QuestDetail="1024" QuestPreReq="1019,1023" RewardEXP="35" RewardGOLD="35" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1025" Enable="1" Event="0" _QuestName_="트윙클 타운의 주인" Icon="EmblemIcon00_23" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001025" SuccessCondition="QUESTCONDITION_001025" QuestDetail="1025" QuestPreReq="1019,1023,1024" RewardEXP="55" RewardGOLD="45" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1026" Enable="1" Event="0" _QuestName_="아이올로스 베이직 주니어" Icon="EmblemIcon00_10" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001026" SuccessCondition="QUESTCONDITION_001026" QuestDetail="1026" QuestPreReq="1019" RewardEXP="20" RewardGOLD="30" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1027" Enable="1" Event="0" _QuestName_="아이올로스 배틀 주니어" Icon="EmblemIcon00_10" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001027" SuccessCondition="QUESTCONDITION_001027" QuestDetail="1027" QuestPreReq="1019,1026" RewardEXP="25" RewardGOLD="35" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1028" Enable="1" Event="0" _QuestName_="아이올로스의 주인" Icon="EmblemIcon00_10" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001028" SuccessCondition="QUESTCONDITION_001028" QuestDetail="1028" QuestPreReq="1019,1026,1027" RewardEXP="30" RewardGOLD="40" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1029" Enable="1" Event="0" _QuestName_="스노우 문 베이직 주니어" Icon="EmblemIcon00_12" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001029" SuccessCondition="QUESTCONDITION_001029" QuestDetail="1029" QuestPreReq="1019" RewardEXP="25" RewardGOLD="35" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1030" Enable="1" Event="0" _QuestName_="스노우 문 배틀 주니어" Icon="EmblemIcon00_12" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001030" SuccessCondition="QUESTCONDITION_001030" QuestDetail="1030" QuestPreReq="1019,1029" RewardEXP="30" RewardGOLD="40" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1031" Enable="1" Event="0" _QuestName_="스노우 문의 주인" Icon="EmblemIcon00_12" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001031" SuccessCondition="QUESTCONDITION_001031" QuestDetail="1031" QuestPreReq="1019,1029,1030" RewardEXP="35" RewardGOLD="45" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1032" Enable="1" Event="0" _QuestName_="라이프 우드 베이직 주니어" Icon="EmblemIcon00_11" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001032" SuccessCondition="QUESTCONDITION_001032" QuestDetail="1032" QuestPreReq="1019" RewardEXP="30" RewardGOLD="40" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1033" Enable="1" Event="0" _QuestName_="라이프 우드 배틀 주니어" Icon="EmblemIcon00_11" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001033" SuccessCondition="QUESTCONDITION_001033" QuestDetail="1033" QuestPreReq="1019,1032" RewardEXP="35" RewardGOLD="45" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1034" Enable="1" Event="0" _QuestName_="라이프 우드의 주인" Icon="EmblemIcon00_11" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001034" SuccessCondition="QUESTCONDITION_001034" QuestDetail="1034" QuestPreReq="1019,1032,1033" RewardEXP="40" RewardGOLD="50" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1035" Enable="1" Event="0" _QuestName_="몬즈라바 베이직 주니어" Icon="EmblemIcon00_13" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001035" SuccessCondition="QUESTCONDITION_001035" QuestDetail="1035" QuestPreReq="1019" RewardEXP="35" RewardGOLD="45" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1036" Enable="1" Event="0" _QuestName_="몬즈라바 배틀 주니어" Icon="EmblemIcon00_13" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001036" SuccessCondition="QUESTCONDITION_001036" QuestDetail="1036" QuestPreReq="1019,1035" RewardEXP="40" RewardGOLD="50" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1037" Enable="1" Event="0" _QuestName_="몬즈라바의 주인" Icon="EmblemIcon00_13" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001037" SuccessCondition="QUESTCONDITION_001037" QuestDetail="1037" QuestPreReq="1019,1035,1036" RewardEXP="45" RewardGOLD="55" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1038" Enable="1" Event="0" _QuestName_="괜찮은 베이직 플레이어" Icon="EmblemIcon00_16" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001038" SuccessCondition="QUESTCONDITION_001038" QuestDetail="1038" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1039" Enable="1" Event="0" _QuestName_="멋진 베이직 플레이어" Icon="EmblemIcon00_16" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001039" SuccessCondition="QUESTCONDITION_001039" QuestDetail="1039" QuestPreReq="1038" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1040" Enable="1" Event="0" _QuestName_="뛰어난 베이직 플레이어" Icon="EmblemIcon00_16" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001040" SuccessCondition="QUESTCONDITION_001040" QuestDetail="1040" QuestPreReq="1038,1039" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1041" Enable="1" Event="0" _QuestName_="불운한 베이직 플레이어" Icon="EmblemIcon00_18" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001041" SuccessCondition="QUESTCONDITION_001041" QuestDetail="1041" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1042" Enable="1" Event="0" _QuestName_="서투른 베이직 플레이어" Icon="EmblemIcon00_18" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001042" SuccessCondition="QUESTCONDITION_001042" QuestDetail="1042" QuestPreReq="1041" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1043" Enable="1" Event="0" _QuestName_="최악의 베이직 플레이어" Icon="EmblemIcon00_18" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001043" SuccessCondition="QUESTCONDITION_001043" QuestDetail="1043" QuestPreReq="1041,1042" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1044" Enable="1" Event="0" _QuestName_="괜찮은 베이직 플레이어" Icon="EmblemIcon00_17" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001044" SuccessCondition="QUESTCONDITION_001044" QuestDetail="1044" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1045" Enable="1" Event="0" _QuestName_="멋진 베이직 플레이어" Icon="EmblemIcon00_17" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001045" SuccessCondition="QUESTCONDITION_001045" QuestDetail="1045" QuestPreReq="1044" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1046" Enable="1" Event="0" _QuestName_="훌륭한 베이직 플레이어" Icon="EmblemIcon00_17" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001046" SuccessCondition="QUESTCONDITION_001046" QuestDetail="1046" QuestPreReq="1044,1045" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1047" Enable="1" Event="0" _QuestName_="불운한 베이직 플레이어" Icon="EmblemIcon00_19" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001047" SuccessCondition="QUESTCONDITION_001047" QuestDetail="1047" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1048" Enable="1" Event="0" _QuestName_="서투른 베이직 플레이어" Icon="EmblemIcon00_19" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001048" SuccessCondition="QUESTCONDITION_001048" QuestDetail="1048" QuestPreReq="1047" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1049" Enable="1" Event="0" _QuestName_="최악의 베이직 플레이어" Icon="EmblemIcon00_19" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001049" SuccessCondition="QUESTCONDITION_001049" QuestDetail="1049" QuestPreReq="1047,1048" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1050" Enable="1" Event="0" _QuestName_="똑똑한 가드브레이커" Icon="EmblemIcon00_20" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001050" SuccessCondition="QUESTCONDITION_001050" QuestDetail="1050" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1051" Enable="1" Event="0" _QuestName_="현명한 가드브레이커" Icon="EmblemIcon00_20" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001051" SuccessCondition="QUESTCONDITION_001051" QuestDetail="1051" QuestPreReq="1050" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1052" Enable="1" Event="0" _QuestName_="훌륭한 가드브레이커" Icon="EmblemIcon00_20" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001052" SuccessCondition="QUESTCONDITION_001052" QuestDetail="1052" QuestPreReq="1050,1051" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1053" Enable="1" Event="0" _QuestName_="게임의 왕" Icon="EmblemIcon00_21" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001053" SuccessCondition="QUESTCONDITION_001053" QuestDetail="1053" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1054" Enable="1" Event="0" _QuestName_="게임의 주인" Icon="EmblemIcon00_21" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001054" SuccessCondition="QUESTCONDITION_001054" QuestDetail="1054" QuestPreReq="1053" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1055" Enable="1" Event="0" _QuestName_="게임의 신" Icon="EmblemIcon00_21" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001055" SuccessCondition="QUESTCONDITION_001055" QuestDetail="1055" QuestPreReq="1053,1054" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1056" Enable="1" Event="0" _QuestName_="배틀몬 친구" Icon="EmblemIcon00_22" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001056" SuccessCondition="QUESTCONDITION_001056" QuestDetail="1056" QuestPreReq="0" RewardEXP="50" RewardGOLD="60" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1057" Enable="1" Event="0" _QuestName_="배틀몬 훈련관" Icon="EmblemIcon00_22" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001057" SuccessCondition="QUESTCONDITION_001057" QuestDetail="1057" QuestPreReq="1056" RewardEXP="100" RewardGOLD="120" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1058" Enable="1" Event="0" _QuestName_="배틀몬 조련사" Icon="EmblemIcon00_22" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001058" SuccessCondition="QUESTCONDITION_001058" QuestDetail="1058" QuestPreReq="1056,1057" RewardEXP="300" RewardGOLD="200" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1059" Enable="1" Event="0" _QuestName_="낚시꾼" Icon="EmblemIcon00_15" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001059" SuccessCondition="QUESTCONDITION_001059" QuestDetail="1059" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1060" Enable="1" Event="0" _QuestName_="낚시 마니아" Icon="EmblemIcon00_15" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001060" SuccessCondition="QUESTCONDITION_001060" QuestDetail="1060" QuestPreReq="1059" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1061" Enable="1" Event="0" _QuestName_="낚시광" Icon="EmblemIcon00_15" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001061" SuccessCondition="QUESTCONDITION_001061" QuestDetail="1061" QuestPreReq="1059,1060" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1062" Enable="1" Event="0" _QuestName_="채집꾼" Icon="EmblemIcon00_14" EmblemGrade="1" QuestNameLabel="QUESTLABEL_001062" SuccessCondition="QUESTCONDITION_001062" QuestDetail="1062" QuestPreReq="0" RewardEXP="100" RewardGOLD="100" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1063" Enable="1" Event="0" _QuestName_="채집 마니아" Icon="EmblemIcon00_14" EmblemGrade="2" QuestNameLabel="QUESTLABEL_001063" SuccessCondition="QUESTCONDITION_001063" QuestDetail="1063" QuestPreReq="1062" RewardEXP="200" RewardGOLD="500" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<Quest Index="1064" Enable="1" Event="0" _QuestName_="채집광" Icon="EmblemIcon00_14" EmblemGrade="3" QuestNameLabel="QUESTLABEL_001064" SuccessCondition="QUESTCONDITION_001064" QuestDetail="1064" QuestPreReq="1062,1063" RewardEXP="300" RewardGOLD="1000" QuestRepeat="No" ItemRewardRepeat="No"/>
+	<QuestDetail Index="1" GameMode="QUEST" _QuestName_="모험의 시작" LevelRestriction="1" ConditionType1="Tutorial" ConditionCount1="11"/>
+	<QuestDetail Index="2" GameMode="QUEST" _QuestName_="친구 만들기" LevelRestriction="1" ConditionType1="BattleMonLevel" ConditionCount1="1"/>
+	<QuestDetail Index="3" GameMode="QUEST" _QuestName_="내 친구 배틀몬" LevelRestriction="2" ConditionType1="Fishes" ConditionCount1="10"/>
+	<QuestDetail Index="4" GameMode="QUEST" _QuestName_="할아버지의 나무" LevelRestriction="2" ConditionType1="Fruits" ConditionCount1="10"/>
+	<QuestDetail Index="5" GameMode="BASIC" _QuestName_="자! 실전이다!" LevelRestriction="3" ConditionType1="Smash" ConditionCount1="5" ConditionType2="Slice" ConditionCount2="5" ConditionType3="ChargeShot" ConditionCount3="5" ConditionType4="Lob" ConditionCount4="5"/>
+	<QuestDetail Index="6" GameMode="QUEST" _QuestName_="나는야 낚시왕" LevelRestriction="5" RequireItem1="4014" Quantity1="10" RequireItem2="4015" Quantity2="10" RequireItem3="4016" Quantity3="10" RequireItem4="4017" Quantity4="10"/>
+	<QuestDetail Index="7" GameMode="QUEST" _QuestName_="나는야 채집왕" LevelRestriction="5" RequireItem1="4025" Quantity1="10" RequireItem2="4026" Quantity2="10" RequireItem3="4027" Quantity3="10" RequireItem4="4028" Quantity4="10"/>
+	<QuestDetail Index="8" GameMode="QUEST" _QuestName_="날아라 공" LevelRestriction="7" ConditionType1="Lob" ConditionCount1="50"/>
+	<QuestDetail Index="9" GameMode="QUEST" _QuestName_="어디로 가는거야?" LevelRestriction="8" ConditionType1="ChargeShot" ConditionCount1="50"/>
+	<QuestDetail Index="10" GameMode="QUEST" _QuestName_="레벨 10 달성! " LevelRestriction="9" ConditionType1="CharacterLevel" ConditionCount1="10"/>
+	<QuestDetail Index="11" GameMode="BASIC" _QuestName_="승리를 위한 열정" LevelRestriction="10" ConditionType1="LoseCount" ConditionCount1="30"/>
+	<QuestDetail Index="12" GameMode="QUEST" _QuestName_="집 안 꾸미기" LevelRestriction="10" ConditionType1="Furniture" ConditionCount1="10"/>
+	<QuestDetail Index="13" GameMode="QUEST" _QuestName_="배틀몬 길들이기" LevelRestriction="12" ConditionType1="BattleMonLevel" ConditionCount1="10"/>
+	<QuestDetail Index="14" GameMode="QUEST" _QuestName_="판타랜드의 요리사" LevelRestriction="12" ConditionType1="Transmutes" ConditionCount1="10"/>
+	<QuestDetail Index="15" GameMode="QUEST" _QuestName_="피아니스트의 건반" LevelRestriction="15" RequireItem1="4591" Quantity1="7" RequireItem2="4592" Quantity2="5"/>
+	<QuestDetail Index="16" GameMode="QUEST" _QuestName_="트릭" LevelRestriction="15" ConditionType1="Slice" ConditionCount1="50"/>
+	<QuestDetail Index="17" GameMode="QUEST" _QuestName_="약하지 않아!" LevelRestriction="15" ConditionType1="Smash" ConditionCount1="50"/>
+	<QuestDetail Index="18" GameMode="QUEST" _QuestName_="너를 지켜줄께!" LevelRestriction="17" RequireItem1="3015" Quantity1="10" RequireItem2="3007" Quantity2="10" RequireItem3="3008" Quantity3="10"/>
+	<QuestDetail Index="19" GameMode="QUEST" _QuestName_="스킬 샷 작렬!" LevelRestriction="18" ConditionType1="SkillShot" ConditionCount1="50"/>
+	<QuestDetail Index="20" GameMode="QUEST" _QuestName_="집들이 선물" LevelRestriction="18" RequireItem1="1019" Quantity1="10" RequireItem2="1068" Quantity2="5"/>
+	<QuestDetail Index="21" GameMode="QUEST" _QuestName_="레벨 20 달성! " LevelRestriction="19" ConditionType1="CharacterLevel" ConditionCount1="20"/>
+	<QuestDetail Index="22" GameMode="QUEST" _QuestName_="알케미스트의 실험" LevelRestriction="20" RequireItem1="4037" Quantity1="1" RequireItem2="4043" Quantity2="1" RequireItem3="4049" Quantity3="1" RequireItem4="4055" Quantity4="1"/>
+	<QuestDetail Index="23" GameMode="QUEST" _QuestName_="반짝 반짝 작은별" LevelRestriction="22" RequireItem1="4001" Quantity1="25"/>
+	<QuestDetail Index="24" GameMode="BATTLE" _QuestName_="참 잘했어요!" LevelRestriction="25" ConditionType1="WinCount" ConditionCount1="50"/>
+	<QuestDetail Index="25" GameMode="QUEST" _QuestName_="패셔니스타" LevelRestriction="27" RequireItem1="4033" Quantity1="30" RequireItem2="4039" Quantity2="20" RequireItem3="4584" Quantity3="10" RequireItem4="4545" Quantity4="1"/>
+	<QuestDetail Index="26" GameMode="QUEST" _QuestName_="레벨 30 달성! " LevelRestriction="29" ConditionType1="CharacterLevel" ConditionCount1="30"/>
+	<QuestDetail Index="27" GameMode="QUEST" _QuestName_="사랑의 메신져" LevelRestriction="30" RequireItem1="4529" Quantity1="1" RequireItem2="4585" Quantity2="1" RequireItem3="4546" Quantity3="1"/>
+	<QuestDetail Index="28" GameMode="QUEST" _QuestName_="반지의 제왕" LevelRestriction="33" RequireItem1="4581" Quantity1="50"/>
+	<QuestDetail Index="29" GameMode="QUEST" _QuestName_="너무하잖아!" LevelRestriction="35" ConditionType1="ReturnAce" ConditionCount1="50"/>
+	<QuestDetail Index="30" GameMode="QUEST" _QuestName_="막을 수 없을껄!" LevelRestriction="35" ConditionType1="ServiceAce" ConditionCount1="50"/>
+	<QuestDetail Index="31" GameMode="QUEST" _QuestName_="월동준비" LevelRestriction="37" ConditionType1="Fishes" ConditionCount1="100" ConditionType2="Fruits" ConditionCount2="100"/>
+	<QuestDetail Index="32" GameMode="QUEST" _QuestName_="레벨 40 달성! " LevelRestriction="39" ConditionType1="CharacterLevel" ConditionCount1="40"/>
+	<QuestDetail Index="33" GameMode="QUEST" _QuestName_="철벽 수비" LevelRestriction="40" ConditionType1="GuardBreak" ConditionCount1="50"/>
+	<QuestDetail Index="34" GameMode="QUEST" _QuestName_="절대 승리" LevelRestriction="42" ConditionType1="PerfectGame" ConditionCount1="50"/>
+	<QuestDetail Index="35" GameMode="QUEST" _QuestName_="판타랜드 탐험" LevelRestriction="45" ConditionType1="WorldQuest" ConditionCount1="1,3,8,4,12,5"/>
+	<QuestDetail Index="36" GameMode="QUEST" _QuestName_="골리아스를 무찔러라!" LevelRestriction="48" RequireItem1="4050" Quantity1="20" RequireItem2="4051" Quantity2="20" RequireItem3="4052" Quantity3="20" RequireItem4="4054" Quantity4="20"/>
+	<QuestDetail Index="37" GameMode="QUEST" _QuestName_="지존 등극 " LevelRestriction="49" ConditionType1="CharacterLevel" ConditionCount1="50"/>
+	<QuestDetail Index="1000" GameMode="EMBLEM" _QuestName_="스매시 스타" LevelRestriction="1" ConditionType1="TotalSmash" ConditionCount1="100"/>
+	<QuestDetail Index="1001" GameMode="EMBLEM" _QuestName_="스매시 마스터" LevelRestriction="10" ConditionType1="TotalSmash" ConditionCount1="500"/>
+	<QuestDetail Index="1002" GameMode="EMBLEM" _QuestName_="스매시 킹" LevelRestriction="20" ConditionType1="TotalSmash" ConditionCount1="1000"/>
+	<QuestDetail Index="1003" GameMode="EMBLEM" _QuestName_="슬라이스 스타" LevelRestriction="1" ConditionType1="TotalSlice" ConditionCount1="100"/>
+	<QuestDetail Index="1004" GameMode="EMBLEM" _QuestName_="슬라이스 마스터" LevelRestriction="10" ConditionType1="TotalSlice" ConditionCount1="500"/>
+	<QuestDetail Index="1005" GameMode="EMBLEM" _QuestName_="슬라이스 킹" LevelRestriction="20" ConditionType1="TotalSlice" ConditionCount1="1000"/>
+	<QuestDetail Index="1006" GameMode="EMBLEM" _QuestName_="차지샷 스타" LevelRestriction="1" ConditionType1="TotalChargeShot" ConditionCount1="100"/>
+	<QuestDetail Index="1007" GameMode="EMBLEM" _QuestName_="차지샷 마스터" LevelRestriction="10" ConditionType1="TotalChargeShot" ConditionCount1="500"/>
+	<QuestDetail Index="1008" GameMode="EMBLEM" _QuestName_="차지샷 킹" LevelRestriction="20" ConditionType1="TotalChargeShot" ConditionCount1="1000"/>
+	<QuestDetail Index="1009" GameMode="EMBLEM" _QuestName_="로브 스타" LevelRestriction="1" ConditionType1="TotalLob" ConditionCount1="100"/>
+	<QuestDetail Index="1010" GameMode="EMBLEM" _QuestName_="로브 마스터" LevelRestriction="10" ConditionType1="TotalLob" ConditionCount1="500"/>
+	<QuestDetail Index="1011" GameMode="EMBLEM" _QuestName_="로브 킹" LevelRestriction="20" ConditionType1="TotalLob" ConditionCount1="1000"/>
+	<QuestDetail Index="1012" GameMode="EMBLEM" _QuestName_="서비스에이스 스타" LevelRestriction="1" ConditionType1="TotalServiceAce" ConditionCount1="100"/>
+	<QuestDetail Index="1013" GameMode="EMBLEM" _QuestName_="서비스에이스 마스터" LevelRestriction="10" ConditionType1="TotalServiceAce" ConditionCount1="500"/>
+	<QuestDetail Index="1014" GameMode="EMBLEM" _QuestName_="서비스에이스 킹" LevelRestriction="20" ConditionType1="TotalServiceAce" ConditionCount1="1000"/>
+	<QuestDetail Index="1015" GameMode="EMBLEM" _QuestName_="리턴에이스 스타" LevelRestriction="1" ConditionType1="TotalReturnAce" ConditionCount1="100"/>
+	<QuestDetail Index="1016" GameMode="EMBLEM" _QuestName_="리턴에이스 마스터" LevelRestriction="10" ConditionType1="TotalReturnAce" ConditionCount1="500"/>
+	<QuestDetail Index="1017" GameMode="EMBLEM" _QuestName_="리턴에이스 킹" LevelRestriction="20" ConditionType1="TotalReturnAce" ConditionCount1="1000"/>
+	<QuestDetail Index="1018" GameMode="EMBLEM" _QuestName_="스킬 샷 프로" LevelRestriction="5" ConditionType1="TotalSkillShot" ConditionCount1="100"/>
+	<QuestDetail Index="1019" GameMode="EMBLEM" _QuestName_="루비크랩의 주인" LevelRestriction="1" ConditionType1="Tutorial" ConditionCount1="11"/>
+	<QuestDetail Index="1020" GameMode="EMBLEM" _QuestName_="에메랄드 비치 베이직 주니어" LevelRestriction="1" ConditionType1="WorldQuest" ConditionCount1="1"/>
+	<QuestDetail Index="1021" GameMode="EMBLEM" _QuestName_="에메랄드 비치 배틀 주니어" LevelRestriction="1" ConditionType1="WorldQuest" ConditionCount1="7"/>
+	<QuestDetail Index="1022" GameMode="EMBLEM" _QuestName_="에메랄드 비치의 주인" LevelRestriction="3" ConditionType1="WorldQuest" ConditionCount1="1,7"/>
+	<QuestDetail Index="1023" GameMode="EMBLEM" _QuestName_="트윙클 타운 베이직 주니어" LevelRestriction="5" ConditionType1="WorldQuest" ConditionCount1="2"/>
+	<QuestDetail Index="1024" GameMode="EMBLEM" _QuestName_="트윙클 타운 배틀 주니어" LevelRestriction="5" ConditionType1="WorldQuest" ConditionCount1="8"/>
+	<QuestDetail Index="1025" GameMode="EMBLEM" _QuestName_="트윙클 타운의 주인" LevelRestriction="7" ConditionType1="WorldQuest" ConditionCount1="2,8"/>
+	<QuestDetail Index="1026" GameMode="EMBLEM" _QuestName_="아이올로스 베이직 주니어" LevelRestriction="9" ConditionType1="WorldQuest" ConditionCount1="3"/>
+	<QuestDetail Index="1027" GameMode="EMBLEM" _QuestName_="아이올로스 배틀 주니어" LevelRestriction="9" ConditionType1="WorldQuest" ConditionCount1="9"/>
+	<QuestDetail Index="1028" GameMode="EMBLEM" _QuestName_="아이올로스의 주인" LevelRestriction="11" ConditionType1="WorldQuest" ConditionCount1="3,9"/>
+	<QuestDetail Index="1029" GameMode="EMBLEM" _QuestName_="스노우 문 베이직 주니어" LevelRestriction="13" ConditionType1="WorldQuest" ConditionCount1="5"/>
+	<QuestDetail Index="1030" GameMode="EMBLEM" _QuestName_="스노우 문 배틀 주니어" LevelRestriction="13" ConditionType1="WorldQuest" ConditionCount1="11"/>
+	<QuestDetail Index="1031" GameMode="EMBLEM" _QuestName_="스노우 문의 주인" LevelRestriction="15" ConditionType1="WorldQuest" ConditionCount1="5,11"/>
+	<QuestDetail Index="1032" GameMode="EMBLEM" _QuestName_="라이프 우드 베이직 주니어" LevelRestriction="17" ConditionType1="WorldQuest" ConditionCount1="4"/>
+	<QuestDetail Index="1033" GameMode="EMBLEM" _QuestName_="라이프 우드 배틀 주니어" LevelRestriction="17" ConditionType1="WorldQuest" ConditionCount1="10"/>
+	<QuestDetail Index="1034" GameMode="EMBLEM" _QuestName_="라이프 우드의 주인" LevelRestriction="19" ConditionType1="WorldQuest" ConditionCount1="4,10"/>
+	<QuestDetail Index="1035" GameMode="EMBLEM" _QuestName_="몬즈라바 베이직 주니어" LevelRestriction="21" ConditionType1="WorldQuest" ConditionCount1="6"/>
+	<QuestDetail Index="1036" GameMode="EMBLEM" _QuestName_="몬즈라바 배틀 주니어" LevelRestriction="21" ConditionType1="WorldQuest" ConditionCount1="12"/>
+	<QuestDetail Index="1037" GameMode="EMBLEM" _QuestName_="몬즈라바의 주인" LevelRestriction="23" ConditionType1="WorldQuest" ConditionCount1="6,12"/>
+	<QuestDetail Index="1038" GameMode="BASIC" _QuestName_="괜찮은 베이직 플레이어" LevelRestriction="1" ConditionType1="TotalWinCount" ConditionCount1="100"/>
+	<QuestDetail Index="1039" GameMode="BASIC" _QuestName_="멋진 베이직 플레이어" LevelRestriction="10" ConditionType1="TotalWinCount" ConditionCount1="500"/>
+	<QuestDetail Index="1040" GameMode="BASIC" _QuestName_="뛰어난 베이직 플레이어" LevelRestriction="20" ConditionType1="TotalWinCount" ConditionCount1="1000"/>
+	<QuestDetail Index="1041" GameMode="BASIC" _QuestName_="불운한 베이직 플레이어" LevelRestriction="1" ConditionType1="TotalLoseCount" ConditionCount1="100"/>
+	<QuestDetail Index="1042" GameMode="BASIC" _QuestName_="서투른 베이직 플레이어" LevelRestriction="10" ConditionType1="TotalLoseCount" ConditionCount1="500"/>
+	<QuestDetail Index="1043" GameMode="BASIC" _QuestName_="최악의 베이직 플레이어" LevelRestriction="20" ConditionType1="TotalLoseCount" ConditionCount1="1000"/>
+	<QuestDetail Index="1044" GameMode="BATTLE" _QuestName_="괜찮은 베이직 플레이어" LevelRestriction="1" ConditionType1="TotalWinCount" ConditionCount1="100"/>
+	<QuestDetail Index="1045" GameMode="BATTLE" _QuestName_="멋진 베이직 플레이어" LevelRestriction="10" ConditionType1="TotalWinCount" ConditionCount1="500"/>
+	<QuestDetail Index="1046" GameMode="BATTLE" _QuestName_="훌륭한 베이직 플레이어" LevelRestriction="20" ConditionType1="TotalWinCount" ConditionCount1="1000"/>
+	<QuestDetail Index="1047" GameMode="BATTLE" _QuestName_="불운한 베이직 플레이어" LevelRestriction="1" ConditionType1="TotalLoseCount" ConditionCount1="100"/>
+	<QuestDetail Index="1048" GameMode="BATTLE" _QuestName_="서투른 베이직 플레이어" LevelRestriction="10" ConditionType1="TotalLoseCount" ConditionCount1="500"/>
+	<QuestDetail Index="1049" GameMode="BATTLE" _QuestName_="최악의 베이직 플레이어" LevelRestriction="20" ConditionType1="TotalLoseCount" ConditionCount1="1000"/>
+	<QuestDetail Index="1050" GameMode="EMBLEM" _QuestName_="똑똑한 가드브레이커" LevelRestriction="1" ConditionType1="TotalGuardBreak" ConditionCount1="100"/>
+	<QuestDetail Index="1051" GameMode="EMBLEM" _QuestName_="현명한 가드브레이커" LevelRestriction="10" ConditionType1="TotalGuardBreak" ConditionCount1="500"/>
+	<QuestDetail Index="1052" GameMode="EMBLEM" _QuestName_="훌륭한 가드브레이커" LevelRestriction="20" ConditionType1="TotalGuardBreak" ConditionCount1="1000"/>
+	<QuestDetail Index="1053" GameMode="EMBLEM" _QuestName_="게임의 왕" LevelRestriction="1" ConditionType1="TotalPerfectGame" ConditionCount1="100"/>
+	<QuestDetail Index="1054" GameMode="EMBLEM" _QuestName_="게임의 주인" LevelRestriction="10" ConditionType1="TotalPerfectGame" ConditionCount1="500"/>
+	<QuestDetail Index="1055" GameMode="EMBLEM" _QuestName_="게임의 신" LevelRestriction="20" ConditionType1="TotalPerfectGame" ConditionCount1="1000"/>
+	<QuestDetail Index="1056" GameMode="EMBLEM" _QuestName_="배틀몬 친구" LevelRestriction="1" ConditionType1="BattleMonLevel" ConditionCount1="10"/>
+	<QuestDetail Index="1057" GameMode="EMBLEM" _QuestName_="배틀몬 훈련관" LevelRestriction="10" ConditionType1="BattleMonLevel" ConditionCount1="30"/>
+	<QuestDetail Index="1058" GameMode="EMBLEM" _QuestName_="배틀몬 조련사" LevelRestriction="20" ConditionType1="BattleMonLevel" ConditionCount1="50"/>
+	<QuestDetail Index="1059" GameMode="EMBLEM" _QuestName_="낚시꾼" LevelRestriction="1" ConditionType1="TotalFishes" ConditionCount1="100"/>
+	<QuestDetail Index="1060" GameMode="EMBLEM" _QuestName_="낚시 마니아" LevelRestriction="5" ConditionType1="TotalFishes" ConditionCount1="500"/>
+	<QuestDetail Index="1061" GameMode="EMBLEM" _QuestName_="낚시광" LevelRestriction="10" ConditionType1="TotalFishes" ConditionCount1="1000"/>
+	<QuestDetail Index="1062" GameMode="EMBLEM" _QuestName_="채집꾼" LevelRestriction="1" ConditionType1="TotalFruits" ConditionCount1="100"/>
+	<QuestDetail Index="1063" GameMode="EMBLEM" _QuestName_="채집 마니아" LevelRestriction="5" ConditionType1="TotalFruits" ConditionCount1="500"/>
+	<QuestDetail Index="1064" GameMode="EMBLEM" _QuestName_="채집광" LevelRestriction="10" ConditionType1="TotalFruits" ConditionCount1="1000"/>
+	<Game_Designer_References GameModes="BASIC" ConditionTypes="WinCount" ConditionTypes2="TotalWinCount"/>
+	<Game_Designer_References GameModes="BATTLE" ConditionTypes="LoseCount" ConditionTypes2="TotalLoseCount"/>
+	<Game_Designer_References GameModes="BATTLEMON" ConditionTypes="GuardBreak" ConditionTypes2="TotalGuardBreak"/>
+	<Game_Designer_References GameModes="GUARDIAN" ConditionTypes="PerfectGame" ConditionTypes2="TotalPerfectGame"/>
+	<Game_Designer_References GameModes="SINGLE" ConditionTypes="Smash" ConditionTypes2="TotalSmash"/>
+	<Game_Designer_References GameModes="QUEST" ConditionTypes="Slice" ConditionTypes2="TotalSlice"/>
+	<Game_Designer_References GameModes="EMBLEM" ConditionTypes="ChargeShot" ConditionTypes2="TotalChargeShot"/>
+	<Game_Designer_References ConditionTypes="Lob" ConditionTypes2="TotalLob"/>
+	<Game_Designer_References ConditionTypes="SkillShot" ConditionTypes2="TotalSkillShot"/>
+	<Game_Designer_References ConditionTypes="ServiceAce" ConditionTypes2="TotalServiceAce"/>
+	<Game_Designer_References ConditionTypes="ReturnAce" ConditionTypes2="TotalReturnAce"/>
+	<Game_Designer_References ConditionTypes="Fishes" ConditionTypes2="TotalFishes"/>
+	<Game_Designer_References ConditionTypes="Fruits" ConditionTypes2="TotalFruits"/>
+	<Game_Designer_References ConditionTypes="Transmutes" ConditionTypes2="TotalTransmutes"/>
+	<Game_Designer_References ConditionTypes="Furniture"/>
+	<Game_Designer_References GameModes="BASIC" ConditionTypes="WinPercentage" ConditionTypes2="( float value )"/>
+	<Game_Designer_References GameModes="BATTLE"/>
+	<Game_Designer_References ConditionTypes="Tutorial" ConditionTypes2="1 - 11 (11 is complete)"/>
+	<Game_Designer_References ConditionTypes="WorldQuest" ConditionTypes2="1,2,3,4,5, etc"/>
+	<Game_Designer_References ConditionTypes="BattleMonLevel"/>
+	<RewardItem_NIKI Index="1" _Name_="Woodsman Armlet" ShopIndex="724" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_NIKI Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_NIKI Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_NIKI Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_NIKI Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_NIKI Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_NIKI Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_NIKI Index="9" _Name_="Black Thief Cap" ShopIndex="9" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_NIKI Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_NIKI Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_NIKI Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_NIKI Index="14" _Name_="Wooden Baseball Bat" ShopIndex="520" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_NIKI Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_NIKI Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_NIKI Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_NIKI Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_NIKI Index="26" _Name_="Meteor" ShopIndex="3007" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_NIKI Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_NIKI Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_NIKI Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_NIKI Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="32" _Name_="Bronze Baseball Bat" ShopIndex="521" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_NIKI Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_NIKI Index="36" _Name_="Nice Hat" ShopIndex="50011" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="37" _Name_="Silver Baseball Bat" ShopIndex="522" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="38" _Name_="Pink Shirts" ShopIndex="50448" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_NIKI Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_NIKI Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_NIKI Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_NIKI Index="43" _Name_="Snowman Hat" ShopIndex="50528" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="44" _Name_="Golden Baseball Bat" ShopIndex="523" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_NIKI Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_NIKI Index="47" _Name_="Angel Wing Cap" ShopIndex="50013" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="48" _Name_="Monster Bag" ShopIndex="50558" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_NIKI Index="49" _Name_="Angel Blade" ShopIndex="430" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="1" _Name_="Peach Pink Armlet" ShopIndex="38" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_LUNLUN Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_LUNLUN Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUNLUN Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUNLUN Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUNLUN Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUNLUN Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUNLUN Index="9" _Name_="Firebrick Hairband" ShopIndex="32" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="14" _Name_="Wooden Baseball Bat" ShopIndex="528" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_LUNLUN Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUNLUN Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUNLUN Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="26" _Name_="Meteor" ShopIndex="3007" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUNLUN Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="32" _Name_="Bronze Baseball Bat" ShopIndex="529" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUNLUN Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="36" _Name_="Nice Hat" ShopIndex="50025" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="37" _Name_="Silver Baseball Bat" ShopIndex="530" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="38" _Name_="Pink Shirts" ShopIndex="50449" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_LUNLUN Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_LUNLUN Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_LUNLUN Index="43" _Name_="Snowman Hat" ShopIndex="50529" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="44" _Name_="Golden Baseball Bat" ShopIndex="531" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUNLUN Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUNLUN Index="47" _Name_="Angel Wing Cap" ShopIndex="50027" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="48" _Name_="Monster Bag" ShopIndex="50566" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUNLUN Index="49" _Name_="Angel Blade" ShopIndex="431" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="1" _Name_="Lizard Gloves" ShopIndex="150" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_DHANPIR Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_DHANPIR Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_DHANPIR Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_DHANPIR Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_DHANPIR Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_DHANPIR Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_DHANPIR Index="9" _Name_="Lizard Magic Cap" ShopIndex="113" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="14" _Name_="Wooden Baseball Bat" ShopIndex="536" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_DHANPIR Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_DHANPIR Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_DHANPIR Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="26" _Name_="Meteor" ShopIndex="3007" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_DHANPIR Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="32" _Name_="Bronze Baseball Bat" ShopIndex="537" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_DHANPIR Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="36" _Name_="Nice Hat" ShopIndex="50039" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="37" _Name_="Silver Baseball Bat" ShopIndex="538" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="38" _Name_="Pink Shirts" ShopIndex="50450" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_DHANPIR Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_DHANPIR Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_DHANPIR Index="43" _Name_="Snowman Hat" ShopIndex="50530" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="44" _Name_="Golden Baseball Bat" ShopIndex="539" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_DHANPIR Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_DHANPIR Index="47" _Name_="Angel Wing Cap" ShopIndex="50041" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="48" _Name_="Monster Bag" ShopIndex="50574" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_DHANPIR Index="49" _Name_="Angel Blade" ShopIndex="432" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="1" _Name_="Marron Leather Gloves" ShopIndex="66" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_LUCY Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_LUCY Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUCY Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUCY Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUCY Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUCY Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_LUCY Index="9" _Name_="Pirate Bandana" ShopIndex="70" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUCY Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUCY Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_LUCY Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_LUCY Index="14" _Name_="Wooden Baseball Bat" ShopIndex="544" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_LUCY Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_LUCY Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUCY Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_LUCY Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_LUCY Index="26" _Name_="Meteor" ShopIndex="3000" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_LUCY Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUCY Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_LUCY Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUCY Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="32" _Name_="Bronze Baseball Bat" ShopIndex="545" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_LUCY Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_LUCY Index="36" _Name_="Nice Hat" ShopIndex="50053" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="37" _Name_="Silver Baseball Bat" ShopIndex="546" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="38" _Name_="Pink Shirts" ShopIndex="50451" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_LUCY Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_LUCY Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_LUCY Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_LUCY Index="43" _Name_="Snowman Hat" ShopIndex="50531" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="44" _Name_="Golden Baseball Bat" ShopIndex="547" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUCY Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_LUCY Index="47" _Name_="Angel Wing Cap" ShopIndex="50055" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="48" _Name_="Monster Bag" ShopIndex="50582" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_LUCY Index="49" _Name_="Angel Blade" ShopIndex="433" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="1" _Name_="Elf Gold Armlet" ShopIndex="469" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_SHUA Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_SHUA Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_SHUA Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_SHUA Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_SHUA Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_SHUA Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_SHUA Index="9" _Name_="Cutie Red Hairband" ShopIndex="486" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_SHUA Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_SHUA Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_SHUA Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_SHUA Index="14" _Name_="Wooden Baseball Bat" ShopIndex="552" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_SHUA Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_SHUA Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_SHUA Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_SHUA Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_SHUA Index="26" _Name_="Meteor" ShopIndex="3007" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_SHUA Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_SHUA Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_SHUA Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_SHUA Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="32" _Name_="Bronze Baseball Bat" ShopIndex="553" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_SHUA Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_SHUA Index="36" _Name_="Nice Hat" ShopIndex="50067" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="37" _Name_="Silver Baseball Bat" ShopIndex="554" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="38" _Name_="Pink Shirts" ShopIndex="50452" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_SHUA Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_SHUA Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_SHUA Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_SHUA Index="43" _Name_="Snowman Hat" ShopIndex="50532" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="44" _Name_="Golden Baseball Bat" ShopIndex="555" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_SHUA Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_SHUA Index="47" _Name_="Angel Wing Cap" ShopIndex="50069" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="48" _Name_="Monster Bag" ShopIndex="50590" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_SHUA Index="49" _Name_="Angel Blade" ShopIndex="504" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="1" _Name_="Pink Heart Armlet" ShopIndex="50255" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="2" _Name_="Acorn Pie" ShopIndex="5015" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_POCHI Index="3" _Name_="Starberry Cookie" ShopIndex="5024" QuantityMin="1" QuantityMax="2"/>
+	<RewardItem_POCHI Index="4" _Name_="Midium Potion" ShopIndex="3002" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_POCHI Index="5" _Name_="Melon" ShopIndex="4025" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_POCHI Index="6" _Name_="Cherry" ShopIndex="4026" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_POCHI Index="7" _Name_="Peach" ShopIndex="4027" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_POCHI Index="8" _Name_="Grapes" ShopIndex="4028" QuantityMin="1" QuantityMax="5"/>
+	<RewardItem_POCHI Index="9" _Name_="Red Hair Ribbon" ShopIndex="50248" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="10" _Name_="Magic Stove" ShopIndex="1017" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_POCHI Index="11" _Name_="Magic Shelf" ShopIndex="1014" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_POCHI Index="12" _Name_="Polymorph" ShopIndex="3010" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_POCHI Index="13" _Name_="Crap Trap" ShopIndex="3014" QuantityMin="20" QuantityMax="50"/>
+	<RewardItem_POCHI Index="14" _Name_="Wooden Baseball Bat" ShopIndex="50279" QuantityMin="2" QuantityMax="2"/>
+	<RewardItem_POCHI Index="15" _Name_="Rebirth" ShopIndex="3001" QuantityMin="1" QuantityMax="7"/>
+	<RewardItem_POCHI Index="16" _Name_="Wooden Carpet (Small)" ShopIndex="1023" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="17" _Name_="Wooden Carpet (Big)" ShopIndex="1022" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="18" _Name_="Walnut Cake" ShopIndex="5025" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_POCHI Index="19" _Name_="Melon Ice Water" ShopIndex="5026" QuantityMin="1" QuantityMax="3"/>
+	<RewardItem_POCHI Index="20" _Name_="Power Fruit" ShopIndex="5000" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="21" _Name_="Stamina Fruit" ShopIndex="5001" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="22" _Name_="Dexterity Fruit" ShopIndex="5002" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="23" _Name_="Wisdom Fruit" ShopIndex="5003" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="24" _Name_="Live Speaker" ShopIndex="1081" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="25" _Name_="Minimum" ShopIndex="3011" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_POCHI Index="26" _Name_="Meteor" ShopIndex="3007" QuantityMin="30" QuantityMax="50"/>
+	<RewardItem_POCHI Index="27" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_POCHI Index="28" _Name_="Area Shield" ShopIndex="3022" QuantityMin="10" QuantityMax="10"/>
+	<RewardItem_POCHI Index="29" _Name_="Kiss of Medusa" ShopIndex="3017" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_POCHI Index="30" _Name_="Red Star Wallpaper" ShopIndex="1060" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="31" _Name_="Simple Pink Floor" ShopIndex="1071" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="32" _Name_="Bronze Baseball Bat" ShopIndex="50280" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="33" _Name_="Diamond" ShopIndex="4585" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="34" _Name_="Star Coin(Large)" ShopIndex="4080" QuantityMin="1" QuantityMax="1"/>
+	<RewardItem_POCHI Index="35" _Name_="Large Potion" ShopIndex="3003" QuantityMin="5" QuantityMax="10"/>
+	<RewardItem_POCHI Index="36" _Name_="Nice Hat" ShopIndex="50310" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="37" _Name_="Silver Baseball Bat" ShopIndex="50281" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="38" _Name_="Pink Shirts" ShopIndex="50453" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="39" _Name_="Ring of Adventure King" ShopIndex="287" QuantityMin="1" QuantityMax="10"/>
+	<RewardItem_POCHI Index="40" _Name_="Ring of Great Wealth" ShopIndex="288" QuantityMin="1" QuantityMax="20"/>
+	<RewardItem_POCHI Index="41" _Name_="Homing Soul" ShopIndex="3008" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_POCHI Index="42" _Name_="Holy Shield" ShopIndex="3000" QuantityMin="40" QuantityMax="50"/>
+	<RewardItem_POCHI Index="43" _Name_="Snowman Hat" ShopIndex="50533" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="44" _Name_="Golden Baseball Bat" ShopIndex="50282" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="45" _Name_="Inferno" ShopIndex="3023" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_POCHI Index="46" _Name_="Healing(Big)" ShopIndex="3020" QuantityMin="10" QuantityMax="30"/>
+	<RewardItem_POCHI Index="47" _Name_="Angel Wing Cap" ShopIndex="50312" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="48" _Name_="Monster Bag" ShopIndex="50598" QuantityMin="7" QuantityMax="7"/>
+	<RewardItem_POCHI Index="49" _Name_="Angel Blade" ShopIndex="50283" QuantityMin="7" QuantityMax="7"/>
+</Tables>
