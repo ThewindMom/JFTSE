@@ -21,6 +21,7 @@ import java.util.List;
 
 @Log4j2
 public class RingOfGold extends BaseItem {
+    private final long playerPocketId;
     private final PocketService pocketService;
     private final PlayerPocketService playerPocketService;
     private final PlayerService playerService;
@@ -28,9 +29,10 @@ public class RingOfGold extends BaseItem {
 
     private FTPlayer player;
 
-    public RingOfGold(int itemIndex, String name, String category) {
+    public RingOfGold(long playerPocketId, int itemIndex, String name, String category) {
         super(itemIndex, name, category);
 
+        this.playerPocketId = playerPocketId;
         pocketService = ServiceManager.getInstance().getPocketService();
         playerPocketService = ServiceManager.getInstance().getPlayerPocketService();
         playerService = ServiceManager.getInstance().getPlayerService();
@@ -57,7 +59,7 @@ public class RingOfGold extends BaseItem {
             equippedSpecialSlots = EquippedSpecialSlots.of(player);
         }
 
-        PlayerPocket playerPocketROGold = playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(this.getItemIndex(), this.getCategory(), pocket);
+        PlayerPocket playerPocketROGold = playerPocketService.getItemAsPocket(playerPocketId, pocket);
         if (playerPocketROGold == null) {
             return false;
         }

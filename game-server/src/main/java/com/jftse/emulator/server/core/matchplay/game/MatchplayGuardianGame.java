@@ -273,11 +273,11 @@ public class MatchplayGuardianGame extends MatchplayGame {
         int baseSta = roomPlayer.getStamina();
         int baseDex = roomPlayer.getDexterity();
         int baseWill = roomPlayer.getWillpower();
-        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp();
-        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr();
-        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta();
-        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
-        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil();
+        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getEquippedItemStats().getSpecialAddHp();
+        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getEquippedItemStats().getSpecialStrength();
+        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getEquippedItemStats().getSpecialStamina();
+        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getEquippedItemStats().getSpecialDexterity();
+        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getEquippedItemStats().getSpecialWillpower();
 
         boolean coupleIsActive = hasActiveCoupleInParty(roomPlayer, activeRoomPlayers);
         if (coupleIsActive) {
