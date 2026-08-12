@@ -1,9 +1,12 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
+import com.jftse.emulator.common.service.ConfigService;
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.constants.RoomType;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomCreateAnswerPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.constants.GameMode;
@@ -36,42 +39,59 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
             return;
         }
 
-        byte playerSize = packet.getPlayers();
+        try {
+            byte roomType = packet.getRoomType();
+            boolean isClubRoomRequest = ClubMatchRules.isClubRoomRequest(connection.getGameServerType(),
+                    roomType);
+            if (packet.getMode() == -1) {
+                packet.setMode(isClubRoomRequest ? (byte) GameMode.BASIC : (byte) new Random().nextInt(2));
+            }
 
-        Room room = new Room();
-        room.setRoomId(GameManager.getInstance().getRoomId());
-        room.setRoomName(String.format("%s's room", player.getName()));
-        room.setRoomType(packet.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+            byte playerSize = packet.getMode() == GameMode.GUARDIAN
+                    ? (byte) 4
+                    : packet.getPlayers() == 0 ? (byte) 2 : packet.getPlayers();
+            int validationResult = ClubMatchRules.validateCreation(connection.getGameServerType(),
+                    roomType, packet.getMode(), playerSize, player.getGuild());
+            if (validationResult != ClubMatchRules.SUCCESS) {
+                connection.sendTCP(new S2CRoomCreateAnswerPacket((char) validationResult,
+                        (byte) 0, 0, (byte) 0));
+                return;
+            }
 
-        if (packet.getMode() == -1) {
-            final Random random = new Random();
-            packet.setMode((byte) random.nextInt(2));
+            Room room = new Room();
+            room.setRoomId(GameManager.getInstance().getRoomId());
+            room.setGameServerType(connection.getGameServerType());
+            room.setRoomName(String.format("%s's room", player.getName()));
+            room.setRoomType(isClubRoomRequest
+                    ? ClubMatchRules.roomTypeForWireMode(packet.getMode())
+                    : roomType);
+            room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+
+            room.setMode(packet.getMode());
+            room.setRule((byte) 0);
+
+            room.setPlayers(playerSize);
+
+            if (room.getRoomType() == RoomType.BATTLEMON)
+                room.setPlayers((byte) 4);
+
+            room.setPrivate(false);
+            room.setSkillFree(false);
+            room.setQuickSlot(false);
+            room.setLevel((byte) player.getLevel());
+            room.setLevelRange((byte) -1);
+            room.setBettingType('0');
+            room.setBettingAmount(0);
+            room.setBall(1);
+            room.setMap((byte) 0);
+            if (isClubRoomRequest) {
+                room.setClubMatchMaxPlayTimeMinutes(Math.max(1,
+                        ConfigService.getInstance().getValue("club.match.max-play-time.minutes", 5)));
+            }
+
+            GameManager.getInstance().internalHandleRoomCreate(client.getConnection(), room);
+        } finally {
+            client.getIsJoiningOrLeavingRoom().set(false);
         }
-
-        room.setMode(packet.getMode());
-        room.setRule((byte) 0);
-
-        if (packet.getMode() == GameMode.GUARDIAN)
-            room.setPlayers((byte) 4);
-        else
-            room.setPlayers(playerSize == 0 ? 2 : playerSize);
-
-        if (room.getRoomType() == RoomType.BATTLEMON)
-            room.setPlayers((byte) 4);
-
-        room.setPrivate(false);
-        room.setSkillFree(false);
-        room.setQuickSlot(false);
-        room.setLevel((byte) player.getLevel());
-        room.setLevelRange((byte) -1);
-        room.setBettingType('0');
-        room.setBettingAmount(0);
-        room.setBall(1);
-        room.setMap((byte) 0);
-
-        GameManager.getInstance().internalHandleRoomCreate(client.getConnection(), room);
-
-        client.getIsJoiningOrLeavingRoom().set(false);
     }
 }

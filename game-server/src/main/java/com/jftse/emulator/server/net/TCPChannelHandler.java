@@ -2,12 +2,14 @@ package com.jftse.emulator.server.net;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayBackToRoom;
 import com.jftse.emulator.server.core.rabbit.messages.RefreshFriendListMessage;
@@ -107,11 +109,15 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
             RProducerService.getInstance().send(refreshFriendRelationMessage, "game.messenger.friendRelation chat.messenger.friendRelation", "GameServer");
         }
 
-        GameSession gameSession = client.getActiveGameSession();
+        Integer gameSessionId = client.getGameSessionId();
+        GameSession gameSession = gameSessionId == null
+                ? null
+                : GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId);
         if (gameSession != null) {
-
             Room currentClientRoom = client.getActiveRoom();
-            if (currentClientRoom != null) {
+            if (currentClientRoom != null && ClubMatchRules.isClubMatch(currentClientRoom)) {
+                ClubMatchCoordinator.getInstance().abortGame(currentClientRoom, gameSession, gameSessionId);
+            } else if (currentClientRoom != null) {
                 if (player != null && currentClientRoom.getStatus() == RoomStatus.Running) {
                     PlayerStatistic playerStatistic = ServiceManager.getInstance().getPlayerStatisticService().findPlayerStatisticById(player.getPlayerStatisticId());
                     playerStatistic.setNumberOfDisconnects(playerStatistic.getNumberOfDisconnects() + 1);
@@ -137,16 +143,16 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
                                 }
                             }
                         });
-                        GameSessionManager.getInstance().getGameSessionList().remove(client.getGameSessionId(), gameSession);
+                        GameSessionManager.getInstance().getGameSessionList().remove(gameSessionId, gameSession);
                     }
                 }
                 MatchplayGame game = gameSession.getMatchplayGame();
                 game.getScheduledFutures().forEach(sf -> sf.cancel(false));
                 game.getScheduledFutures().clear();
 
-                GameManager.getInstance().getMatchRallyStatsConsumer().clearSession(client.getGameSessionId());
+                GameManager.getInstance().getMatchRallyStatsConsumer().clearSession(gameSessionId);
 
-                client.setActiveGameSession(null);
+                client.clearActiveGameSession(gameSessionId);
             }
         }
         GameManager.getInstance().handleRoomPlayerChanges(connection, notifyClients);

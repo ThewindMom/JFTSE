@@ -6,11 +6,14 @@ import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
+import com.jftse.emulator.server.core.packets.matchplay.S2CClubMatchMaxPlayTimePacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.Friend;
@@ -92,6 +95,20 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
+        if (ClubMatchRules.isClubServerRoom(room)
+                && !ClubMatchRules.isImplementedWireMode(room.getMode())) {
+            SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
+                    .result((char) ClubMatchRules.UNSUPPORTED_MODE)
+                    .roomType((byte) 0)
+                    .mode((byte) 0)
+                    .mapId((byte) 0)
+                    .build();
+            connection.sendTCP(roomJoinAnswerPacket);
+            resetIsJoiningOrLeavingRoom(ftClient);
+            GameManager.getInstance().updateRoomForAllClientsInMultiplayer(ftClient.getConnection(), room);
+            return;
+        }
+
         FTPlayer activePlayer = ftClient.getPlayer();
         if (!ftClient.isGameMaster() && room.isPrivate() && (StringUtils.isEmpty(roomJoinRequestPacket.getPassword()) || !roomJoinRequestPacket.getPassword().equals(room.getPassword()))) {
             SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
@@ -115,7 +132,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             anyPositionAvailable = room.getPositions().stream().anyMatch(x -> x == RoomPositionState.Free);
         }
 
-        if (!anyPositionAvailable && !ftClient.isGameMaster()) {
+        if (!anyPositionAvailable && !ftClient.isGameMaster() && !ClubMatchRules.isClubMatch(room)) {
             SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
                     .result((char) -10)
                     .roomType((byte) 0)
@@ -217,10 +234,19 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
+        if (ClubMatchRules.isClubMatch(room) && !ftClient.isGameMaster()) {
+            handleClubMatchJoin(connection, room, activePlayer);
+            return;
+        }
+
         int newPosition = -1;
         if (!isTownSquare) {
-            Optional<Short> num = room.getPositions().stream().filter(x -> x == RoomPositionState.Free).findFirst();
-            newPosition = useGmSlot ? 9 : num.map(pos -> room.getPositions().indexOf(pos)).orElse(-1);
+            if (useGmSlot) {
+                newPosition = 9;
+            } else {
+                Optional<Short> num = room.getPositions().stream().filter(x -> x == RoomPositionState.Free).findFirst();
+                newPosition = num.map(pos -> room.getPositions().indexOf(pos)).orElse(-1);
+            }
         } else {
             List<Short> positions = roomPlayerList.stream().map(RoomPlayer::getPosition).toList();
             newPosition = (short) IntStream.range(0, room.getPlayers())
@@ -274,6 +300,55 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         ftClient.getIsJoiningOrLeavingRoom().set(false);
     }
 
+    private void handleClubMatchJoin(FTConnection connection, Room room, FTPlayer activePlayer) {
+        FTClient client = connection.getClient();
+        try {
+            Friend couple = socialService.getRelationshipWithFriend(activePlayer.getPlayerRef());
+            if (couple != null) {
+                activePlayer.setCoupleId(couple.getFriend().getId());
+                activePlayer.setCoupleName(couple.getFriend().getName());
+            }
+
+            RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
+            roomPlayer.setGameMaster(false);
+            roomPlayer.setMaster(false);
+            roomPlayer.setFitting(false);
+
+            ClubMatchRules.JoinDecision decision;
+            synchronized (room) {
+                decision = room.getStatus() == RoomStatus.NotRunning
+                        ? ClubMatchRules.decideJoin(room, activePlayer.getGuild())
+                        : ClubMatchRules.JoinDecision.rejected(-1);
+                if (decision.allowed()
+                        && ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                    room.getPositions().set(decision.position(), RoomPositionState.InUse);
+                    roomPlayer.setPosition(decision.position());
+                    client.setActiveRoom(room);
+                    client.setInLobby(false);
+                    room.getRoomPlayerList().add(roomPlayer);
+                } else if (decision.allowed()) {
+                    decision = ClubMatchRules.JoinDecision.rejected(-1);
+                }
+            }
+
+            if (!decision.allowed()) {
+                SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
+                        .result((char) decision.result())
+                        .roomType((byte) 0)
+                        .mode((byte) 0)
+                        .mapId((byte) 0)
+                        .build();
+                connection.sendTCP(roomJoinAnswerPacket);
+                GameManager.getInstance().updateRoomForAllClientsInMultiplayer(connection, room);
+                return;
+            }
+
+            handleRoomUponJoin(connection, room, false);
+        } finally {
+            resetIsJoiningOrLeavingRoom(client);
+        }
+    }
+
     private void handleRoomUponJoin(final FTConnection connection, Room room, boolean existingRoom) {
         FTClient client = connection.getClient();
         RoomPlayer roomPlayer = client.getRoomPlayer();
@@ -289,6 +364,9 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
         connection.sendTCP(roomJoinAnswerPacket);
         connection.sendTCP(roomInformationPacket);
+        if (ClubMatchRules.isClubMatch(room)) {
+            connection.sendTCP(new S2CClubMatchMaxPlayTimePacket(room.getClubMatchMaxPlayTimeMinutes()));
+        }
 
         List<RoomPlayer> filteredRoomPlayerList = roomPlayer.getPosition() == MiscConstants.InvisibleGmSlot
                 ? room.getRoomPlayerList().stream().toList()

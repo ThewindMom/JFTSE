@@ -16,7 +16,9 @@ import com.jftse.emulator.server.core.life.item.special.RingOfGold;
 import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
+import com.jftse.emulator.server.core.life.room.ClubMatchState;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.room.ServeInfo;
@@ -48,6 +50,7 @@ import com.jftse.server.core.shared.packets.matchplay.CMSGPoint;
 import lombok.extern.log4j.Log4j2;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -116,16 +119,23 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     }
 
     @Override
-    public void onEnd(final FTClient ftClient) {
-        GameSession gameSession = ftClient.getActiveGameSession();
-        if (gameSession == null)
-            return;
-
+    public synchronized void onEnd(final FTClient ftClient) {
         final Integer gameSessionId = ftClient.getGameSessionId();
+        if (gameSessionId == null)
+            return;
+        GameSession gameSession = GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId);
+        if (gameSession == null || gameSession.getMatchplayGame() != game)
+            return;
 
         Room activeRoom = ftClient.getActiveRoom();
         if (activeRoom == null)
             return;
+
+        if (ClubMatchRules.isClubMatch(activeRoom)) {
+            byte winningSide = game.getSetsRedTeam().get() == 2 ? (byte) 0 : (byte) 1;
+            finishClubMatch(gameSession, gameSessionId, activeRoom, winningSide, false);
+            return;
+        }
 
         activeRoom.setStatus(RoomStatus.NotRunning);
 
@@ -295,6 +305,84 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         }
     }
 
+    public synchronized void onClubMatchTimerExpired(GameSession gameSession, int gameSessionId,
+                                                     Room activeRoom) {
+        if (gameSession == null || activeRoom == null || !ClubMatchRules.isClubMatch(activeRoom)) {
+            return;
+        }
+        synchronized (activeRoom) {
+            if (gameSession.getMatchplayGame() != game
+                    || !activeRoom.getClubMatchState().tryExpire(gameSessionId, Instant.now())) {
+                return;
+            }
+
+            finishExpiredClubMatch(gameSession, gameSessionId, activeRoom);
+        }
+    }
+
+    private void finishExpiredClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom) {
+        int redSets = game.getSetsRedTeam().get();
+        int blueSets = game.getSetsBlueTeam().get();
+        if (redSets == blueSets) {
+            log.warn("Club Match session {} expired with tied sets {}-{}; "
+                            + "the original tie-break rule is not yet proven, so no result was sent",
+                    gameSessionId, redSets, blueSets);
+            finishClubMatch(gameSession, gameSessionId, activeRoom, null, true);
+            return;
+        }
+
+        byte winningSide = redSets > blueSets ? (byte) 0 : (byte) 1;
+        finishClubMatch(gameSession, gameSessionId, activeRoom, winningSide, true);
+    }
+
+    private void finishClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom,
+                                 Byte winningSide, boolean timerExpiry) {
+        synchronized (activeRoom) {
+            boolean terminalClaimed = timerExpiry
+                    ? activeRoom.getClubMatchState().tryRecordExpiredResult(gameSessionId)
+                    : activeRoom.getClubMatchState().tryRecordResult(gameSessionId);
+            if (!terminalClaimed) {
+                return;
+            }
+            activeRoom.setStatus(RoomStatus.StartCancelled);
+            gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+            gameSession.getFireables().clear();
+            game.getFinished().set(true);
+            if (game.getEndTime() == null) {
+                game.setEndTime(new java.util.concurrent.atomic.AtomicReference<>(new Date()));
+            }
+
+            S2CClubMatchResultPacket resultPacket = winningSide == null
+                    ? null
+                    : new S2CClubMatchResultPacket(winningSide);
+            for (FTClient client : gameSession.getClients()) {
+                RoomPlayer roomPlayer = client.getRoomPlayer();
+                if (roomPlayer != null) {
+                    roomPlayer.setReady(false);
+                    roomPlayer.getConnectedToRelay().set(false);
+                }
+                if (client.getConnection() != null) {
+                    if (resultPacket != null) {
+                        client.getConnection().sendTCP(resultPacket);
+                    }
+                    eventHandler.offer(eventHandler.createPacketEvent(client,
+                            new S2CMatchplayBackToRoom(), PacketEventType.FIRE_DELAYED,
+                            TimeUnit.SECONDS.toMillis(12)));
+                }
+                client.clearActiveGameSession(gameSessionId);
+            }
+
+            matchRallyStatsConsumer.clearSession(gameSessionId);
+            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+            if (activeRoom.getClubMatchState().ownsGameSession(gameSessionId)) {
+                activeRoom.setStatus(RoomStatus.NotRunning);
+            }
+        }
+        log.info("Club Match session {} ended{}; ordinary Basic rewards, rankings, player statistics, "
+                        + "and guild records were not changed",
+                gameSessionId, winningSide == null ? " without a proven tie result" : " with winning side " + winningSide);
+    }
+
     @Override
     public void onPrepare(final FTClient ftClient) {
         Room room = ftClient.getActiveRoom();
@@ -308,23 +396,41 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     }
 
     @Override
-    public void onPoint(final FTClient ftClient, CMSGPoint pointPacket) {
-        GameSession gameSession = ftClient.getActiveGameSession();
-        if (gameSession == null)
+    public synchronized void onPoint(final FTClient ftClient, CMSGPoint pointPacket) {
+        Integer gameSessionId = ftClient.getGameSessionId();
+        if (gameSessionId == null)
+            return;
+        GameSession gameSession = GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId);
+        if (gameSession == null || gameSession.getMatchplayGame() != game)
             return;
 
         Room activeRoom = ftClient.getActiveRoom();
         if (activeRoom == null)
             return;
 
-        boolean isSingles = gameSession.getPlayers() == 2;
-        final int pointsTeamRed = game.getPointsRedTeam().get();
-        final int pointsTeamBlue = game.getPointsBlueTeam().get();
-        final int setsTeamRead = game.getSetsRedTeam().get();
-        final int setsTeamBlue = game.getSetsBlueTeam().get();
+        synchronized (activeRoom) {
+            long clubMatchGeneration = -1;
+            if (ClubMatchRules.isClubMatch(activeRoom)) {
+                ClubMatchState.PointAction pointAction = activeRoom.getClubMatchState()
+                        .beforePoint(gameSessionId, Instant.now());
+                if (pointAction == ClubMatchState.PointAction.EXPIRE) {
+                    finishExpiredClubMatch(gameSession, gameSessionId, activeRoom);
+                    return;
+                }
+                if (pointAction == ClubMatchState.PointAction.REJECT) {
+                    return;
+                }
+                clubMatchGeneration = activeRoom.getClubMatchState().getGeneration();
+            }
+
+            boolean isSingles = gameSession.getPlayers() == 2;
+            final int pointsTeamRed = game.getPointsRedTeam().get();
+            final int pointsTeamBlue = game.getPointsBlueTeam().get();
+            final int setsTeamRead = game.getSetsRedTeam().get();
+            final int setsTeamBlue = game.getSetsBlueTeam().get();
 
         boolean winningTeamIsRed = game.isRedTeam(pointPacket.getPointsTeam());
-        RallyResult rallyResult = matchRallyStatsConsumer.onPoint(ftClient.getGameSessionId(), winningTeamIsRed);
+        RallyResult rallyResult = matchRallyStatsConsumer.onPoint(gameSessionId, winningTeamIsRed);
 
         if (pointPacket.getPlayerPosition() < 4) {
             game.increasePerformancePointForPlayer(pointPacket.getPlayerPosition());
@@ -372,11 +478,13 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     pointingTeamPosition = 1;
 
                 S2CMatchplayTeamWinsPoint matchplayTeamWinsPoint = new S2CMatchplayTeamWinsPoint(pointingTeamPosition, pointPacket.getBallState(), (byte) game.getPointsRedTeam().get(), (byte) game.getPointsBlueTeam().get());
-                eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTeamWinsPoint, PacketEventType.DEFAULT, 0));
+                queueContinuation(activeRoom, gameSessionId, clubMatchGeneration, client,
+                        matchplayTeamWinsPoint, PacketEventType.DEFAULT, 0);
 
                 if (anyTeamWonSet) {
                     S2CMatchplayTeamWinsSet matchplayTeamWinsSet = new S2CMatchplayTeamWinsSet((byte) game.getSetsRedTeam().get(), (byte) game.getSetsBlueTeam().get());
-                    eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTeamWinsSet, PacketEventType.DEFAULT, 0));
+                    queueContinuation(activeRoom, gameSessionId, clubMatchGeneration, client,
+                            matchplayTeamWinsSet, PacketEventType.DEFAULT, 0);
                 }
 
                 if (isActivePlayer) {
@@ -413,8 +521,34 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                 }
                 S2CMatchplayTriggerServe matchplayTriggerServe = new S2CMatchplayTriggerServe(serveInfo);
                 for (FTClient client : clients)
-                    eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTriggerServe, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(6)));
+                    queueContinuation(activeRoom, gameSessionId, clubMatchGeneration, client,
+                            matchplayTriggerServe, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(6));
+            }
             }
         }
+    }
+
+    private void queueContinuation(Room room, int gameSessionId, long clubMatchGeneration,
+                                   FTClient client, Packet packet, PacketEventType packetEventType,
+                                   long delayMillis) {
+        if (!ClubMatchRules.isClubMatch(room)) {
+            eventHandler.offer(eventHandler.createPacketEvent(client, packet, packetEventType, delayMillis));
+            return;
+        }
+
+        eventHandler.offer(eventHandler.createRunnableEvent(() -> {
+            synchronized (room) {
+                if (!room.getClubMatchState().canSendContinuation(gameSessionId,
+                        clubMatchGeneration, Instant.now())) {
+                    return;
+                }
+                FTConnection connection = client.getConnection();
+                Integer activeGameSessionId = client.getGameSessionId();
+                if (connection != null && activeGameSessionId != null
+                        && activeGameSessionId == gameSessionId) {
+                    connection.sendTCP(packet);
+                }
+            }
+        }, delayMillis));
     }
 }

@@ -1,0 +1,10 @@
+captured_utc
+2026-08-12 10:17:15.194537
+
+username	gameMaster	status	loggedInServer	player	playerOnline	guild	allowedCharacterTypeHex
+cmhost	0	-2	GAME_SERVER	CMHostA	1	CMHostGuild	000102030405060708
+cmguest	0	-2	GAME_SERVER	CMGuestB	1	CMGuestGuild	000102030405060708
+
+player	tutorialCount	completedCount
+CMHostA	11	11
+CMGuestB	11	11

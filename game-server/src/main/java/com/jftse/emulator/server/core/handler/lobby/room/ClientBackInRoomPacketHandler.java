@@ -8,6 +8,8 @@ import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
+import com.jftse.emulator.server.core.packets.matchplay.S2CClubMatchMaxPlayTimePacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoPlayStatsPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerStatusPointChangePacket;
 import com.jftse.emulator.server.net.FTClient;
@@ -45,27 +47,37 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
         Room currentClientRoom = client.getActiveRoom();
         RoomPlayer roomPlayer = client.getRoomPlayer();
         if (currentClientRoom == null || roomPlayer == null) { // shouldn't happen
-            connection.close();
             return;
         }
 
+        short position;
+        synchronized (currentClientRoom) {
+            if (ClubMatchRules.isClubMatch(currentClientRoom)) {
+                if (currentClientRoom.getStatus() != RoomStatus.NotRunning
+                        || !currentClientRoom.getClubMatchState().isTerminal()
+                        || client.getGameSessionId() != null) {
+                    return;
+                }
+            } else {
+                if (currentClientRoom.getStatus() != RoomStatus.NotRunning
+                        || client.getGameSessionId() != null) {
+                    return;
+                }
+            }
 
-        short position = roomPlayer.getPosition();
+            position = roomPlayer.getPosition();
+            roomPlayer.setReady(false);
+            roomPlayer.setGameAnimationSkipReady(false);
+            roomPlayer.getConnectedToRelay().set(false);
+            roomPlayer.getPickedUpSkillCrystals().clear();
+        }
+
         SMSGClientBackInRoom backInRoomPacket = SMSGClientBackInRoom.builder().position(position).build();
         connection.sendTCP(backInRoomPacket);
 
         Packet unsetHostPacket = new Packet(PacketOperations.S2CUnsetHost);
         unsetHostPacket.write((byte) 0);
         connection.sendTCP(unsetHostPacket);
-
-        roomPlayer.setReady(false);
-        roomPlayer.setGameAnimationSkipReady(false);
-        roomPlayer.getConnectedToRelay().set(false);
-        roomPlayer.getPickedUpSkillCrystals().clear();
-
-        synchronized (currentClientRoom) {
-            currentClientRoom.setStatus(RoomStatus.NotRunning);
-        }
 
         PlayerStatistic playerStatistic = playerStatisticService.findPlayerStatisticById(player.getPlayerStatisticId());
 
@@ -84,5 +96,8 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
         connection.sendTCP(couplePointsPacket);
         connection.sendTCP(playerStatusPointChangePacket, playerInfoPlayStatsPacket);
         connection.sendTCP(roomInformationPacket, roomPlayerListInformationPacket);
+        if (ClubMatchRules.isClubMatch(currentClientRoom)) {
+            connection.sendTCP(new S2CClubMatchMaxPlayTimePacket(currentClientRoom.getClubMatchMaxPlayTimeMinutes()));
+        }
     }
 }

@@ -1,0 +1,1 @@
+Sensitive source capture excluded from transfer. Safe derivative scope: TCP 5901 only, 2026-08-12 10:09:20Z through 10:12:10Z; auth/AC/game-login periods excluded.

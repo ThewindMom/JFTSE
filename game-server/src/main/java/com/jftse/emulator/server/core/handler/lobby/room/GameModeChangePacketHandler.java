@@ -1,8 +1,11 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomListAnswerPacket;
 import com.jftse.emulator.server.net.FTClient;
@@ -23,7 +26,25 @@ public class GameModeChangePacketHandler implements PacketHandler<FTConnection, 
         Room room = client.getActiveRoom();
 
         if (room != null) {
+            if (ClubMatchRules.isClubServerRoom(room)) {
+                RoomPlayer roomPlayer = client.getRoomPlayer();
+                if (roomPlayer == null || !roomPlayer.isMaster()
+                        || !ClubMatchRules.isImplementedWireMode(packet.getMode())) {
+                    connection.sendTCP(new S2CRoomInformationPacket(room));
+                    return;
+                }
+            }
+
+            if (room.getMode() == packet.getMode()) {
+                return;
+            }
+
             synchronized (room) {
+                if (ClubMatchRules.isClubServerRoom(room)
+                        && !ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                    connection.sendTCP(new S2CRoomInformationPacket(room));
+                    return;
+                }
                 room.setMode(packet.getMode());
             }
 

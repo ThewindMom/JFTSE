@@ -10,15 +10,18 @@ import com.jftse.emulator.server.core.constants.RoomPositionState;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
+import com.jftse.emulator.server.core.packets.matchplay.S2CClubMatchMaxPlayTimePacket;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
 import com.jftse.emulator.server.core.utils.BattleUtils;
@@ -399,16 +402,21 @@ public class GameManager implements ServerLoopHandler {
         });
     }
 
-    public synchronized void handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
+    public synchronized boolean handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
         FTClient client = connection.getClient();
         if (!client.hasPlayer())
-            return;
+            return false;
 
         FTPlayer activePlayer = client.getPlayer();
 
         Room room = client.getActiveRoom();
         if (room == null)
-            return;
+            return false;
+
+        if (ClubMatchRules.isClubMatch(room)
+                && !ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+            return false;
+        }
 
         final boolean isTownSquare = room.getRoomType() == 1 && room.getMode() == 2;
         final ConcurrentLinkedDeque<RoomPlayer> roomPlayerList = room.getRoomPlayerList();
@@ -499,6 +507,11 @@ public class GameManager implements ServerLoopHandler {
         }
 
         client.setActiveRoom(null);
+        return true;
+    }
+
+    public void cancelClubMatchCountdown(Room room) {
+        ClubMatchCoordinator.getInstance().cancelForCompositionChange(room);
     }
 
     public void updateRoomForAllClientsInMultiplayer(final FTConnection connection, final Room room) {
@@ -584,6 +597,9 @@ public class GameManager implements ServerLoopHandler {
         connection.sendTCP(roomCreateAnswerPacket);
         connection.sendTCP(roomInformationPacket);
         connection.sendTCP(roomPlayerInformationPacket);
+        if (ClubMatchRules.isClubMatch(room)) {
+            connection.sendTCP(new S2CClubMatchMaxPlayTimePacket(room.getClubMatchMaxPlayTimeMinutes()));
+        }
 
         updateLobbyRoomListForAllClients(connection);
         refreshLobbyPlayerListForAllClients();

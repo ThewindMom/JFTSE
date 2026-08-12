@@ -38,7 +38,7 @@ public class FTClient extends Client<FTConnection> {
 
     private Room activeRoom;
     private RoomPlayer roomPlayer;
-    private Integer gameSessionId;
+    private volatile Integer gameSessionId;
 
     private FruitManager fruitManager = new FruitManager();
 
@@ -151,12 +151,21 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public GameSession getActiveGameSession() {
-        if (this.gameSessionId == null)
+        Integer activeGameSessionId = gameSessionId;
+        if (activeGameSessionId == null)
             return null;
-        return GameSessionManager.getInstance().getGameSessionBySessionId(this.gameSessionId);
+        return GameSessionManager.getInstance().getGameSessionBySessionId(activeGameSessionId);
     }
 
-    public void setActiveGameSession(Integer gameSessionId) {
+    public synchronized void setActiveGameSession(Integer gameSessionId) {
         this.gameSessionId = gameSessionId;
+    }
+
+    public synchronized boolean clearActiveGameSession(int expectedGameSessionId) {
+        if (gameSessionId == null || gameSessionId != expectedGameSessionId) {
+            return false;
+        }
+        gameSessionId = null;
+        return true;
     }
 }

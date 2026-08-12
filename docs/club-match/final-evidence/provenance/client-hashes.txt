@@ -1,0 +1,7 @@
+2026-08-12T08:27:54Z
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  lab/client/immutable/FantaTennis.exe
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  lab/client/runtime-a/FantaTennis.exe
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  lab/client/runtime-b/FantaTennis.exe
+f60bbf3b0a54529130c845ad7f1c65db900834244abbe27675bbed666bb6106c  lab/client/runtime-a/ServerInfo.ini
+f60bbf3b0a54529130c845ad7f1c65db900834244abbe27675bbed666bb6106c  lab/client/runtime-b/ServerInfo.ini
+Each runtime/prefix was freshly copied into its own task-owned directory before definitive auth.

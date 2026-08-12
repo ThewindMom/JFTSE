@@ -28,10 +28,13 @@ public class LobbyOptionPacketHandler implements PacketHandler<FTConnection, CMS
 
         byte option = packet.getOption();
         if (option == 10 || option == 12 || option == 16 || option == 14 || option == 13 || option == 15) {
+            if (client.getActiveRoom() != null
+                    && !GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true)) {
+                return;
+            }
             if (client.isInLobby()) {
                 client.setInLobby(false);
             }
-            GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
         }
 
         SMSGLobbyOption lobbyOptionPacket = SMSGLobbyOption.builder().option(option).build();

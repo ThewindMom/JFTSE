@@ -1,0 +1,5 @@
+../incoming/club-match-branch.bundle is okay
+The bundle contains this ref:
+54dd3cacf7f0c58ab0c6a542416fb5be56b1a44b refs/heads/feature/club-match-mode
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1

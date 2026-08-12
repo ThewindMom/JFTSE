@@ -41,3 +41,4 @@ INSERT INTO Config (id, description, name, `type`, value) VALUES(40, 'Pull count
 INSERT INTO Config (id, description, name, `type`, value) VALUES(41, 'Maximum multiplier applied to qualifying rare lottery entry weights when soft pity reaches its cap', 'lottery.soft_pity.max_weight_multiplier', 'double', '2.0');
 INSERT INTO Config (id, description, name, `type`, value) VALUES(42, 'Step size used to gradually widen the rarity threshold band for what counts as a qualifying rare result in high rarity lottery pools', 'lottery.rarity.offset.step', 'int', '3');
 INSERT INTO Config (id, description, name, `type`, value) VALUES(43, 'Minimum pool max rarity level required before rarity threshold widening is applied for pity qualification', 'lottery.rarity.offset.min_max', 'int', '5');
+INSERT INTO Config (id, description, name, `type`, value) VALUES(44, 'Maximum Club Match play time sent to the client, in minutes', 'club.match.max-play-time.minutes', 'int', '5');

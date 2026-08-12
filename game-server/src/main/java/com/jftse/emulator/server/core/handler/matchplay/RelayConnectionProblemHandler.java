@@ -18,9 +18,12 @@ public class RelayConnectionProblemHandler implements PacketHandler<FTConnection
         }
 
         Room room = ftClient.getActiveRoom();
-        if (room != null) {
+        if (room != null && ftClient.getActiveGameSession() != null) {
             synchronized (room) {
-                room.setStatus(RoomStatus.RelayConnectionFailed);
+                if (room.getStatus() == RoomStatus.StartingGame
+                        || room.getStatus() == RoomStatus.RelayConnectionSuccess) {
+                    room.setStatus(RoomStatus.RelayConnectionFailed);
+                }
             }
         }
     }

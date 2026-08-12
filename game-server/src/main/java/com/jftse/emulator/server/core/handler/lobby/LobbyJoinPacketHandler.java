@@ -19,15 +19,19 @@ public class LobbyJoinPacketHandler implements PacketHandler<FTConnection, CMSGL
             return;
         }
 
-        if (!client.isInLobby()) {
-            client.setInLobby(true);
-        } else {
+        if (client.isInLobby()) {
+            client.getIsJoiningOrLeavingLobby().set(false);
             return;
         }
 
         client.setLobbyCurrentRoomListPage(-1);
 
-        GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
+        if (client.getActiveRoom() != null
+                && !GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true)) {
+            client.getIsJoiningOrLeavingLobby().set(false);
+            return;
+        }
+        client.setInLobby(true);
         GameManager.getInstance().refreshLobbyPlayerListForAllClients();
 
         GameEventBus.call(GameEventType.LOBBY_JOINED, client);

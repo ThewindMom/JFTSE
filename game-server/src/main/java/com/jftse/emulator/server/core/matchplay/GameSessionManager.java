@@ -3,11 +3,11 @@ package com.jftse.emulator.server.core.matchplay;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Getter
@@ -32,9 +32,10 @@ public class GameSessionManager {
     }
 
     public Integer addGameSession(GameSession gameSession) {
-        Integer id = Integer.parseInt(RandomStringUtils.randomNumeric(5));
+        int serverType = Math.max(0, Math.min(9, Integer.getInteger("GameServerType", 1)));
+        Integer id = serverType * 10_000 + ThreadLocalRandom.current().nextInt(10_000);
         while (gameSessionList.putIfAbsent(id, gameSession) != null) {
-            id = Integer.parseInt(RandomStringUtils.randomNumeric(5));
+            id = serverType * 10_000 + ThreadLocalRandom.current().nextInt(10_000);
         }
         return id;
     }

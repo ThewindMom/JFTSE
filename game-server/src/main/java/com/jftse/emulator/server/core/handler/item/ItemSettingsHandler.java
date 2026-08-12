@@ -2,9 +2,12 @@ package com.jftse.emulator.server.core.handler.item;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayBackToRoom;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -47,11 +50,13 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
         if (!ftClient.hasPlayer())
             return;
 
-        GameSession gameSession = ftClient.getActiveGameSession();
-        if (gameSession == null)
+        Integer gameSessionId = ftClient.getGameSessionId();
+        if (gameSessionId == null)
             return;
 
-        Integer gameSessionId = ftClient.getGameSessionId();
+        GameSession gameSession = GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId);
+        if (gameSession == null)
+            return;
 
         FTPlayer player = ftClient.getPlayer();
 
@@ -108,7 +113,17 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
             authenticationService.updateAccount(account);
         }
 
+        Room room = ftClient.getActiveRoom();
+        boolean clubMatch = room != null && ClubMatchRules.isClubMatch(room);
+        if (clubMatch) {
+            ClubMatchCoordinator.getInstance().abortGame(room, gameSession, gameSessionId);
+        }
+
         connection.close();
+
+        if (clubMatch) {
+            return;
+        }
 
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
 
@@ -120,7 +135,7 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
             client.getConnection().sendTCP(backToRoomPacket);
 
-            client.setActiveGameSession(null);
+            client.clearActiveGameSession(gameSessionId);
         }
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);

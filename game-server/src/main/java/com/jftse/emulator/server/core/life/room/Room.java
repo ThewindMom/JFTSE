@@ -15,6 +15,7 @@ public class Room {
     public Room() {
         bannedPlayers = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
+        clubMatchState = new ClubMatchState();
         positions = new ArrayList<>(Arrays.asList(
                 RoomPositionState.Free, RoomPositionState.Free,
                 RoomPositionState.Free, RoomPositionState.Free,
@@ -25,6 +26,7 @@ public class Room {
     }
 
     private short roomId;
+    private byte gameServerType = 1;
     private String roomName;
     private byte roomType;
     private byte allowBattlemon;
@@ -43,8 +45,10 @@ public class Room {
     private String password;
     private ConcurrentLinkedDeque<Long> bannedPlayers;
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
+    private final ClubMatchState clubMatchState;
+    private int clubMatchMaxPlayTimeMinutes;
     private ArrayList<Short> positions;
-    private int status;
+    private volatile int status;
 
     private byte previousMap = 0;
 

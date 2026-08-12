@@ -1,9 +1,11 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -38,6 +40,18 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                     return;
                 }
 
+                if (positionToClaim < 0 || positionToClaim >= room.getPositions().size()
+                        || !ClubMatchRules.canMoveTo(room, requestingSlotChangePlayer, positionToClaim)) {
+                    SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
+                            .type((byte) 2)
+                            .sender("Room")
+                            .message("Club Match players must stay on their Club's side")
+                            .build();
+                    connection.sendTCP(msg);
+                    ftClient.getIsChangingSlot().set(false);
+                    return;
+                }
+
                 boolean requestingSlotChangePlayerIsMaster = requestingSlotChangePlayer.isMaster();
                 boolean slotIsInUse = room.getPositions().get(positionToClaim) == RoomPositionState.InUse;
                 if (slotIsInUse && !requestingSlotChangePlayerIsMaster) {
@@ -51,53 +65,61 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                     return;
                 }
 
-                RoomPlayer playerInSlotToClaim = room.getRoomPlayerList().stream().filter(x -> x.getPosition() == positionToClaim).findAny().orElse(null);
+                synchronized (room) {
+                    RoomPlayer playerInSlotToClaim = room.getRoomPlayerList().stream()
+                            .filter(x -> x.getPosition() == positionToClaim).findAny().orElse(null);
 
-                if (playerInSlotToClaim != null) {
-                    if (requestingSlotChangePlayerOldPosition == 9) {
-                        room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Locked);
+                    if (ClubMatchRules.isClubMatch(room)
+                            && !ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                        ftClient.getIsChangingSlot().set(false);
+                        return;
                     }
 
-                    playerInSlotToClaim.setPosition(requestingSlotChangePlayerOldPosition);
-                    requestingSlotChangePlayer.setPosition(positionToClaim);
-
-                    SMSGRoomSwapPosition swapPosition = SMSGRoomSwapPosition.builder()
-                            .oldPosition(requestingSlotChangePlayerOldPosition)
-                            .newPosition(positionToClaim)
-                            .build();
-                    GameManager.getInstance().sendPacketToAllClientsInSameRoom(swapPosition, ftClient.getConnection());
-
-                    for (RoomPlayer roomPlayer : room.getRoomPlayerList()) {
-                        synchronized (roomPlayer) {
-                            roomPlayer.setReady(false);
+                    if (playerInSlotToClaim != null) {
+                        if (requestingSlotChangePlayerOldPosition == 9) {
+                            room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Locked);
                         }
 
-                        SMSGRoomChangeReady changeReady = SMSGRoomChangeReady.builder()
-                                .position(roomPlayer.getPosition())
-                                .ready(roomPlayer.isReady())
-                                .build();
-                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(changeReady, ftClient.getConnection());
-                    }
-
-                } else {
-                    if (requestingSlotChangePlayerOldPosition == 9) {
-                        room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Locked);
-                    } else {
-                        room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Free);
-                    }
-
-                    room.getPositions().set(positionToClaim, RoomPositionState.InUse);
-
-                    synchronized (requestingSlotChangePlayer) {
+                        playerInSlotToClaim.setPosition(requestingSlotChangePlayerOldPosition);
                         requestingSlotChangePlayer.setPosition(positionToClaim);
-                    }
 
-                    SMSGRoomChangePosition roomChangePosition = SMSGRoomChangePosition.builder()
-                            .result((char) 0)
-                            .oldPosition(requestingSlotChangePlayerOldPosition)
-                            .newPosition(positionToClaim)
-                            .build();
-                    GameManager.getInstance().sendPacketToAllClientsInSameRoom(roomChangePosition, ftClient.getConnection());
+                        SMSGRoomSwapPosition swapPosition = SMSGRoomSwapPosition.builder()
+                                .oldPosition(requestingSlotChangePlayerOldPosition)
+                                .newPosition(positionToClaim)
+                                .build();
+                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(swapPosition, ftClient.getConnection());
+
+                        for (RoomPlayer roomPlayer : room.getRoomPlayerList()) {
+                            synchronized (roomPlayer) {
+                                roomPlayer.setReady(false);
+                            }
+
+                            SMSGRoomChangeReady changeReady = SMSGRoomChangeReady.builder()
+                                    .position(roomPlayer.getPosition())
+                                    .ready(roomPlayer.isReady())
+                                    .build();
+                            GameManager.getInstance().sendPacketToAllClientsInSameRoom(changeReady, ftClient.getConnection());
+                        }
+                    } else {
+                        if (requestingSlotChangePlayerOldPosition == 9) {
+                            room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Locked);
+                        } else {
+                            room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Free);
+                        }
+
+                        room.getPositions().set(positionToClaim, RoomPositionState.InUse);
+
+                        synchronized (requestingSlotChangePlayer) {
+                            requestingSlotChangePlayer.setPosition(positionToClaim);
+                        }
+
+                        SMSGRoomChangePosition roomChangePosition = SMSGRoomChangePosition.builder()
+                                .result((char) 0)
+                                .oldPosition(requestingSlotChangePlayerOldPosition)
+                                .newPosition(positionToClaim)
+                                .build();
+                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(roomChangePosition, ftClient.getConnection());
+                    }
                 }
             }
         }

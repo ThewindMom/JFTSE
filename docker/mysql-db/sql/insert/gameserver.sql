@@ -11,5 +11,6 @@ CREATE TABLE `fantasytennis`.`GameServer` (
 
 INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5895, 2);
 INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5896, 4);
+INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5901, 7);
 INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5895, 8);
-INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5900, 1);
+INSERT INTO `fantasytennis`.`GameServer` (host, isCustomChannel, name, port, gameServerType_id) VALUES ('127.0.0.1', b'0', NULL, 5897, 1);

@@ -1,8 +1,11 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -22,12 +25,25 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
             return;
         }
 
-        boolean close = packet.getClose();
+        try {
+            boolean close = packet.getClose();
+            byte slot = packet.getSlot();
+            Room room = client.getActiveRoom();
+            if (room == null || slot < 0 || slot >= room.getPositions().size()) {
+                return;
+            }
 
-        byte slot = packet.getSlot();
-        Room room = client.getActiveRoom();
-        if (room != null) {
-            room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            synchronized (room) {
+                if (ClubMatchRules.isClubMatch(room)) {
+                    RoomPlayer roomPlayer = client.getRoomPlayer();
+                    if (roomPlayer == null || !roomPlayer.isMaster() || slot >= room.getPlayers()
+                            || room.getPositions().get(slot) == RoomPositionState.InUse
+                            || !ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                        return;
+                    }
+                }
+                room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            }
 
             SMSGRoomCloseSlot closeSlot = SMSGRoomCloseSlot.builder().slot(slot).close(close).build();
             GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(c -> {
@@ -35,8 +51,8 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
                     c.getConnection().sendTCP(closeSlot);
                 }
             });
+        } finally {
+            client.getIsClosingSlot().set(false);
         }
-
-        client.getIsClosingSlot().set(false);
     }
 }

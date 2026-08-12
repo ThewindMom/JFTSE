@@ -1,0 +1,24 @@
+2026-08-12 08:11:20,564 [main] CachingConnectionFactory [connectAddresses] INFO  Attempting to connect to: [94.130.239.11:5672]
+2026-08-12 08:11:21,117 [main] CachingConnectionFactory [createBareConnection] INFO  Created new connection: rabbitConnectionFactory#4425b6ed:0/SimpleConnection@22195d06 [delegate=amqp://guest@94.130.239.11:5672/, localPort= 55676]
+2026-08-12 08:11:21,150 [main] RabbitAdmin [initialize] INFO  Auto-declaring a non-durable, auto-delete, or exclusive Queue (q-game-club) durable:false, auto-delete:false, exclusive:false. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2026-08-12 08:11:21,151 [main] RabbitAdmin [initialize] INFO  Auto-declaring a non-durable, auto-delete, or exclusive Queue (match-queue-club) durable:false, auto-delete:false, exclusive:false. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2026-08-12 08:11:21,473 [main] AbstractGrpcServerFactory [configureServices] INFO  Registered gRPC service: grpc.health.v1.Health, bean: grpcHealthService, class: io.grpc.protobuf.services.HealthServiceImpl
+2026-08-12 08:11:21,475 [main] AbstractGrpcServerFactory [configureServices] INFO  Registered gRPC service: grpc.reflection.v1alpha.ServerReflection, bean: protoReflectionService, class: io.grpc.protobuf.services.ProtoReflectionService
+2026-08-12 08:11:22,093 [main] GrpcServerLifecycle [createAndStartGrpcServer] INFO  gRPC Server started, listening on address: *, port: 9901
+2026-08-12 08:11:22,177 [main] GameServerStart [logStarted] INFO  Started GameServerStart in 104.756 seconds (JVM running for 113.531)
+2026-08-12 08:11:26,615 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.home.CMSGClearHomeItems 0x2552(9554)
+2026-08-12 08:11:26,625 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.guild.CMSGGuildLeagueList 0x26F2(9970)
+2026-08-12 08:11:26,633 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchReady 0x26F7(9975)
+2026-08-12 08:11:26,658 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchStart 0x26F9(9977)
+2026-08-12 08:11:26,667 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchTimeExpired 0x26FB(9979)
+2026-08-12 08:11:27,323 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.home.HomeItemClearRequestPacketHandler 0x2552(9554)
+2026-08-12 08:11:27,323 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.guild.GuildLeagueListRequestHandler 0x26F2(9970)
+2026-08-12 08:11:27,324 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.matchplay.ClubMatchReadyPacketHandler 0x26F7(9975)
+2026-08-12 08:11:27,324 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.matchplay.ClubMatchStartPacketHandler 0x26F9(9977)
+2026-08-12 08:11:27,325 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.matchplay.ClubMatchTimeExpiredPacketHandler 0x26FB(9979)
+2026-08-12 09:47:29,867 [ThreadManager-VT-400] GameServerLoginPacketHandler [handle] INFO  CMHostA connected
+2026-08-12 09:47:29,867 [epollEventLoopGroup-3-3] PacketLogger [encode] DEBUG SEND [11 bytes]
+SMSGLoginData { "id": "0x106A", "len": 3, "data": { "result": 0, "serverType": 7 } }
+2026-08-12 09:47:31,400 [ThreadManager-VT-404] GameServerLoginPacketHandler [handle] INFO  CMGuestB connected
+2026-08-12 09:47:31,400 [epollEventLoopGroup-3-4] PacketLogger [encode] DEBUG SEND [11 bytes]
+SMSGLoginData { "id": "0x106A", "len": 3, "data": { "result": 0, "serverType": 7 } }

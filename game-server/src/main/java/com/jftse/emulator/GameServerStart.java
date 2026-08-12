@@ -69,19 +69,24 @@ public class GameServerStart implements CommandLineRunner {
 
         Class<? extends ServerChannel> serverChannelClass = useEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
 
+        final int configuredGameServerType = Integer.getInteger("GameServerType", 1);
+        if (configuredGameServerType < Byte.MIN_VALUE || configuredGameServerType > Byte.MAX_VALUE) {
+            throw new IllegalArgumentException("GameServerType must fit in a signed byte");
+        }
+
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
                 .channel(serverChannelClass)
                 .option(ChannelOption.SO_BACKLOG, 4096)
                 .option(ChannelOption.SO_REUSEADDR, true)
-                .childHandler(new ConnectionInitializer())
+                .childHandler(new ConnectionInitializer((byte) configuredGameServerType))
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, false)
                 .childOption(ChannelOption.SO_RCVBUF, 256 * 1024) // 256 KB
                 .childOption(ChannelOption.SO_SNDBUF, 512 * 1024) // 512 KB
                 .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024, 128 * 1024)); // 32 KB low, 128 KB high
 
-        final int port = serverConfService.get("ServerPort", Integer.class);
+        final int port = Integer.getInteger("ServerPort", serverConfService.get("ServerPort", Integer.class));
         b.bind(port).addListener(cf -> {
             if (cf.isSuccess()) {
                 serverLoop.start();
