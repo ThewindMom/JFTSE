@@ -1,6 +1,5 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
-import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.life.room.GameSession;
@@ -13,7 +12,6 @@ import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBasicGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
-import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CGameNetworkSettingsPacket;
 import com.jftse.emulator.server.net.FTClient;
@@ -150,18 +148,8 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                             GameManager.getInstance().getClientsInRoom(threadRoom.getRoomId()).forEach(c -> {
                                 if (c.getConnection() != null) {
                                     c.getConnection().sendTCP(roomPlayerInformationPacket);
-
-                                    for (RoomPlayer rp : filteredRoomPlayerList) {
-                                        PetView pet = rp.getPet();
-                                        if (pet != null) {
-                                            byte slot = rp.getPosition() == 0 ? (byte) 0 : (byte) 1;
-                                            S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet);
-                                            c.getConnection().sendTCP(petRequestRoomAnswerPacket);
-                                        }
-                                    }
                                 }
                             });
-
                             GameManager.getInstance().updateRoomForAllClientsInMultiplayer(ftClient.getConnection(), threadRoom);
                             GameManager.getInstance().getClientsInRoom(threadRoom.getRoomId()).forEach(c -> {
                                 if (c.getConnection() != null) {

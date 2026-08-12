@@ -1,6 +1,6 @@
 package com.jftse.emulator.server.core.packets.lobby.room;
 
-import com.jftse.emulator.server.core.client.PetView;
+import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
@@ -12,7 +12,7 @@ public class S2CPetRequestRoomAnswerPacket extends Packet {
     public static final byte PET_NOT_ALLOWED = 4;
     public static final byte CAN_NOT_ADD_PET = 5;
 
-    public S2CPetRequestRoomAnswerPacket(byte result, boolean isAdd, byte slot, PetView pet) {
+    public S2CPetRequestRoomAnswerPacket(byte result, boolean isAdd, byte slot, Pet pet) {
         super(PacketOperations.S2CPetRequestRoomAnswer);
 
         this.write(result);
@@ -20,16 +20,16 @@ public class S2CPetRequestRoomAnswerPacket extends Packet {
         this.write(slot);
 
         if (pet != null) {
-            this.write(pet.name());
-            this.write((byte) pet.level());
-            this.write((byte) pet.type());
-            this.write(pet.hp());
-            this.write((byte) pet.strength());
-            this.write((byte) pet.stamina());
-            this.write((byte) pet.dexterity());
-            this.write((byte) pet.willpower());
-            this.write(pet.hunger());
-            this.write(pet.energy());
+            this.write(pet.getName());
+            this.write(pet.getLevel());
+            this.write(pet.getType());
+            this.write(pet.getHp());
+            this.write(pet.getStrength());
+            this.write(pet.getStamina());
+            this.write(pet.getDexterity());
+            this.write(pet.getWillpower());
+            this.write(pet.getHunger());
+            this.write(pet.getEnergy());
         }
     }
 }
