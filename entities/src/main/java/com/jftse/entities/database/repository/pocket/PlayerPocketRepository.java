@@ -2,13 +2,19 @@ package com.jftse.entities.database.repository.pocket;
 
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
 public interface PlayerPocketRepository extends JpaRepository<PlayerPocket, Long> {
     Optional<PlayerPocket> findById(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<PlayerPocket> findLockedById(Long id);
+
     Optional<PlayerPocket> findByItemIndex(Integer itemIndex);
     Optional<PlayerPocket> findByIdAndPocket(Long id, Pocket pocket);
     Optional<PlayerPocket> findByIdAndPocketId(Long id, Long pocketId);

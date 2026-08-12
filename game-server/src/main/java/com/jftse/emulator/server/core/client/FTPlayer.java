@@ -5,6 +5,7 @@ import com.jftse.entities.database.model.item.ItemPart;
 import com.jftse.entities.database.model.player.*;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.server.core.item.EItemCategory;
+import com.jftse.server.core.item.SpecialItemEffects;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.shared.PlayerLoadType;
 import com.jftse.server.core.util.Time;
@@ -105,12 +106,16 @@ public class FTPlayer {
                 quickSlots = EquippedQuickSlots.of(getPlayer());
                 toolSlots = EquippedToolSlots.of(getPlayer());
                 specialSlots = EquippedSpecialSlots.of(getPlayer());
+                loadSpecialItemStats();
                 cardSlots = EquippedCardSlots.of(getPlayer());
             }
             case EQUIPPED_ITEM_PARTS -> loadItemParts(getPlayer());
             case EQUIPPED_QUICK_SLOTS -> quickSlots = EquippedQuickSlots.of(getPlayer());
             case EQUIPPED_TOOL_SLOTS -> toolSlots = EquippedToolSlots.of(getPlayer());
-            case EQUIPPED_SPECIAL_SLOTS -> specialSlots = EquippedSpecialSlots.of(getPlayer());
+            case EQUIPPED_SPECIAL_SLOTS -> {
+                specialSlots = EquippedSpecialSlots.of(getPlayer());
+                loadSpecialItemStats();
+            }
             case EQUIPPED_CARD_SLOTS -> cardSlots = EquippedCardSlots.of(getPlayer());
         }
     }
@@ -120,6 +125,7 @@ public class FTPlayer {
         ftPlayer.quickSlots = EquippedQuickSlots.of(player);
         ftPlayer.toolSlots = EquippedToolSlots.of(player);
         ftPlayer.specialSlots = EquippedSpecialSlots.of(player);
+        ftPlayer.loadSpecialItemStats();
         ftPlayer.cardSlots = EquippedCardSlots.of(player);
         ftPlayer.loadType = PlayerLoadType.FULL_EQUIPMENT;
         return ftPlayer;
@@ -149,6 +155,7 @@ public class FTPlayer {
     public static FTPlayer initWithEquippedSpecialSlots(Player player) {
         FTPlayer ftPlayer = init(player);
         ftPlayer.specialSlots = EquippedSpecialSlots.of(player);
+        ftPlayer.loadSpecialItemStats();
         ftPlayer.loadType = PlayerLoadType.EQUIPPED_SPECIAL_SLOTS;
         return ftPlayer;
     }
@@ -210,6 +217,8 @@ public class FTPlayer {
                 indexToPlayerPocketId.getOrDefault(eq.getDye(), 0)
         );
         loadItemStats(indexes, playerPocketList);
+        if (specialSlots != null)
+            loadSpecialItemStats();
     }
 
     private void loadItemStats(List<Integer> itemIndexList, List<PlayerPocket> playerPocketList) {
@@ -257,6 +266,29 @@ public class FTPlayer {
         this.itemStats = itemStats;
     }
 
+    private void loadSpecialItemStats() {
+        if (itemStats == null)
+            itemStats = new EquippedItemStats();
+
+        List<Long> equippedSpecialIds = specialSlots.toList().stream()
+                .filter(id -> id > 0)
+                .distinct()
+                .map(Integer::longValue)
+                .toList();
+
+        List<PlayerPocket> equippedSpecialItems = equippedSpecialIds.isEmpty()
+                ? List.of()
+                : jdbcUtil.execute(em -> {
+                    return em.createQuery("SELECT pp FROM PlayerPocket pp WHERE pp.pocket.id = :pocketId AND pp.category = :category AND pp.id IN :itemIds", PlayerPocket.class)
+                            .setParameter("pocketId", pocketId)
+                            .setParameter("category", EItemCategory.SPECIAL.getName())
+                            .setParameter("itemIds", equippedSpecialIds)
+                            .getResultList();
+                });
+
+        SpecialItemEffects.apply(itemStats, equippedSpecialItems);
+    }
+
     public void loadQuickSlots() {
         QuickSlotEquipment eq = sm.getQuickSlotEquipmentService().findById(getQuickSlots().id());
         this.quickSlots = new EquippedQuickSlots(
@@ -290,6 +322,7 @@ public class FTPlayer {
                 eq.getSlot3(),
                 eq.getSlot4()
         );
+        loadSpecialItemStats();
     }
 
     public void loadCardSlots() {

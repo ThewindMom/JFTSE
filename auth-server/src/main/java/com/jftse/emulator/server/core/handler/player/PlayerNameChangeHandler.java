@@ -53,14 +53,12 @@ public class PlayerNameChangeHandler implements PacketHandler<FTConnection, CMSG
         }
 
         Date lastChangeDate = player.getLastNameChangeDate();
-        Calendar nextChangeDate = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         Calendar currentCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (lastChangeDate != null) {
-            nextChangeDate.setTime(lastChangeDate);
-            nextChangeDate.add(Calendar.DATE, 30);
+            Date nextChangeDate = nextNameChangeDate(lastChangeDate);
 
-            if (currentCalendar.before(nextChangeDate)) {
-                SMSGPlayerNameChangeMessage response1 = SMSGPlayerNameChangeMessage.builder().result(MSG_NAME_CHANGE_NEXT).nextChangeTime(nextChangeDate.getTime()).build();
+            if (currentCalendar.getTime().before(nextChangeDate)) {
+                SMSGPlayerNameChangeMessage response1 = SMSGPlayerNameChangeMessage.builder().result(MSG_NAME_CHANGE_NEXT).nextChangeTime(nextChangeDate).build();
                 SMSGPlayerNameChange response2 = SMSGPlayerNameChange.builder().result(MSG_NAME_CHANGE_NEXT).build();
                 connection.sendTCP(response1, response2);
                 return;
@@ -104,5 +102,12 @@ public class PlayerNameChangeHandler implements PacketHandler<FTConnection, CMSG
             SMSGPlayerNameChange response = SMSGPlayerNameChange.builder().result(MSG_NAME_CHANGE_UNABLE).build();
             connection.sendTCP(response);
         }
+    }
+
+    static Date nextNameChangeDate(Date lastChangeDate) {
+        Calendar nextChangeDate = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        nextChangeDate.setTime(lastChangeDate);
+        nextChangeDate.add(Calendar.MONTH, 6);
+        return nextChangeDate.getTime();
     }
 }

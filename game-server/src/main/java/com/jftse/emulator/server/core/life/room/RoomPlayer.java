@@ -50,33 +50,38 @@ public class RoomPlayer {
     }
 
     public boolean isRingOfExpEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(1, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingExp = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingExp = getEquippedRingPocketId(1, 39);
         return this.ppIdRingExp != 0;
     }
 
     public boolean isRingOfGoldEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(2, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingGold = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingGold = getEquippedRingPocketId(2, 40);
         return this.ppIdRingGold != 0;
     }
 
     public boolean isRingOfWisemanEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(3, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingWiseman = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingWiseman = getEquippedRingPocketId(3, 41);
         return this.ppIdRingWiseman != 0;
+    }
+
+    private long getEquippedRingPocketId(int... itemIndices) {
+        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
+        if (specialSlots == null)
+            return 0;
+
+        for (int playerPocketId : specialSlots.toList()) {
+            if (playerPocketId < 1) {
+                continue; // empty special slot
+            }
+            PlayerPocket item = ServiceManager.getInstance().getPlayerPocketService()
+                    .getItemAsPocket((long) playerPocketId, player.getPocketId());
+            boolean matchingIndex = item != null
+                    && java.util.Arrays.stream(itemIndices).anyMatch(itemIndex -> itemIndex == item.getItemIndex());
+            if (matchingIndex && EItemCategory.SPECIAL.getName().equals(item.getCategory()))
+                return playerPocketId;
+        }
+
+        return 0;
     }
 
     public boolean isMaster() {
