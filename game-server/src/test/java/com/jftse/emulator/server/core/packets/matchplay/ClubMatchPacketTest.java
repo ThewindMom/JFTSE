@@ -52,6 +52,21 @@ class ClubMatchPacketTest {
     }
 
     @Test
+    void warfareInitializationMatchesNativeParserLayout() {
+        S2CClubMatchWarfareInitializationPacket packet =
+                new S2CClubMatchWarfareInitializationPacket(37, "Blue Club", 3, true);
+        ByteBuffer payload = payload(packet.getData());
+
+        assertEquals(0x2701, packet.getPacketId());
+        assertEquals(0, payload.get());
+        assertEquals(37, payload.getInt());
+        assertEquals("Blue Club", readString(payload));
+        assertEquals(3, payload.get());
+        assertEquals(1, payload.get());
+        assertEquals(packet.getDataLength(), payload.position());
+    }
+
+    @Test
     void readyCountdownMatchesRecoveredWireLayout() {
         Instant startedAt = Instant.parse("2026-08-11T10:00:00Z");
         Instant endsAt = startedAt.plusSeconds(5);
@@ -105,5 +120,14 @@ class ClubMatchPacketTest {
 
     private static ByteBuffer payload(byte[] data) {
         return ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    private static String readString(ByteBuffer payload) {
+        StringBuilder value = new StringBuilder();
+        char next;
+        while ((next = payload.getChar()) != 0) {
+            value.append(next);
+        }
+        return value.toString();
     }
 }

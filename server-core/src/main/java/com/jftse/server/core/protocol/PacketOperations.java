@@ -112,6 +112,8 @@ public enum PacketOperations {
     C2SClubMatchTimeExpired(0x26FB),
     S2CClubMatchResult(0x26FC),
     S2CClubMatchMaxPlayTime(0x26FF),
+    C2SClubMatchWarfareInitializationRequest(0x2700),
+    S2CClubMatchWarfareInitialization(0x2701),
     S2CBettingDisplayItemRewards(0x1DB6),
     S2CMatchPlaySetExperienceGainInfoData(0x1846),
     S2CMatchplaySetGameResultData(0x1848),
