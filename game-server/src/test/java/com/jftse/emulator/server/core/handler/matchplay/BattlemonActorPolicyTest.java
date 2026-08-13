@@ -135,34 +135,74 @@ class BattlemonActorPolicyTest {
     }
 
     @Test
-    void petOriginatedSpellSkillsFailClosedBeforeSkillLookup() {
+    void petOriginatedSpellDamagesBattlemonTarget() throws Exception {
         BattleContext context = battleContext((short) 2, true);
+        Skill skill = new Skill();
+        skill.setId(6L);
+        skill.setDamage(-10);
+        when(skillService.findSkillById(6L)).thenReturn(skill);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        when(combatSystem.dealDamage(2, 3, (short) -10, false, false, skill)).thenReturn((short) 90);
         CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
                 .attackerPosition((short) 2)
-                .targetPosition((short) 1)
-                .skillId((byte) 1)
+                .targetPosition((short) 3)
+                .skillId((byte) 6)
+                .attackerBuffId1((byte) -1)
+                .attackerBuffId2((byte) -1)
+                .receiverBuffId1((byte) -1)
+                .receiverBuffId2((byte) -1)
                 .build();
 
         new SpellHitsTargetHandler().handle(context.connection(), packet);
 
-        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
-        verify(context.game(), never()).getPlayerCombatSystem();
+        verify(combatSystem).dealDamage(2, 3, (short) -10, false, false, skill);
     }
 
     @Test
-    void petOriginatedDenyDamageFailsClosedBeforeSkillLookup() {
-        BattleContext context = battleContext((short) 2, true);
+    void guardianHealAppliesToBattlemonTarget() throws Exception {
+        BattleContext context = battleContext((short) 0, true);
+        Skill heal = new Skill();
+        heal.setId(2L);
+        heal.setDamage(15);
+        when(skillService.findSkillById(2L)).thenReturn(heal);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        when(combatSystem.heal(2, (short) 15)).thenReturn((short) 100);
         CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
-                .attackerPosition((short) 2)
-                .targetPosition((short) 1)
-                .skillId((byte) 0)
-                .damageType((byte) 1)
+                .attackerPosition((short) 4)
+                .targetPosition((short) 2)
+                .skillId((byte) 2)
                 .build();
 
         new SpellHitsTargetHandler().handle(context.connection(), packet);
 
-        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
-        verify(context.game(), never()).getPlayerCombatSystem();
+        verify(combatSystem).heal(2, (short) 15);
+    }
+
+    @Test
+    void guardianShieldEffectAppliesToBattlemonTarget() throws Exception {
+        BattleContext context = battleContext((short) 0, true);
+        Skill shield = new Skill();
+        shield.setId(10L);
+        shield.setDamage(1);
+        when(skillService.findSkillById(10L)).thenReturn(shield);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        when(combatSystem.dealDamage(4, 2, (short) 1, false, false, shield)).thenReturn((short) 100);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 4)
+                .targetPosition((short) 2)
+                .skillId((byte) 10)
+                .attackerBuffId1((byte) -1)
+                .attackerBuffId2((byte) -1)
+                .receiverBuffId1((byte) -1)
+                .receiverBuffId2((byte) -1)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem).dealDamage(4, 2, (short) 1, false, false, shield);
     }
 
     @Test
@@ -215,42 +255,6 @@ class BattlemonActorPolicyTest {
 
         new SpellHitsTargetHandler().handle(context.connection(), packet);
 
-        verify(context.game(), never()).getPlayerCombatSystem();
-    }
-
-    @Test
-    void guardianServeSentinelWithSkillFailsClosed() {
-        BattleContext context = battleContext((short) 0, false);
-        FTClient client = context.connection().getClient();
-        when(client.getActiveGameSession().isGameplayEndpoint(client)).thenReturn(true);
-        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
-                .attackerPosition((short) 4)
-                .targetPosition((short) 1)
-                .skillId((byte) 1)
-                .damageType((byte) 0)
-                .build();
-
-        new SpellHitsTargetHandler().handle(context.connection(), packet);
-
-        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
-        verify(context.game(), never()).getPlayerCombatSystem();
-    }
-
-    @Test
-    void guardianServeSentinelWithDenyDamageFailsClosed() {
-        BattleContext context = battleContext((short) 0, false);
-        FTClient client = context.connection().getClient();
-        when(client.getActiveGameSession().isGameplayEndpoint(client)).thenReturn(true);
-        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
-                .attackerPosition((short) 4)
-                .targetPosition((short) 1)
-                .skillId((byte) 0)
-                .damageType((byte) 1)
-                .build();
-
-        new SpellHitsTargetHandler().handle(context.connection(), packet);
-
-        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
         verify(context.game(), never()).getPlayerCombatSystem();
     }
 
@@ -330,6 +334,7 @@ class BattlemonActorPolicyTest {
         when(client.getActiveRoom()).thenReturn(room);
         when(client.getRoomPlayer()).thenReturn(roomPlayer);
         when(client.getActiveGameSession()).thenReturn(session);
+        when(session.isGameplayEndpoint(client)).thenReturn(actorOwned);
 
         FTConnection connection = mock(FTConnection.class);
         when(connection.getClient()).thenReturn(client);

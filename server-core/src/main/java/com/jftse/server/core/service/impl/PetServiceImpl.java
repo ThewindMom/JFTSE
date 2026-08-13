@@ -58,6 +58,23 @@ public class PetServiceImpl implements PetService {
         };
     }
 
+    @Override
+    @Transactional
+    public Pet awardExperience(Long id, Long playerId, int experience) {
+        if (experience <= 0) {
+            return null;
+        }
+        Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
+        if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) || pet.getValidUntil() == null ||
+                !pet.getValidUntil().after(new Date())) {
+            return null;
+        }
+        int currentExperience = pet.getExpPoints() == null ? 0 : Math.max(0, pet.getExpPoints());
+        pet.setExpPoints((int) Math.min(Integer.MAX_VALUE,
+                (long) currentExperience + experience));
+        return petRepository.save(pet);
+    }
+
     private Pet createPet(String nameLabel, int strength, int stamina, int dexterity, int willpower,
                            int hp, int energy, int hunger, int life, int lifeMax, int level, int model,
                            PetStatistic petStatistic, Player player) {

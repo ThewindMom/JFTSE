@@ -10,4 +10,5 @@ public interface PetService {
     Pet findByIdAndPlayerId(Long id, Long playerId);
     List<Pet> findAllByPlayerId(Long playerId);
     Pet createPet(Integer itemIndex, Player player);
+    Pet awardExperience(Long id, Long playerId, int experience);
 }

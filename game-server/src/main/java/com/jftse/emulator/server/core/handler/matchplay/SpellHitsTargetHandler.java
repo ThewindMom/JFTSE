@@ -88,16 +88,10 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         CMSGSpellHitsTargetExtended spellHitsTargetExt = new CMSGSpellHitsTargetExtended(spellHitsTarget);
         if (game instanceof MatchplayBattleGame battleGame) {
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
-            boolean servingGuardian = attackerPosition == 4 && spellHitsTargetExt.getSkillId() == 0 &&
-                    spellHitsTargetExt.getDamageType() == 0;
-            boolean unsupportedBattlemonPetAction = gameSession.isBattlemon() && attackerPosition >= 2 &&
-                    (spellHitsTargetExt.getSkillId() != 0 || spellHitsTargetExt.getDamageType() != 0);
-            if (unsupportedBattlemonPetAction ||
-                    servingGuardian && !gameSession.isGameplayEndpoint(ftClient) ||
-                    !servingGuardian &&
-                            (!gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition) ||
-                                    battleGame.getPlayerBattleStates().stream()
-                                            .noneMatch(state -> state.getPosition() == attackerPosition))) {
+            boolean liveAttacker = battleGame.getPlayerBattleStates().stream()
+                    .anyMatch(state -> state.getPosition() == attackerPosition);
+            boolean guardianEffect = attackerPosition == 4;
+            if (!gameSession.isGameplayEndpoint(ftClient) || !liveAttacker && !guardianEffect) {
                 return;
             }
         } else if (game instanceof MatchplayGuardianGame guardianGame) {
