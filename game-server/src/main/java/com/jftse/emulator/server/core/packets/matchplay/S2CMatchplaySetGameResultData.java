@@ -1,12 +1,21 @@
 package com.jftse.emulator.server.core.packets.matchplay;
 
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 public class S2CMatchplaySetGameResultData extends Packet {
+    public S2CMatchplaySetGameResultData(List<PlayerReward> playerRewards,
+                                         Collection<GameSession.BattlemonActor> battlemonActors) {
+        this(withBattlemonRewards(playerRewards, battlemonActors));
+    }
+
     public S2CMatchplaySetGameResultData(List<PlayerReward> playerRewards) {
         super(PacketOperations.S2CMatchplaySetGameResultData);
 
@@ -22,5 +31,24 @@ public class S2CMatchplaySetGameResultData extends Packet {
             // 0000 0001 = EXP Bonus, 0000 0010 = Gold Bonus, 0000 1000 = Ring Wiseman, 0000 0100 = Event
             this.write(playerReward.getActiveBonuses());
         }
+    }
+
+    static List<PlayerReward> withBattlemonRewards(List<PlayerReward> playerRewards,
+                                                    Collection<GameSession.BattlemonActor> battlemonActors) {
+        List<PlayerReward> resultRewards = new ArrayList<>(playerRewards);
+        for (GameSession.BattlemonActor actor : battlemonActors) {
+            PlayerReward ownerReward = playerRewards.stream()
+                    .filter(reward -> reward.getPlayerPosition() == actor.ownerPosition())
+                    .findFirst()
+                    .orElse(null);
+            if (ownerReward == null) {
+                continue;
+            }
+            PlayerReward battlemonReward = new PlayerReward(actor.position());
+            battlemonReward.setExp(ownerReward.getExp());
+            resultRewards.add(battlemonReward);
+        }
+        resultRewards.sort(Comparator.comparingInt(PlayerReward::getPlayerPosition));
+        return resultRewards;
     }
 }

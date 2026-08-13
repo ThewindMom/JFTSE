@@ -283,7 +283,10 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     playerDtoList.add(new MatchFinishedMessage.PlayerDto(rp.getName(), "spectator"));
                 }
             }
-            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
+            S2CMatchplaySetGameResultData setGameResultData = gameSession.isBattlemon()
+                    ? new S2CMatchplaySetGameResultData(
+                            matchplayReward.getPlayerRewards(), gameSession.getBattlemonActors())
+                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
