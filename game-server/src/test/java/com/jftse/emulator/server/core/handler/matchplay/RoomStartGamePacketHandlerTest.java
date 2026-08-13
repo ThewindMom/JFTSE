@@ -870,9 +870,9 @@ class RoomStartGamePacketHandlerTest {
     private static FTClient guardianClientInRoom(Room room, long playerId, short position, Pet pet) {
         FTPlayer player = mock(FTPlayer.class);
         when(player.getId()).thenReturn(playerId);
+        when(player.getItemStats()).thenReturn(new EquippedItemStats());
         RoomPlayer roomPlayer = new RoomPlayer(player);
         roomPlayer.setPosition(position);
-        roomPlayer.setEquippedItemStats(new EquippedItemStats());
         room.getRoomPlayerList().add(roomPlayer);
         FTClient client = mock(FTClient.class);
         when(client.hasPlayer()).thenReturn(true);
