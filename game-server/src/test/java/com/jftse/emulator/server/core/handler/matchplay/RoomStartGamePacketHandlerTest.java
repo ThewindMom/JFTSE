@@ -49,8 +49,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
@@ -119,6 +122,10 @@ class RoomStartGamePacketHandlerTest {
         when(client.getActivePet()).thenReturn(selectedPetView);
         when(petService.findByIdAndPlayerId(10L, 100L)).thenReturn(selectedPet);
 
+        selectedPet.setValidUntil(null);
+        assertNull(gameManager.getValidatedActiveBattlemonPet(client));
+
+        selectedPet.setValidUntil(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)));
         assertEquals(selectedPetView, gameManager.getValidatedActiveBattlemonPet(client));
         verify(client).setActivePet(selectedPet);
     }
@@ -314,6 +321,8 @@ class RoomStartGamePacketHandlerTest {
             assertFalse(session.isBattlemon());
             assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3),
                     session.getGameplayActorPositions());
+            assertNotNull(session.getBattlemonActorForOwner(100L));
+            assertNotNull(session.getBattlemonActorForOwner(200L));
             verify(producer).sendNow(
                     any(RelaySessionAuthorizationMessage.class),
                     eq(RelaySessionAuthorizationMessage.ROUTING_KEY),
@@ -910,6 +919,7 @@ class RoomStartGamePacketHandlerTest {
         pet.setHunger(100);
         pet.setEnergy(100);
         pet.setAlive(true);
+        pet.setValidUntil(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)));
         pet.setPetStatistic(new PetStatistic());
         return pet;
     }

@@ -14,7 +14,7 @@ import com.jftse.server.core.service.PetService;
 import com.jftse.server.core.shared.packets.pet.CMSGPickupPet;
 import com.jftse.server.core.shared.packets.pet.SMSGPickupPet;
 
-import java.util.List;
+import java.util.Date;
 
 @PacketId(CMSGPickupPet.PACKET_ID)
 public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection, CMSGPickupPet> {
@@ -58,9 +58,6 @@ public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection
             return;
         }
 
-        List<Pet> petList = petService.findAllByPlayerId(ftClient.getPlayer().getId());
-        petList.removeIf(pet -> pet.getType() != (byte) newActivePetType);
-
         SMSGPickupPet petPickup;
         if (newActivePetType == -1) {
             ftClient.setActivePet(null);
@@ -69,8 +66,11 @@ public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection
                     .petType(newActivePetType)
                     .build();
         } else {
-            Pet pet = petList.stream().findFirst().orElse(null);
-            if (pet == null) {
+            Pet pet = petService.findAllByPlayerId(ftClient.getPlayer().getId()).stream()
+                    .filter(candidate -> candidate.getType() == (byte) newActivePetType)
+                    .findFirst()
+                    .orElse(null);
+            if (!isSelectable(pet)) {
                 petPickup = SMSGPickupPet.builder()
                         .result((short) 1)
                         .petType(newActivePetType)
@@ -84,5 +84,10 @@ public class PetPickupRequestPacketHandler implements PacketHandler<FTConnection
             }
         }
         connection.sendTCP(petPickup);
+    }
+
+    private boolean isSelectable(Pet pet) {
+        return pet != null && Boolean.TRUE.equals(pet.getAlive()) &&
+                pet.getValidUntil() != null && pet.getValidUntil().after(new Date());
     }
 }

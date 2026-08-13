@@ -2,6 +2,7 @@ package com.jftse.emulator.server.core.manager;
 
 import com.jftse.emulator.common.service.ConfigService;
 import com.jftse.emulator.server.core.rpc.GrpcAuthService;
+import com.jftse.emulator.server.core.service.BattlemonLifecycleService;
 import com.jftse.emulator.server.core.service.LotteryServiceV2;
 import com.jftse.emulator.server.core.service.impl.ClothEquipmentServiceImpl;
 import com.jftse.server.core.jdbc.JdbcUtil;
@@ -52,6 +53,8 @@ public class ServiceManager {
     private HomeService homeService;
     @Autowired
     private PetService petService;
+    @Autowired
+    private BattlemonLifecycleService battlemonLifecycleService;
     @Autowired
     private FriendService friendService;
     @Autowired

@@ -130,7 +130,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             }
             Pet pet = petService.findByIdAndPlayerId(petView.id(), roomPlayer.getPlayerId());
             if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) ||
-                    pet.getValidUntil() != null && pet.getValidUntil().before(new Date())) {
+                    pet.getValidUntil() == null || pet.getValidUntil().before(new Date())) {
                 connection.sendTCP(roomStartGameAck);
                 return;
             }

@@ -709,7 +709,7 @@ public class GameManager implements ServerLoopHandler {
         Pet pet = serviceManager.getPetService().findByIdAndPlayerId(
                 selectedPet.id(), client.getPlayer().getId());
         if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) ||
-                pet.getValidUntil() != null && pet.getValidUntil().before(new Date())) {
+                pet.getValidUntil() == null || pet.getValidUntil().before(new Date())) {
             return null;
         }
         PetView currentPet = client.getActivePet();

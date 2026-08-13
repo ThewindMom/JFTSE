@@ -110,7 +110,7 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
 
             Pet selectedPet = petService.findByIdAndPlayerId(selectedPetView.id(), ftClient.getPlayer().getId());
             if (selectedPet == null || !Boolean.TRUE.equals(selectedPet.getAlive()) ||
-                    selectedPet.getValidUntil() != null && selectedPet.getValidUntil().before(new Date())) {
+                    selectedPet.getValidUntil() == null || selectedPet.getValidUntil().before(new Date())) {
                 S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null);
                 connection.sendTCP(petRequestRoomAnswerPacket);
                 return;
