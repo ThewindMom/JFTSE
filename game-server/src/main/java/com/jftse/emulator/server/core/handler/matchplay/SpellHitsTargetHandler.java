@@ -126,9 +126,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         }
 
         if (skill != null && this.isUniqueSkill(skill)) {
-            if (gameSession.isBattlemon() && skill.getId().intValue() == 5) {
-                return;
-            }
             GameEventBus.call(GameEventType.MP_PLAYER_HITS_TARGET, ftClient, game, skill);
 
             this.handleUniqueSkill(ftClient.getConnection(), game, skill, spellHitsTargetExt);

@@ -28,6 +28,7 @@ import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBasicGame;
 import com.jftse.emulator.server.core.packets.matchplay.*;
+import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
@@ -38,6 +39,7 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.log.GameLog;
 import com.jftse.entities.database.model.log.GameLogType;
 import com.jftse.entities.database.model.map.SMaps;
+import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.player.PlayerStatistic;
 import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.protocol.Packet;
@@ -61,6 +63,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     private final LevelService levelService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final PetService petService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -73,6 +76,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         this.levelService = ServiceManager.getInstance().getLevelService();
         this.pocketService = ServiceManager.getInstance().getPocketService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.petService = ServiceManager.getInstance().getPetService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
     }
@@ -226,6 +230,18 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                 player.syncCouplePoints(player.getCouplePoints() + playerReward.getCouplePoints());
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
+
+                if (gameSession.isBattlemon()) {
+                    GameSession.BattlemonActor actor = gameSession.getBattlemonActorForOwner(player.getId());
+                    if (actor != null) {
+                        Pet pet = petService.awardExperience(actor.pet().id(), player.getId(), playerReward.getExp());
+                        if (pet != null) {
+                            client.setActivePet(pet);
+                            client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
+                                    petService.findAllByPlayerId(player.getId())));
+                        }
+                    }
+                }
 
                 PlayerStatisticView playerStatistic = player.getPlayerStatistic();
 

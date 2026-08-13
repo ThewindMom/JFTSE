@@ -18,7 +18,7 @@ public class SpiderMineExplodeHandler implements PacketHandler<FTConnection, CMS
     @Override
     public void handle(FTConnection connection, CMSGSpiderMineExplode packet) {
         FTClient client = connection.getClient();
-        if (client == null || client.isBattlemonSession()) {
+        if (client == null) {
             return;
         }
         RelaySessionAuthorizationStore authorizationStore = RelaySessionAuthorizationStore.getInstance();

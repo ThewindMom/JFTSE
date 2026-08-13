@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -97,7 +98,7 @@ class RelaySessionAuthorizationStoreTest {
     }
 
     @Test
-    void battlemonSessionsCannotForgeSpiderMineExplosions() {
+    void battlemonSpiderMineExplosionsReachEveryClient() {
         Object previousRelayManager = ReflectionTestUtils.getField(RelayManager.class, "instance");
         try {
             store.put(authorization(100, true, Map.of(
@@ -116,7 +117,7 @@ class RelaySessionAuthorizationStoreTest {
                     .build();
             new SpiderMineExplodeHandler().handle(connection, packet);
 
-            verify(relayManager, never()).broadcastToSessionGeneration(anyInt(), anyString(), any());
+            verify(relayManager).broadcastToSessionGeneration(eq(100), anyString(), any());
         } finally {
             ReflectionTestUtils.setField(RelayManager.class, "instance", previousRelayManager);
         }

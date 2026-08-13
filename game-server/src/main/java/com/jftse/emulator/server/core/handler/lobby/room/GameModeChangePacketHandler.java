@@ -16,6 +16,7 @@ import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeGameMode;
+import com.jftse.server.core.shared.packets.lobby.room.SMSGRoomChangeReady;
 
 @PacketId(CMSGRoomChangeGameMode.PACKET_ID)
 public class GameModeChangePacketHandler implements PacketHandler<FTConnection, CMSGRoomChangeGameMode> {
@@ -41,6 +42,14 @@ public class GameModeChangePacketHandler implements PacketHandler<FTConnection, 
                     return;
                 }
                 room.setMode(packet.getMode());
+                room.getRoomPlayerList().forEach(player -> {
+                    player.setReady(false);
+                    SMSGRoomChangeReady changeReady = SMSGRoomChangeReady.builder()
+                            .position(player.getPosition())
+                            .ready(false)
+                            .build();
+                    GameManager.getInstance().sendPacketToAllClientsInSameRoom(changeReady, connection);
+                });
                 if (room.getRoomType() != RoomType.BATTLEMON && packet.getMode() != GameMode.GUARDIAN) {
                     room.getRoomPlayerList().forEach(player -> {
                         if (player.getPet() == null) {

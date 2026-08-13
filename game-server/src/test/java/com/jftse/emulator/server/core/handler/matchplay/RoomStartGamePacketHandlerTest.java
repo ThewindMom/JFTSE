@@ -40,6 +40,7 @@ import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangePosition;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeQuickSlot;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeReady;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeSkillFree;
+import com.jftse.server.core.shared.packets.lobby.room.SMSGRoomChangeReady;
 import com.jftse.server.core.shared.packets.matchplay.CMSGStartGame;
 import com.jftse.server.core.shared.packets.pet.CMSGPickupPet;
 import com.jftse.server.core.shared.packets.pet.CMSGRequestPet;
@@ -772,6 +773,49 @@ class RoomStartGamePacketHandlerTest {
             assertTrue(room.getRoomPlayerList().stream().allMatch(roomPlayer -> roomPlayer.getPet() == null));
             assertEquals(RoomPositionState.Free, room.getPositions().get(2));
             assertEquals(RoomPositionState.Free, room.getPositions().get(3));
+        } finally {
+            ReflectionTestUtils.setField(GameManager.class, "instance", previousGameManager);
+        }
+    }
+
+    @Test
+    void changingBattlemonModeClearsAndBroadcastsEveryReadyState() {
+        Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
+        try {
+            GameManager gameManager = mock(GameManager.class);
+            when(gameManager.getClientsInRoom((short) 0)).thenReturn(List.of());
+            when(gameManager.getClientsInLobby()).thenReturn(List.of());
+            ReflectionTestUtils.setField(GameManager.class, "instance", gameManager);
+
+            Room room = new Room();
+            room.setRoomType((byte) RoomType.BATTLEMON);
+            room.setMode((byte) com.jftse.server.core.constants.GameMode.BASIC);
+            RoomPlayer master = new RoomPlayer(mock(FTPlayer.class));
+            master.setPosition((short) 0);
+            master.setMaster(true);
+            master.setReady(true);
+            RoomPlayer guest = new RoomPlayer(mock(FTPlayer.class));
+            guest.setPosition((short) 1);
+            guest.setReady(true);
+            room.getRoomPlayerList().addAll(List.of(master, guest));
+
+            FTClient client = mock(FTClient.class);
+            when(client.hasPlayer()).thenReturn(true);
+            when(client.getPlayer()).thenReturn(mock(FTPlayer.class));
+            when(client.getActiveRoom()).thenReturn(room);
+            when(client.getRoomPlayer()).thenReturn(master);
+            FTConnection connection = mock(FTConnection.class);
+            when(connection.getClient()).thenReturn(client);
+
+            new GameModeChangePacketHandler().handle(connection,
+                    CMSGRoomChangeGameMode.builder()
+                            .mode((byte) com.jftse.server.core.constants.GameMode.BATTLE)
+                            .build());
+
+            assertFalse(master.isReady());
+            assertFalse(guest.isReady());
+            verify(gameManager, times(2)).sendPacketToAllClientsInSameRoom(
+                    any(SMSGRoomChangeReady.class), eq(connection));
         } finally {
             ReflectionTestUtils.setField(GameManager.class, "instance", previousGameManager);
         }

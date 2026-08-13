@@ -7,6 +7,8 @@ import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.combat.PlayerCombatSystem;
+import com.jftse.emulator.server.core.matchplay.event.EventHandler;
+import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.net.FTClient;
@@ -15,6 +17,7 @@ import com.jftse.entities.database.model.battle.Skill;
 import com.jftse.server.core.matchplay.battle.GuardianBattleState;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.matchplay.battle.SkillCrystal;
+import com.jftse.server.core.service.SkillDropRateService;
 import com.jftse.server.core.service.SkillService;
 import com.jftse.server.core.shared.packets.matchplay.CMSGPlayerPickupCrystal;
 import com.jftse.server.core.shared.packets.matchplay.CMSGPlayerUseSkill;
@@ -26,12 +29,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 class BattlemonActorPolicyTest {
     private Object previousGameManager;
@@ -46,7 +52,11 @@ class BattlemonActorPolicyTest {
         GameManager gameManager = mock(GameManager.class);
         ServiceManager serviceManager = mock(ServiceManager.class);
         skillService = mock(SkillService.class);
+        EventHandler eventHandler = mock(EventHandler.class);
+        when(gameManager.getEventHandler()).thenReturn(eventHandler);
+        when(eventHandler.createRunnableEvent(any(), anyLong())).thenReturn(mock(RunnableEvent.class));
         when(serviceManager.getSkillService()).thenReturn(skillService);
+        when(serviceManager.getSkillDropRateService()).thenReturn(mock(SkillDropRateService.class));
 
         ReflectionTestUtils.setField(GameManager.class, "instance", gameManager);
         ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
@@ -59,7 +69,7 @@ class BattlemonActorPolicyTest {
     }
 
     @Test
-    void petCrystalPickupDoesNotConsumeCrystalOrOwnerInventoryQueue() {
+    void crystalPickupUsesAuthenticatedRoomPositionInsteadOfUnreliablePacketPosition() {
         BattleContext context = battleContext((short) 2, true);
         SkillCrystal crystal = new SkillCrystal(17);
         context.game().getSkillCrystals().add(crystal);
@@ -72,8 +82,8 @@ class BattlemonActorPolicyTest {
                 .build();
         new PlayerPickingUpCrystalHandler().handle(context.connection(), packet);
 
-        assertTrue(context.game().getSkillCrystals().contains(crystal));
-        assertTrue(ownerCrystals.isEmpty());
+        assertTrue(context.game().getSkillCrystals().isEmpty());
+        assertTrue(ownerCrystals.contains(crystal));
     }
 
     @Test
@@ -115,12 +125,19 @@ class BattlemonActorPolicyTest {
     }
 
     @Test
-    void unsupportedBattlemonReviveFailsClosed() {
+    void battlemonReviveRestoresADeadTeamActor() throws Exception {
         BattleContext context = battleContext((short) 0, true);
         Skill revive = new Skill();
         revive.setId(5L);
         revive.setDamage(50);
         when(skillService.findSkillById(5L)).thenReturn(revive);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        PlayerBattleState revivedPet = context.game().getPlayerBattleStates().stream()
+                .filter(state -> state.getPosition() == 2)
+                .findFirst()
+                .orElseThrow();
+        when(combatSystem.reviveAnyPlayer((short) 50, 0)).thenReturn(revivedPet);
 
         CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
                 .attackerPosition((short) 0)
@@ -130,8 +147,7 @@ class BattlemonActorPolicyTest {
         new SpellHitsTargetHandler().handle(context.connection(), packet);
 
         verify(skillService).findSkillById(5L);
-        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.longThat(id -> id != 5L));
-        verify(context.game(), never()).getPlayerCombatSystem();
+        verify(combatSystem).reviveAnyPlayer((short) 50, 0);
     }
 
     @Test
@@ -322,11 +338,13 @@ class BattlemonActorPolicyTest {
         }
         when(game.getPlayerBattleStates()).thenReturn(states);
         when(game.getSkillCrystals()).thenReturn(new ConcurrentLinkedDeque<>());
+        when(game.getCrystalSpawnInterval()).thenReturn(new AtomicLong(1));
 
         GameSession session = mock(GameSession.class);
         when(session.getMatchplayGame()).thenReturn(game);
         when(session.isBattlemon()).thenReturn(true);
         when(session.isActorOwnedBy(roomPlayer, actorPosition)).thenReturn(actorOwned);
+        when(session.getFireables()).thenReturn(new ConcurrentLinkedDeque<>());
 
         FTClient client = mock(FTClient.class);
         when(client.hasPlayer()).thenReturn(true);
