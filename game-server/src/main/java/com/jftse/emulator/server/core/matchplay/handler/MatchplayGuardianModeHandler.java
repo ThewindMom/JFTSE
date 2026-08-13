@@ -31,6 +31,7 @@ import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardianStats;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardians;
 import com.jftse.emulator.server.core.packets.matchplay.*;
+import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
@@ -47,6 +48,7 @@ import com.jftse.entities.database.model.battle.GuardianBase;
 import com.jftse.entities.database.model.log.GameLog;
 import com.jftse.entities.database.model.log.GameLogType;
 import com.jftse.entities.database.model.map.SMaps;
+import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.player.PlayerStatistic;
 import com.jftse.entities.database.model.scenario.MScenarios;
 import com.jftse.server.core.constants.GameMode;
@@ -82,6 +84,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
     private final BossGuardianService bossGuardianService;
     private final ScenarioService scenarioService;
     private final PlayerStatisticService playerStatisticService;
+    private final PetService petService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -97,6 +100,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         this.bossGuardianService = ServiceManager.getInstance().getBossGuardianService();
         this.scenarioService = ServiceManager.getInstance().getScenarioService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.petService = ServiceManager.getInstance().getPetService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
 
@@ -304,6 +308,16 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
 
+                GameSession.BattlemonActor actor = gameSession.getBattlemonActorForOwner(player.getId());
+                if (actor != null) {
+                    Pet pet = petService.awardExperience(actor.pet().id(), player.getId(), playerReward.getExp());
+                    if (pet != null) {
+                        client.setActivePet(pet);
+                        client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
+                                petService.findAllByPlayerId(player.getId())));
+                    }
+                }
+
                 PlayerStatisticView playerStatistic = player.getPlayerStatistic();
 
                 PlayerStats playerStats = matchRallyStatsConsumer.getPlayerStats(gameSessionId, Math.toIntExact(player.getId()));
@@ -374,7 +388,10 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 }
             }
 
-            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
+            S2CMatchplaySetGameResultData setGameResultData = gameSession.getBattlemonActors().isEmpty()
+                    ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards())
+                    : new S2CMatchplaySetGameResultData(
+                            matchplayReward.getPlayerRewards(), gameSession.getBattlemonActors());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
