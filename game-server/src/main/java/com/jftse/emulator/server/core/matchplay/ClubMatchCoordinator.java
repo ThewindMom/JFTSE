@@ -183,7 +183,7 @@ public final class ClubMatchCoordinator {
                 && ClubMatchRules.hasValidTeams(room)
                 && room.getRoomPlayerList().stream()
                 .filter(player -> player.getPosition() >= 0 && player.getPosition() < room.getPlayers())
-                .allMatch(RoomPlayer::isReady);
+                .allMatch(player -> player.isMaster() || player.isReady());
     }
 
     private List<ClubMatchState.Participant> participants(Room room) {

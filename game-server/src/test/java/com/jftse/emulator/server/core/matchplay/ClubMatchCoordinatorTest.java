@@ -40,6 +40,19 @@ class ClubMatchCoordinatorTest {
     }
 
     @Test
+    void roomMasterDoesNotNeedReadyStateToLaunch() {
+        Fixture fixture = fixture();
+        RoomPlayer master = fixture.room.getRoomPlayerList().getFirst();
+        master.setMaster(true);
+        master.setReady(false);
+
+        assertTrue(fixture.coordinator.startFromClient(fixture.room, DESIGNATED_PLAYER_ID));
+
+        assertEquals(1, fixture.launches.get());
+        assertEquals(RoomStatus.StartingGame, fixture.room.getStatus());
+    }
+
+    @Test
     void compositionChangeMovesClaimedLaunchIntoTerminalCleanupState() {
         Fixture fixture = fixture();
         assertTrue(fixture.coordinator.startFromClient(fixture.room, DESIGNATED_PLAYER_ID));
