@@ -1,0 +1,340 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@page {
+  size: A4;
+  margin: 16mm 17mm 18mm;
+}
+
+html {
+  color: #172033;
+  font-family: "DejaVu Sans", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: #102548;
+  font-weight: 650;
+  line-height: 1.2;
+  page-break-after: avoid;
+}
+
+h1 {
+  border-bottom: 2px solid #3a72b8;
+  font-size: 24pt;
+  margin-top: 0;
+  padding-bottom: 7px;
+}
+
+h2 {
+  border-bottom: 1px solid #b9c9df;
+  font-size: 17pt;
+  margin-top: 1.3em;
+  padding-bottom: 4px;
+}
+
+h3 {
+  font-size: 13pt;
+  margin-top: 1.15em;
+}
+
+h4 {
+  font-size: 11pt;
+}
+
+p,
+li,
+table,
+pre,
+figure {
+  page-break-inside: avoid;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 9.2pt;
+  margin: 0.8em 0 1.2em;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #afbdd0;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eaf0f8;
+  color: #102548;
+}
+
+tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+code {
+  background: #eef2f7;
+  border-radius: 3px;
+  color: #27364d;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 0.88em;
+  padding: 1px 3px;
+}
+
+pre {
+  background: #172033;
+  border-left: 4px solid #4e88cf;
+  color: #f1f5fa;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.2pt;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 9px 11px;
+  white-space: pre-wrap;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+blockquote {
+  background: #f0f5fb;
+  border-left: 4px solid #3a72b8;
+  color: #263b5b;
+  margin: 1em 0;
+  padding: 7px 12px;
+}
+
+a {
+  color: #215d9c;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  height: auto;
+  margin: 0.6em auto 0.3em;
+  max-height: 205mm;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+figure {
+  margin: 0.8em 0 1.2em;
+  text-align: center;
+}
+
+figcaption {
+  color: #4a596e;
+  font-size: 8.8pt;
+  margin-top: 4px;
+}
+
+.title-page {
+  padding-top: 28mm;
+  text-align: center;
+}
+
+.title-page h1 {
+  border: 0;
+  font-size: 30pt;
+  margin-bottom: 0.3em;
+}
+
+.subtitle {
+  color: #34547c;
+  font-size: 16pt;
+  margin-bottom: 2em;
+}
+
+.metadata {
+  background: #f0f5fb;
+  border: 1px solid #c3d2e6;
+  margin: 2em auto;
+  max-width: 150mm;
+  padding: 13px 18px;
+  text-align: left;
+}
+
+.callout {
+  background: #edf7ef;
+  border: 1px solid #8ab796;
+  border-left: 5px solid #2f7d45;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.warning {
+  background: #fff7e7;
+  border: 1px solid #d9b46a;
+  border-left: 5px solid #b6790f;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.page-break {
+  page-break-before: always;
+}
+
+.small {
+  color: #4a596e;
+  font-size: 8.5pt;
+}
+
+</style></head><body>
+<div class="title-page"><h1>JFTSE — Native Battlemon AI level selection</h1>
+<div class="subtitle">Proof that JFTSE supplies the level and the unmodified Fantasy Tennis client owns AI profile selection</div><p><strong>Branch:</strong> <code>feature/battlemon-complete</code><br>
+<strong>Base:</strong> <code>3a0163aa</code> (level persistence/serialization)<br>
+<strong>Validated HEAD:</strong> <code>c3befbae</code><br>
+<strong>FantaTennis.exe SHA-256:</strong> <code>5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31</code><br>
+<strong>Validation date:</strong> 2026-08-13 UTC</p>
+</div><div class="page-break"></div><h1>Executive summary</h1>
+<p>The validated native client, not JFTSE Java code, owns Battlemon tennis AI.
+JFTSE persisted level 11 for <code>PotekoTest</code>, serialized <code>0B</code> in the native
+<code>0x151B</code> pet-data response, and the unmodified client displayed <code>Level : 11</code>.
+Static disassembly then establishes the remainder of the deterministic path:
+the native pet-AI initializer forwards its level argument unchanged to
+<code>TennisAIMgr</code>; <code>TennisAIMgr</code> walks the selected species vector in 88-byte
+steps and accepts only a record whose first integer exactly equals that level.</p>
+<div class="callout"><p><strong>Proven scope:</strong> a native pet initialized with level 11 requests and copies
+the exact level-11 record loaded from the selected <code>AI_PetA</code>…<code>AI_PetK</code>
+resource. No level clamp exists in this path.</p>
+</div><div class="warning"><p><strong>Not claimed:</strong> Java TennisAI, stat growth from level, visual evolution, or
+any owned-pet mapping/fallback for levels 14–250.</p>
+</div><h2>Evidence classification</h2>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Observed native runtime</td>
+<td>JFTSE emitted <code>0x151B</code> with <code>PotekoTest</code> level <code>0B</code>; the unmodified client displayed level 11.</td>
+</tr>
+<tr>
+<td>Static client reverse engineering</td>
+<td>Exact-level lookup, model vector selection, 88-byte profile copy, Basic and Double call sites, and missing-level failure path.</td>
+</tr>
+<tr>
+<td>JFTSE source baseline</td>
+<td><code>Pet.level</code> is an independent unsigned byte and is serialized separately from <code>type</code> and STR/STA/DEX/WIL.</td>
+</tr>
+<tr>
+<td>Compatibility interpretation</td>
+<td>None added. Native behavior remains authoritative.</td>
+</tr>
+<tr>
+<td>Implementation in this work</td>
+<td>Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, and this report. No Java AI.</td>
+</tr>
+</tbody></table>
+<h1>First-principles proof</h1>
+<pre><code class="language-text">Pet.level = 11
+  → JFTSE S2C 0x151B contains 0B after PotekoTest\0
+  → native client displays Level : 11
+  → TennisAIPetBasic/Double forwards initializer level
+  → TennisAIMgr(model, level) compares exact integer level
+  → matching 88-byte [Level11] record is copied into the native AI object
+</code></pre>
+<p>The controlled fixture kept pet type and STR/STA/DEX/WIL unchanged. This
+separates level-driven profile selection from item-grown statistics.</p>
+<h1>Native binary contract</h1>
+<p>At VA <code>0x004F9BD0</code>, the validated executable receives requested level at
+<code>[ebp+0x08]</code>, destination AI object at <code>[ebp+0x0c]</code>, and <code>nPetModel</code> at
+<code>[ebp+0x10]</code>. It computes the model vector, copies each candidate record to a
+temporary 88-byte buffer, and compares its first dword with the requested
+level. On equality it copies the record&#39;s behavior flags, probabilities,
+timings, and movement values into the destination and returns true.</p>
+<p>The Basic caller at <code>0x004F4289</code> and Double caller at <code>0x004F4CDC</code> both pass
+the initializer level directly to this lookup. The missing-record branch logs:</p>
+<pre><code class="language-text">AI Level(%d) requested not found for nPetModel(%d)
+</code></pre>
+<p>There is no instruction clamping level to 13. Runtime memory extraction found
+13 records for every owned-pet model 0–10, keyed 1–13; their hashes differ at
+the discriminating levels. The separate model <code>-1</code> default table is not an
+owned-pet fallback.</p>
+<h1>Controlled native observation</h1>
+<p>The database changed only pet ID 2&#39;s <code>level</code> from 3 to 11. JFTSE emitted:</p>
+<pre><code class="language-text">... 50 00 6F 00 74 00 65 00 6B 00 6F 00 54 00 65 00 73 00 74 00 00 00
+0B 03 01 00 00 C8 00 00 00 0F 0F 0F 0F ...
+^^ requested level 11; next bytes retain EXP/type/alive/HP/stats
+</code></pre>
+<p><img src="evidence/level11-native-ui.png" alt="Unmodified client showing PotekoTest level 11"></p>
+<h1>Reproduction</h1>
+<p>Run the verifier against the immutable executable and captured packet log:</p>
+<pre><code class="language-bash">python3 scripts/verify_native_pet_ai_level.py /path/to/FantaTennis.exe \
+  --packet-log /path/to/game-server.log \
+  --pet-name PotekoTest --expected-level 11
+</code></pre>
+<p>For an additional in-match debugger capture, attach
+<a href="../../scripts/gdb/trace-owned-pet-ai-level.gdb"><code>trace-owned-pet-ai-level.gdb</code></a>
+before match start. Its breakpoint is conditioned to ignore model <code>-1</code>; a hit
+prints requested level, matched level, owned-pet model, record address, and all
+22 dwords of the selected profile before detaching.</p>
+<h1>Evidence inventory</h1>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Claim supported</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="evidence/client-sha256.txt">Client hash</a></td>
+<td>Exact executable provenance</td>
+</tr>
+<tr>
+<td><a href="evidence/level11-db-before.txt">DB before</a></td>
+<td>Controlled baseline</td>
+</tr>
+<tr>
+<td><a href="evidence/level11-db-after.txt">DB after</a></td>
+<td>Only level changed to 11</td>
+</tr>
+<tr>
+<td><a href="evidence/level11-packet.txt">Decoded packet</a></td>
+<td>JFTSE sent level byte <code>0B</code></td>
+</tr>
+<tr>
+<td><a href="evidence/level11-native-ui.png">Native screenshot</a></td>
+<td>Client accepted/rendered level 11</td>
+</tr>
+<tr>
+<td><a href="evidence/native-profile-table.txt">Native profile table</a></td>
+<td>Owned models contain distinct level 1–13 records</td>
+</tr>
+<tr>
+<td><a href="evidence/verifier-output.txt">Verifier output</a></td>
+<td>Binary and wire checks pass</td>
+</tr>
+<tr>
+<td><a href="evidence/SHA256SUMS">Checksums</a></td>
+<td>Curated evidence integrity</td>
+</tr>
+</tbody></table>
+<h1>Boundary and non-claims</h1>
+<p>The executable&#39;s owned-pet resources contain records 1–13, while JFTSE&#39;s
+displayed progression supports 1–250. This report does not bridge that gap by
+invention. A level above 13 reaches the native exact lookup but has no proven
+owned record; therefore the server must preserve the real level and must not
+silently clamp it. A future claim about native behavior above 13 requires a
+separate runtime experiment.</p>
+<h1>Conclusion</h1>
+<p>No Java decision tree is warranted. The smallest correct server contract is
+already the implemented one: persist and serialize the independent pet
+<code>type</code>, <code>level</code>, and stats. The validated client selects the exact native
+<code>[LevelN]</code> record and executes <code>TennisAIMgr</code> behavior itself.</p>
+
+</body></html>
