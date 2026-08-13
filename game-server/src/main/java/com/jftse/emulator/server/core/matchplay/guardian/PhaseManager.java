@@ -3,11 +3,14 @@ package com.jftse.emulator.server.core.matchplay.guardian;
 import com.jftse.emulator.common.exception.ValidationException;
 import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.server.core.constants.PacketEventType;
+import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
 import com.jftse.emulator.server.core.task.GuardianAttackTask;
+import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.battle.Skill;
 import com.jftse.server.core.thread.ThreadManager;
@@ -47,15 +50,29 @@ public class PhaseManager {
             }
 
             if (hasNextPhase()) {
+                FTClient client = connection.getClient();
+                GameSession expectedGameSession = client == null ? null : client.getActiveGameSession();
+                Room expectedRoom = client == null ? null : client.getActiveRoom();
+                if (expectedGameSession == null || expectedRoom == null) {
+                    isChangingPhase.set(false);
+                    return;
+                }
                 PhaseScript nextPhase = phases.get(phases.indexOf(currentPhase.get()) + 1);
                 final String nextPhaseName = nextPhase.getPhaseName();
 
                 for (int i = 5; i >= 1; i--) {
                     S2CChatRoomAnswerPacket packet = new S2CChatRoomAnswerPacket((byte) 2, "Server", nextPhaseName + " starts in " + i + "...");
-                    eventHandler.offer(eventHandler.createPacketEvent(connection.getClient(), packet, PacketEventType.DEFAULT, TimeUnit.SECONDS.toMillis(5 - i)));
+                    eventHandler.offer(eventHandler.createPacketEvent(connection.getClient(), packet, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(5 - i)));
                 }
 
                 RunnableEvent runnableEvent = eventHandler.createRunnableEvent(() -> {
+                    FTClient currentClient = connection.getClient();
+                    if (currentClient == null ||
+                            currentClient.getActiveGameSession() != expectedGameSession ||
+                            currentClient.getActiveRoom() != expectedRoom) {
+                        isChangingPhase.set(false);
+                        return;
+                    }
                     currentPhase.get().end();
                     currentPhase.compareAndSet(currentPhase.get(), nextPhase);
 

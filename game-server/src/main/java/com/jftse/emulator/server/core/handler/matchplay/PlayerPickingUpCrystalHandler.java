@@ -61,14 +61,20 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
         if (roomPlayer == null)
             return;
 
-        short playerPosition = roomPlayer.getPosition();
+        short playerPosition = packet.getPlayerPosition();
+        if (!gameSession.isActorOwnedBy(roomPlayer, playerPosition))
+            return;
         Queue<SkillCrystal> pickedUpSkillCrystals = roomPlayer.getPickedUpSkillCrystals();
 
         final MatchplayGame game = gameSession.getMatchplayGame();
         if (game == null)
             return;
 
+        if (!(game instanceof MatchplayBattleGame) && !(game instanceof MatchplayGuardianGame))
+            return;
         boolean isBattleGame = game instanceof MatchplayBattleGame;
+        if (gameSession.isBattlemon() && playerPosition != roomPlayer.getPosition())
+            return;
 
         SkillCrystal skillCrystal = isBattleGame ?
                 ((MatchplayBattleGame) game).getSkillCrystals().stream()
@@ -84,10 +90,11 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
             return;
         }
 
-        if (isBattleGame)
-            ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal);
-        else
-            ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
+        boolean removed = isBattleGame
+                ? ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal)
+                : ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
+        if (!removed)
+            return;
 
         short gameFieldSide = -1;
         boolean isRedTeam = game.isRedTeam(playerPosition);

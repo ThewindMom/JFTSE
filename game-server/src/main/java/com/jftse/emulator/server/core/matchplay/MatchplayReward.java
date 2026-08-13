@@ -13,17 +13,24 @@ public class MatchplayReward {
 
     private Map<Byte, ItemReward> slotRewards;
     private List<ItemReward> itemRewards; // display only
+    private Map<Short, Long> eligiblePlayerIdsByPosition;
 
     public MatchplayReward(List<PlayerReward> playerRewards) {
         this.playerRewards = playerRewards;
         this.slotRewards = new HashMap<>(4);
         this.itemRewards = new ArrayList<>();
+        this.eligiblePlayerIdsByPosition = Map.of();
     }
 
     public MatchplayReward() {
         this.playerRewards = new ArrayList<>();
         this.slotRewards = new HashMap<>(4);
         this.itemRewards = new ArrayList<>();
+        this.eligiblePlayerIdsByPosition = Map.of();
+    }
+
+    public void setEligiblePlayerIdsByPosition(Map<Short, Long> eligiblePlayerIdsByPosition) {
+        this.eligiblePlayerIdsByPosition = Map.copyOf(eligiblePlayerIdsByPosition);
     }
 
     public void addPlayerReward(PlayerReward playerReward) {

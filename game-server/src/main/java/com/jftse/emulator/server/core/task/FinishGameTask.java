@@ -9,9 +9,13 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class FinishGameTask extends AbstractTask {
     private final FTConnection connection;
+    private final GameSession expectedGameSession;
 
     public FinishGameTask(FTConnection connection) {
         this.connection = connection;
+        this.expectedGameSession = connection.getClient() == null
+                ? null
+                : connection.getClient().getActiveGameSession();
     }
 
     @Override
@@ -19,7 +23,7 @@ public class FinishGameTask extends AbstractTask {
         if (connection.getClient() == null) return;
 
         GameSession gameSession = connection.getClient().getActiveGameSession();
-        if (gameSession == null) return;
+        if (gameSession == null || gameSession != expectedGameSession) return;
 
         MatchplayGame game = gameSession.getMatchplayGame();
 

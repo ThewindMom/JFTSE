@@ -47,10 +47,9 @@ public class Player extends AbstractBaseModel {
     @JoinColumn(name = "cardSlotEquipment_id", referencedColumnName = "id", unique = true)
     private CardSlotEquipment cardSlotEquipment;
 
-    /* @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.DETACH, optional = false)
-    @JoinColumn(name = "battlemonSlotEquipment_id", referencedColumnName = "id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "battlemonSlotEquipment_id", referencedColumnName = "id", unique = true)
     private BattlemonSlotEquipment battlemonSlotEquipment;
-     */
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "playerStatistic_id", referencedColumnName = "id", unique = true)

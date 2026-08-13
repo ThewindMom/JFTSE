@@ -20,6 +20,9 @@ public class MatchplayPointPacketHandler implements PacketHandler<FTConnection, 
         if (gameSession == null)
             return;
 
+        if (!gameSession.isGameplayEndpoint(ftClient))
+            return;
+
         MatchplayGame game = gameSession.getMatchplayGame();
         if (game == null)
             return;

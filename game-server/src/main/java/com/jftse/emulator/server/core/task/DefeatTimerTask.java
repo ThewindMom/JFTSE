@@ -27,6 +27,9 @@ public class DefeatTimerTask extends AbstractTask {
 
     @Override
     public void run() {
+        if (connection.getClient() == null || connection.getClient().getActiveGameSession() != gameSession) {
+            return;
+        }
         final MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
         final SMaps map = game.getMap();
         final MScenarios scenario = game.getScenario();

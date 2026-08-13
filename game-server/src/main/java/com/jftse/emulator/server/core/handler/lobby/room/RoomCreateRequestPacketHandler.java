@@ -5,6 +5,7 @@ import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCreate;
@@ -18,8 +19,8 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
         if (client.getActiveRoom() != null || !client.hasPlayer())
             return;
 
-        if (packet.getRoomType() == RoomType.BATTLEMON) {
-            //GameManager.getInstance().handleChatLobbyJoin(client);
+        boolean isBattlemon = packet.getRoomType() == RoomType.BATTLEMON;
+        if (isBattlemon && packet.getMode() != GameMode.BASIC && packet.getMode() != GameMode.BATTLE) {
             return;
         }
 
@@ -35,7 +36,7 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
 
         room.setMode(packet.getMode());
         room.setRule(packet.getRule());
-        room.setPlayers(packet.getPlayers());
+        room.setPlayers(isBattlemon ? (byte) 4 : packet.getPlayers());
         room.setPrivate(packet.getIsPrivate());
         room.setPassword(packet.getPassword());
         room.setSkillFree(packet.getSkillFree());

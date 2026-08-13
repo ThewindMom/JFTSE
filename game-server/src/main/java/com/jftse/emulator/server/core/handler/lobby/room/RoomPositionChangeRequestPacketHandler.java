@@ -1,6 +1,8 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -31,7 +33,18 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
         Room room = ftClient.getActiveRoom();
         RoomPlayer requestingSlotChangePlayer = ftClient.getRoomPlayer();
         if (room != null) {
+            synchronized (room) {
+            if (room.getStatus() != RoomStatus.NotRunning) {
+                ftClient.getIsChangingSlot().set(false);
+                return;
+            }
             if (requestingSlotChangePlayer != null) {
+                if (positionToClaim < 0 || positionToClaim >= room.getPositions().size() ||
+                        (room.getRoomType() == RoomType.BATTLEMON && positionToClaim > 1)) {
+                    ftClient.getIsChangingSlot().set(false);
+                    return;
+                }
+
                 short requestingSlotChangePlayerOldPosition = requestingSlotChangePlayer.getPosition();
                 if (requestingSlotChangePlayerOldPosition == positionToClaim) {
                     ftClient.getIsChangingSlot().set(false);
@@ -50,8 +63,9 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                 }
 
                 boolean requestingSlotChangePlayerIsMaster = requestingSlotChangePlayer.isMaster();
+                boolean slotIsAvailable = room.getPositions().get(positionToClaim) == RoomPositionState.Free;
                 boolean slotIsInUse = room.getPositions().get(positionToClaim) == RoomPositionState.InUse;
-                if (slotIsInUse && !requestingSlotChangePlayerIsMaster) {
+                if (!slotIsAvailable && !(slotIsInUse && requestingSlotChangePlayerIsMaster)) {
                     SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
                             .type((byte) 2)
                             .sender("Room")
@@ -65,6 +79,17 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                 RoomPlayer playerInSlotToClaim = room.getRoomPlayerList().stream().filter(x -> x.getPosition() == positionToClaim).findAny().orElse(null);
 
                 if (playerInSlotToClaim != null) {
+                    if (playerInSlotToClaim.getPet() != null) {
+                        SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
+                                .type((byte) 2)
+                                .sender("Room")
+                                .message("You cannot move a player who has a pet in room")
+                                .build();
+                        connection.sendTCP(msg);
+                        ftClient.getIsChangingSlot().set(false);
+                        return;
+                    }
+
                     if (requestingSlotChangePlayerOldPosition == 9) {
                         room.getPositions().set(requestingSlotChangePlayerOldPosition, RoomPositionState.Locked);
                     }
@@ -110,6 +135,7 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                             .build();
                     GameManager.getInstance().sendPacketToAllClientsInSameRoom(roomChangePosition, ftClient.getConnection());
                 }
+            }
             }
         }
         ftClient.getIsChangingSlot().set(false);

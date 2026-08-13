@@ -6,14 +6,14 @@ public record PetView(long id, int type, String name, int level, int hp, int str
      public static PetView of(Pet pet) {
          return new PetView(
                  pet.getId(),
-                 pet.getType(),
+                 Byte.toUnsignedInt(pet.getType()),
                  pet.getName(),
-                 pet.getLevel(),
+                 Byte.toUnsignedInt(pet.getLevel()),
                  pet.getHp(),
-                 pet.getStrength(),
-                 pet.getStamina(),
-                 pet.getDexterity(),
-                 pet.getWillpower(),
+                 Byte.toUnsignedInt(pet.getStrength()),
+                 Byte.toUnsignedInt(pet.getStamina()),
+                 Byte.toUnsignedInt(pet.getDexterity()),
+                 Byte.toUnsignedInt(pet.getWillpower()),
                  pet.getHunger(),
                  pet.getEnergy()
          );

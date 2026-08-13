@@ -82,7 +82,38 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         boolean isQuickSlot = anyoneUsesSkill.getIsQuickSlot();
 
         boolean attackerIsGuardian = attackerPosition > 9;
-        boolean attackerIsPlayer = attackerPosition < 4;
+        boolean attackerIsPlayer = attackerPosition >= 0 && attackerPosition < 4;
+
+        if (game instanceof MatchplayBattleGame battleGame) {
+            if (!attackerIsPlayer || !gameSession.isActorOwnedBy(roomPlayer, attackerPosition))
+                return;
+            if (battleGame.getPlayerBattleStates().stream().noneMatch(state -> state.getPosition() == attackerPosition))
+                return;
+            if (targetPosition >= 0 && battleGame.getPlayerBattleStates().stream()
+                    .noneMatch(state -> state.getPosition() == targetPosition))
+                return;
+        } else if (game instanceof MatchplayGuardianGame guardianGame) {
+            boolean livePlayerAttacker = attackerIsPlayer &&
+                    gameSession.isActorOwnedBy(roomPlayer, attackerPosition) &&
+                    guardianGame.getPlayerBattleStates().stream()
+                            .anyMatch(state -> state.getPosition() == attackerPosition);
+            boolean liveGuardianAttacker = attackerIsGuardian &&
+                    guardianGame.getGuardianBattleStates().stream()
+                            .anyMatch(state -> state.getPosition() == attackerPosition);
+            if (!livePlayerAttacker && !liveGuardianAttacker)
+                return;
+            if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
+                    .noneMatch(state -> state.getPosition() == targetPosition) &&
+                    guardianGame.getGuardianBattleStates().stream()
+                            .noneMatch(state -> state.getPosition() == targetPosition))
+                return;
+        } else {
+            return;
+        }
+        if (gameSession.isBattlemon() && attackerPosition != roomPlayer.getPosition())
+            return;
+        if (attackerIsPlayer && isQuickSlot && attackerPosition != roomPlayer.getPosition())
+            return;
 
         if (attackerIsPlayer && !isQuickSlot) {
             // a canceled skill use will have sourceValue -1 and skillIndex -6?, a less than zero check is enough
@@ -106,9 +137,9 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
 
         GameEventBus.call(GameEventType.MP_PLAYER_USE_SKILL, ftClient, game, roomPlayer, skill, skillUse, anyoneUsesSkill);
 
-        if (attackerIsGuardian) {
+        if (attackerIsGuardian && game instanceof MatchplayGuardianGame guardianGame) {
             if (skill != null) {
-                this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, (MatchplayGuardianGame) game, skill);
+                this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, guardianGame, skill);
             }
         } else if (attackerIsPlayer) {
             if (roomPlayer != null) {
@@ -286,9 +317,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
     }
 
     private void validateSkillCrystal(Queue<SkillCrystal> skillCrystals, int crystalId, int skillIndex) throws ValidationException {
-        SkillCrystal skillCrystal = skillCrystals.poll();
+        SkillCrystal skillCrystal = skillCrystals.peek();
         if (skillCrystal == null || skillCrystal.getId() != crystalId || skillCrystal.getSkillIndex() != skillIndex) {
             throw new ValidationException("Player tried to use a skill crystal they do not possess");
         }
+        skillCrystals.poll();
     }
 }

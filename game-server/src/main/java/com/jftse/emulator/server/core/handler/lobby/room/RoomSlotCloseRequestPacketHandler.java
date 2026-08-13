@@ -1,7 +1,10 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -27,7 +30,23 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
         byte slot = packet.getSlot();
         Room room = client.getActiveRoom();
         if (room != null) {
-            room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            RoomPlayer roomPlayer = client.getRoomPlayer();
+            if (slot < 0 || slot >= room.getPositions().size() || roomPlayer == null || !roomPlayer.isMaster() ||
+                    room.getRoomType() == RoomType.BATTLEMON && slot != 1) {
+                client.getIsClosingSlot().set(false);
+                return;
+            }
+            synchronized (room) {
+                boolean petUsesSlot = room.getRoomPlayerList().stream()
+                        .anyMatch(player -> player.getPet() != null && player.getPosition() + 2 == slot);
+                if (room.getStatus() != RoomStatus.NotRunning || petUsesSlot ||
+                        close && room.getRoomPlayerList().stream()
+                                .anyMatch(player -> player.getPosition() == slot)) {
+                    client.getIsClosingSlot().set(false);
+                    return;
+                }
+                room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            }
 
             SMSGRoomCloseSlot closeSlot = SMSGRoomCloseSlot.builder().slot(slot).close(close).build();
             GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(c -> {

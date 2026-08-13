@@ -1,12 +1,18 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomListAnswerPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeGameMode;
@@ -23,8 +29,39 @@ public class GameModeChangePacketHandler implements PacketHandler<FTConnection, 
         Room room = client.getActiveRoom();
 
         if (room != null) {
+            RoomPlayer roomPlayer = client.getRoomPlayer();
+            if (roomPlayer == null || !roomPlayer.isMaster()) {
+                return;
+            }
+
             synchronized (room) {
+                if (room.getStatus() != RoomStatus.NotRunning ||
+                        room.getRoomType() == RoomType.BATTLEMON &&
+                                packet.getMode() != GameMode.BASIC && packet.getMode() != GameMode.BATTLE) {
+                    return;
+                }
                 room.setMode(packet.getMode());
+                if (room.getRoomType() != RoomType.BATTLEMON && packet.getMode() != GameMode.GUARDIAN) {
+                    room.getRoomPlayerList().forEach(player -> {
+                        if (player.getPet() == null) {
+                            return;
+                        }
+                        int petPosition = player.getPosition() + 2;
+                        if (petPosition >= 0 && petPosition < room.getPositions().size() &&
+                                room.getPositions().get(petPosition) == RoomPositionState.InUse &&
+                                room.getRoomPlayerList().stream()
+                                        .noneMatch(other -> other != player && other.getPosition() == petPosition)) {
+                            room.getPositions().set(petPosition, RoomPositionState.Free);
+                        }
+                        S2CPetRequestRoomAnswerPacket response = new S2CPetRequestRoomAnswerPacket(
+                                S2CPetRequestRoomAnswerPacket.SUCCESS,
+                                false,
+                                (byte) player.getPosition(),
+                                player.getPet());
+                        player.setPet(null);
+                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(response, connection);
+                    });
+                }
             }
 
             S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);

@@ -1,7 +1,6 @@
 package com.jftse.emulator.server.core.matchplay.combat;
 
 import com.jftse.emulator.common.exception.ValidationException;
-import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
@@ -40,6 +39,8 @@ public class PlayerCombatSystem implements PlayerCombatable {
 
         boolean isNormalDamageSkill = Math.abs(damage) != 1;
         if (isNormalDamageSkill) {
+            if (attackingPlayer == null)
+                throw new ValidationException("attackingPlayer battle state is null");
             totalDamageToDeal = BattleUtils.calculateDmg(attackingPlayer.getStr(), damage, hasAttackerDmgBuff);
         }
 
@@ -165,9 +166,9 @@ public class PlayerCombatSystem implements PlayerCombatable {
     }
 
     @Override
-    public PlayerBattleState reviveAnyPlayer(short revivePercentage, RoomPlayer roomPlayer) throws ValidationException {
-        if (roomPlayer != null) {
-            boolean isRedTeam = game.isRedTeam(roomPlayer.getPosition());
+    public PlayerBattleState reviveAnyPlayer(short revivePercentage, int actorPosition) throws ValidationException {
+        if (actorPosition >= 0) {
+            boolean isRedTeam = game.isRedTeam(actorPosition);
 
             PlayerBattleState playerBattleState = isBattleGame ?
                     ((MatchplayBattleGame) game).getPlayerBattleStates().stream()

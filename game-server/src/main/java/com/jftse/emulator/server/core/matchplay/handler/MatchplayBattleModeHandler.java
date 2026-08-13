@@ -6,7 +6,6 @@ import com.jftse.emulator.server.core.client.PlayerStatisticView;
 import com.jftse.emulator.server.core.constants.GameFieldSide;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.PacketEventType;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.item.BaseItem;
@@ -84,18 +83,12 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
     @Override
     public void onStart(FTClient ftClient) {
         final GameSession gameSession = ftClient.getActiveGameSession();
-        ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
 
         final List<PlayerPositionInfo> positionInfo = new ArrayList<>();
-        clients.forEach(c -> {
-            RoomPlayer rp = c.getRoomPlayer();
-            if (rp == null || rp.getPosition() > 3) {
-                return;
-            }
-
-            Point playerLocation = game.getPlayerLocationsOnMap().get(rp.getPosition());
+        gameSession.getGameplayActorPositions().forEach(position -> {
+            Point playerLocation = game.getPlayerLocationsOnMap().get(position);
             PlayerPositionInfo playerPositionInfo = new PlayerPositionInfo();
-            playerPositionInfo.setPlayerPosition(rp.getPosition());
+            playerPositionInfo.setPlayerPosition(position);
             playerPositionInfo.setPlayerStartLocation(playerLocation);
             positionInfo.add(playerPositionInfo);
         });
@@ -138,16 +131,17 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        if (!game.getFinished().compareAndSet(false, true))
+        if (!game.getFinished().compareAndSet(false, true) ||
+                !gameSession.getCompletionHandled().compareAndSet(false, true))
             return;
 
+        boolean completionSucceeded = false;
+        try {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (game.getEndTime() == null)
             game.setEndTime(new AtomicReference<>(cal.getTime()));
         else
             game.getEndTime().set(cal.getTime());
-
-        activeRoom.setStatus(RoomStatus.NotRunning);
 
         gameSession.getFireables().forEach(f -> f.setCancelled(true));
         gameSession.getFireables().clear();
@@ -155,17 +149,26 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         StringBuilder gameLogContent = new StringBuilder();
         gameLogContent.append("Battle game finished. ");
 
-        final boolean allPlayersTeamRedDead = game.getPlayerBattleStates().stream().filter(x -> game.isRedTeam(x.getPosition())).allMatch(x -> x.getCurrentHealth().get() < 1);
-        final boolean allPlayersTeamBlueDead = game.getPlayerBattleStates().stream().filter(x -> game.isBlueTeam(x.getPosition())).allMatch(x -> x.getCurrentHealth().get() < 1);
+        final boolean allPlayersTeamRedDead = game.isTeamDead(true);
+        final boolean allPlayersTeamBlueDead = game.isTeamDead(false);
 
         gameLogContent.append(allPlayersTeamRedDead ? "Blue " : "Red ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
+        if (gameSession.isBattlemon()) {
+            matchplayReward.getPlayerRewards().removeIf(reward -> reward.getPlayerPosition() >= 2);
+        }
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
         List<FTPlayer> playerList = clients.stream()
                 .filter(FTClient::hasPlayer)
                 .map(FTClient::getPlayer)
                 .collect(Collectors.toList());
+        matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
+                .filter(FTClient::hasPlayer)
+                .map(FTClient::getRoomPlayer)
+                .filter(Objects::nonNull)
+                .filter(roomPlayer -> roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() < 4)
+                .collect(Collectors.toUnmodifiableMap(RoomPlayer::getPosition, RoomPlayer::getPlayerId)));
 
         game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
 
@@ -279,11 +282,10 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+            eventHandler.offer(eventHandler.createDetachedSessionPacketEvent(
+                    client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
             client.setActiveGameSession(null);
         }
-
-        matchRallyStatsConsumer.clearSession(gameSessionId);
 
         GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
 
@@ -298,8 +300,6 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
         if (gameSession.getClients().isEmpty()) {
-            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
-
             MatchFinishedMessage message = MatchFinishedMessage.builder()
                     .gameSessionId(gameSessionId)
                     .time(game.getTimeNeeded())
@@ -313,22 +313,43 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
         }
+        completionSucceeded = true;
+        } finally {
+            if (!completionSucceeded) {
+                GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
+            }
+            GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
+        }
     }
 
     @Override
     public void onPrepare(FTClient ftClient) {
         Room room = ftClient.getActiveRoom();
-
-        room.getRoomPlayerList().forEach(roomPlayer -> {
-            if (roomPlayer.getPosition() < 4)
-                game.getPlayerBattleStates().add(game.createPlayerBattleState(roomPlayer));
-        });
+        GameSession gameSession = ftClient.getActiveGameSession();
+        if (room == null || gameSession == null || !game.getPlayerBattleStates().isEmpty()) {
+            throw new IllegalStateException("Battle game preparation requires an empty game with an active room");
+        }
 
         Optional<SMaps> map = mapService.findByMap((int) room.getMap());
         if (map.isEmpty()) {
-            log.error("No map found for mapId: " + room.getMap());
-            return;
+            throw new IllegalStateException("No map found for mapId: " + room.getMap());
         }
+
+        List<com.jftse.server.core.matchplay.battle.PlayerBattleState> preparedStates = new ArrayList<>();
+        room.getRoomPlayerList().stream()
+                .filter(roomPlayer -> gameSession.getGameplayActorPositions().contains(roomPlayer.getPosition()))
+                .forEach(roomPlayer -> preparedStates.add(game.createPlayerBattleState(roomPlayer)));
+        gameSession.getBattlemonActors().forEach(actor -> preparedStates.add(game.createBattlemonBattleState(actor)));
+
+        Set<Short> preparedPositions = preparedStates.stream()
+                .map(state -> (short) state.getPosition())
+                .collect(Collectors.toSet());
+        if (preparedPositions.size() != preparedStates.size() ||
+                !preparedPositions.equals(new HashSet<>(gameSession.getGameplayActorPositions()))) {
+            throw new IllegalStateException("Battle game preparation produced an invalid gameplay actor set");
+        }
+
+        game.getPlayerBattleStates().addAll(preparedStates);
         game.setMap(map.get());
     }
 

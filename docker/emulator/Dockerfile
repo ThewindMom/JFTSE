@@ -34,6 +34,7 @@ RUN sed -i "s/jdbc:mysql:\/\/localhost:3306/jdbc:mysql:\/\/mysql-db-server:3306/
 
 RUN sed -i "s/spring.rabbitmq.host=localhost/spring.rabbitmq.host=rabbitmq-server/g" game-server/src/main/resources/application.properties
 RUN sed -i "s/spring.rabbitmq.host=localhost/spring.rabbitmq.host=rabbitmq-server/g" chat-server/src/main/resources/application.properties
+RUN sed -i "s/spring.rabbitmq.host=localhost/spring.rabbitmq.host=rabbitmq-server/g" relay-server/src/main/resources/application.properties
 
 RUN mvn clean install
 

@@ -1,0 +1,21 @@
+Raw capture and primary native evidence hashes
+
+93fcc0539d106e7060ebc8155d830200e235d57f7c4b6bc2bd090b1657a894b7  battlemon-battle-retry.pcap
+c4245614ecdc9763175a0c85829d2819662a7ad7a437bbf086b12b1e1a90aea6  battlemon-control-experiment.pcap
+a77ed8571291a5520e4c9aeda5dc0376c2b02cdac413770c7d694ab7c9346171  guardian-both-pets-runtime-client-server.pcap
+5fb8dd2f11f1791b1daba325d4c104bf942466af75a98278557f37a3aa14ef4a  guardian-one-pet-start-disabled.png
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  FantaTennis.exe
+c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e  FantaTennis.7z (provenance hash)
+
+Raw PCAPs are intentionally not committed because login/session traffic can contain
+sensitive or replayable material. The curated packet excerpts omit credentials and
+handshake secrets.
+
+Lifecycle capture caveat
+------------------------
+The final file remaining at cleanup was a later 450-byte capture with SHA-256
+2b038ae7c216754a8c6b8051babedf1addf41e999516eda17c5d7c0e3c191d8d. It does not
+contain the lifecycle walkthrough and is not used as evidence. An earlier in-progress
+hash was recorded but the corresponding bytes were not preserved; this report does not
+present that unverifiable hash as a retained artifact. Lifecycle protocol claims use the
+decoded game logs, and state claims use paired database checkpoints.

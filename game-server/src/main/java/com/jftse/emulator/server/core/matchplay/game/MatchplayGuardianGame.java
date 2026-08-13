@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.life.progression.bonuses.BattleHouseBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfExpBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfWisemanBonus;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.script.ScriptContextHelper;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -274,8 +275,10 @@ public class MatchplayGuardianGame extends MatchplayGame {
         int baseSta = roomPlayer.getStamina();
         int baseDex = roomPlayer.getDexterity();
         int baseWill = roomPlayer.getWillpower();
-        int totalHp = initialPlayerMaxHealth.getOrDefault(roomPlayer,
-                calculatePlayerMaxHealth(roomPlayer, activeRoomPlayers));
+        int totalHp = initialPlayerMaxHealth.getOrDefault(
+                roomPlayer,
+                calculatePlayerMaxHealth(roomPlayer, activeRoomPlayers)
+        );
         int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr();
         int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta();
         int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
@@ -321,6 +324,28 @@ public class MatchplayGuardianGame extends MatchplayGame {
             maxHealth += maxHealth / 20;
         }
         return maxHealth;
+    }
+
+    public PlayerBattleState createBattlemonBattleState(GameSession.BattlemonActor actor) {
+        return new PlayerBattleState(
+                actor.position(),
+                actor.pet().id(),
+                actor.pet().hp(),
+                actor.pet().strength(),
+                actor.pet().stamina(),
+                actor.pet().dexterity(),
+                actor.pet().willpower()
+        );
+    }
+
+    public boolean hasExactBattleStates(Collection<Short> expectedPositions) {
+        Set<Short> actualPositions = new HashSet<>();
+        for (PlayerBattleState state : playerBattleStates) {
+            if (!actualPositions.add((short) state.getPosition())) {
+                return false;
+            }
+        }
+        return actualPositions.equals(new HashSet<>(expectedPositions));
     }
 
     static boolean hasActiveCoupleInParty(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {

@@ -79,10 +79,8 @@ public class FirstPlayerPacketHandler implements PacketHandler<FTConnection, CMS
             cardSlotEquipment = cardSlotEquipmentService.save(cardSlotEquipment);
             player.setCardSlotEquipment(cardSlotEquipment);
 
-                /*BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
-                battlemonSlotEquipment = battlemonSlotEquipmentService.save(battlemonSlotEquipment);
-                player.setBattlemonSlotEquipment(battlemonSlotEquipment);
-                */
+            player.setBattlemonSlotEquipment(battlemonSlotEquipmentService.save(
+                    new BattlemonSlotEquipment()));
 
             Pocket pocket = new Pocket();
             pocket = pocketService.save(pocket);

@@ -7,6 +7,7 @@ import com.jftse.emulator.server.core.life.progression.ExpGoldBonus;
 import com.jftse.emulator.server.core.life.progression.ExpGoldBonusImpl;
 import com.jftse.emulator.server.core.life.progression.SimpleExpGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.*;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
@@ -53,6 +54,8 @@ public class MatchplayBattleGame extends MatchplayGame {
     private AtomicInteger lastGuardianServeSide;
     private AtomicInteger spiderMineIdentifier;
     private final boolean isSingles;
+    private final Set<Integer> rewardPlayerPositions;
+    private AtomicBoolean finishScheduled;
 
     private final PlayerCombatSystem playerCombatSystem;
 
@@ -63,6 +66,14 @@ public class MatchplayBattleGame extends MatchplayGame {
     private final Random random = new Random();
 
     public MatchplayBattleGame(byte players) {
+        this(players, java.util.stream.IntStream.range(0, players).boxed().toList());
+    }
+
+    public MatchplayBattleGame(byte gameplayActors, byte rewardPlayers) {
+        this(gameplayActors, java.util.stream.IntStream.range(0, rewardPlayers).boxed().toList());
+    }
+
+    public MatchplayBattleGame(byte gameplayActors, Collection<Integer> rewardPlayerPositions) {
         super();
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -83,8 +94,10 @@ public class MatchplayBattleGame extends MatchplayGame {
         this.spiderMineIdentifier = new AtomicInteger(0);
         this.scheduledFutures = new ConcurrentLinkedDeque<>();
         this.finished = new AtomicBoolean(false);
+        this.finishScheduled = new AtomicBoolean(false);
 
-        this.isSingles = players == 2;
+        this.rewardPlayerPositions = Set.copyOf(rewardPlayerPositions);
+        this.isSingles = gameplayActors == 2;
 
         playerCombatSystem = new PlayerCombatSystem(this);
 
@@ -128,6 +141,18 @@ public class MatchplayBattleGame extends MatchplayGame {
         return pbs;
     }
 
+    public PlayerBattleState createBattlemonBattleState(GameSession.BattlemonActor actor) {
+        return new PlayerBattleState(
+                actor.position(),
+                actor.pet().id(),
+                actor.pet().hp(),
+                actor.pet().strength(),
+                actor.pet().stamina(),
+                actor.pet().dexterity(),
+                actor.pet().willpower()
+        );
+    }
+
     private Elementable getElementalProperties(PlayerPocket pp) {
         return switch (pp.getEnchantElement()) {
             case 5 -> {
@@ -153,11 +178,29 @@ public class MatchplayBattleGame extends MatchplayGame {
     public List<Integer> getPlayerPositionsOrderedByHighestHealth() {
         List<Integer> playerPositions = new ArrayList<>();
         this.playerBattleStates.stream()
+                .filter(playerBattleState -> rewardPlayerPositions.contains(playerBattleState.getPosition()))
                 .sorted(Comparator.comparingInt(pbs -> ((PlayerBattleState) pbs).getCurrentHealth().get())
                         .reversed())
                 .forEach(p -> playerPositions.add(p.getPosition()));
 
         return playerPositions;
+    }
+
+    public boolean hasExactBattleStates(Collection<Short> expectedPositions) {
+        Set<Short> actualPositions = new HashSet<>();
+        for (PlayerBattleState state : playerBattleStates) {
+            if (!actualPositions.add((short) state.getPosition())) {
+                return false;
+            }
+        }
+        return actualPositions.equals(new HashSet<>(expectedPositions));
+    }
+
+    public boolean isTeamDead(boolean redTeam) {
+        List<PlayerBattleState> team = playerBattleStates.stream()
+                .filter(state -> redTeam == isRedTeam(state.getPosition()))
+                .toList();
+        return !team.isEmpty() && team.stream().allMatch(state -> state.getCurrentHealth().get() < 1);
     }
 
     public MatchplayReward getMatchRewards() {
@@ -268,12 +311,8 @@ public class MatchplayBattleGame extends MatchplayGame {
         for (int playerPosition : this.getPlayerPositionsOrderedByHighestHealth()) {
             boolean wonGame = false;
             boolean isPlayerInRedTeam = this.isRedTeam(playerPosition);
-            boolean allPlayersTeamRedDead = this.getPlayerBattleStates().stream()
-                    .filter(x -> this.isRedTeam(x.getPosition()))
-                    .allMatch(x -> x.getCurrentHealth().get() < 1);
-            boolean allPlayersTeamBlueDead = this.getPlayerBattleStates().stream()
-                    .filter(x -> this.isBlueTeam(x.getPosition()))
-                    .allMatch(x -> x.getCurrentHealth().get() < 1);
+            boolean allPlayersTeamRedDead = this.isTeamDead(true);
+            boolean allPlayersTeamBlueDead = this.isTeamDead(false);
             if (isPlayerInRedTeam && allPlayersTeamBlueDead || !isPlayerInRedTeam && allPlayersTeamRedDead) {
                 wonGame = true;
             }
@@ -312,14 +351,8 @@ public class MatchplayBattleGame extends MatchplayGame {
 
     @Override
     public void addBonusesToRewards(ConcurrentLinkedDeque<RoomPlayer> roomPlayers, List<PlayerReward> playerRewards) {
-        final boolean isSingles = roomPlayers.stream().filter(rp -> rp.getPosition() < 4).count() == 2;
-
-        final boolean allPlayersTeamRedDead = this.getPlayerBattleStates().stream()
-                .filter(x -> this.isRedTeam(x.getPosition()))
-                .allMatch(x -> x.getCurrentHealth().get() < 1);
-        final boolean allPlayersTeamBlueDead = this.getPlayerBattleStates().stream()
-                .filter(x -> this.isBlueTeam(x.getPosition()))
-                .allMatch(x -> x.getCurrentHealth().get() < 1);
+        final boolean allPlayersTeamRedDead = this.isTeamDead(true);
+        final boolean allPlayersTeamBlueDead = this.isTeamDead(false);
 
         for (RoomPlayer rp : roomPlayers) {
             boolean wonGame = false;
@@ -337,7 +370,7 @@ public class MatchplayBattleGame extends MatchplayGame {
                     wonGame = true;
                 }
 
-                if (!isSingles)
+                if (!this.isSingles)
                     playerReward.setActiveBonuses(playerReward.getActiveBonuses() | BonusIconHighlightValues.TeamBonus);
 
                 ExpGoldBonus expGoldBonusSimple = new ExpGoldBonusImpl(playerReward.getExp(), playerReward.getGold());

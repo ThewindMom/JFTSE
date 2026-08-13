@@ -28,6 +28,9 @@ public class RabbitMQConfig extends AbstractRabbitMQConfiguration {
      */
     @Override
     protected List<RabbitQueueDefinition> getAdditionalQueues() {
-        return List.of();
+        return List.of(new RabbitQueueDefinition(
+                "relay-session-authorization",
+                List.of("game.relay.session.authorization")
+        ));
     }
 }

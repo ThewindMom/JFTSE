@@ -8,7 +8,6 @@ import com.jftse.entities.database.repository.pet.PetStatisticRepository;
 import com.jftse.server.core.service.PetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Calendar;
@@ -25,6 +24,12 @@ public class PetServiceImpl implements PetService {
     @Transactional(readOnly = true)
     public Pet findById(Long id) {
         return petRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Pet findByIdAndPlayerId(Long id, Long playerId) {
+        return petRepository.findByIdAndPlayerId(id, playerId).orElse(null);
     }
 
     @Override

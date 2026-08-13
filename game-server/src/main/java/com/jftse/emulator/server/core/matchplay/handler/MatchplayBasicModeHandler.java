@@ -5,7 +5,6 @@ import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.client.PlayerStatisticView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.PacketEventType;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.ServeType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
@@ -83,33 +82,33 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         Packet removeBlackBarsPacket = new Packet(PacketOperations.S2CGameRemoveBlackBars);
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(removeBlackBarsPacket, ftClient.getConnection());
 
-        ConcurrentLinkedDeque<FTClient> clients = ftClient.getActiveGameSession().getClients();
         List<ServeInfo> serveInfo = new ArrayList<>();
 
-        for (final FTClient client : clients) {
-            RoomPlayer rp = client.getRoomPlayer();
-            if (rp == null)
-                continue;
+        GameSession gameSession = ftClient.getActiveGameSession();
+        game.getServePlayerPosition().set(0);
+        game.getReceiverPlayerPosition().set(1);
+        for (short position : gameSession.getGameplayActorPositions()) {
+            Point playerLocation = game.getPlayerLocationsOnMap().get(position);
 
-            boolean isActivePlayer = rp.getPosition() < 4;
-            if (isActivePlayer) {
-                Point playerLocation = game.getPlayerLocationsOnMap().get(rp.getPosition());
-
-                byte serveType = ServeType.None;
-                if (rp.getPosition() == 0) {
-                    serveType = ServeType.ServeBall;
-                    game.getServePlayer().set(rp);
-                }
-                if (rp.getPosition() == 1) {
-                    serveType = ServeType.ReceiveBall;
-                    game.getReceiverPlayer().set(rp);
-                }
-                ServeInfo playerServeInfo = new ServeInfo();
-                playerServeInfo.setPlayerPosition(rp.getPosition());
-                playerServeInfo.setPlayerStartLocation(playerLocation);
-                playerServeInfo.setServeType(serveType);
-                serveInfo.add(playerServeInfo);
+            byte serveType = ServeType.None;
+            if (position == 0) {
+                serveType = ServeType.ServeBall;
+            } else if (position == 1) {
+                serveType = ServeType.ReceiveBall;
             }
+
+            ServeInfo playerServeInfo = new ServeInfo();
+            playerServeInfo.setPlayerPosition(position);
+            playerServeInfo.setPlayerStartLocation(playerLocation);
+            playerServeInfo.setServeType(serveType);
+            serveInfo.add(playerServeInfo);
+        }
+        if (!game.isSingles()) {
+            game.setPlayerLocationsForDoubles(serveInfo);
+            serveInfo.stream()
+                    .filter(info -> info.getServeType() == ServeType.ReceiveBall)
+                    .findFirst()
+                    .ifPresent(receiver -> game.getReceiverPlayerPosition().set(receiver.getPlayerPosition()));
         }
         S2CMatchplayTriggerServe matchplayTriggerServe = new S2CMatchplayTriggerServe(serveInfo);
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(matchplayTriggerServe, ftClient.getConnection());
@@ -127,7 +126,11 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        activeRoom.setStatus(RoomStatus.NotRunning);
+        if (!gameSession.getCompletionHandled().compareAndSet(false, true))
+            return;
+
+        boolean completionSucceeded = false;
+        try {
 
         gameSession.getFireables().forEach(f -> f.setCancelled(true));
         gameSession.getFireables().clear();
@@ -139,11 +142,20 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         gameLogContent.append(redTeamWon ? "Red " : "Blue ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
+        if (gameSession.isBattlemon()) {
+            matchplayReward.getPlayerRewards().removeIf(reward -> reward.getPlayerPosition() >= 2);
+        }
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
         List<FTPlayer> playerList = clients.stream()
                 .filter(FTClient::hasPlayer)
                 .map(FTClient::getPlayer)
                 .collect(Collectors.toList());
+        matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
+                .filter(FTClient::hasPlayer)
+                .map(FTClient::getRoomPlayer)
+                .filter(Objects::nonNull)
+                .filter(roomPlayer -> roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() < 4)
+                .collect(Collectors.toUnmodifiableMap(RoomPlayer::getPosition, RoomPlayer::getPlayerId)));
 
         game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
 
@@ -259,11 +271,10 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+            eventHandler.offer(eventHandler.createDetachedSessionPacketEvent(
+                    client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
             client.setActiveGameSession(null);
         }
-
-        matchRallyStatsConsumer.clearSession(gameSessionId);
 
         GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
 
@@ -278,8 +289,6 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
         if (gameSession.getClients().isEmpty()) {
-            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
-
             MatchFinishedMessage message = MatchFinishedMessage.builder()
                     .gameSessionId(gameSessionId)
                     .time(game.getTimeNeeded())
@@ -292,6 +301,13 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     .isHard(false)
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
+        }
+        completionSucceeded = true;
+        } finally {
+            if (!completionSucceeded) {
+                GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
+            }
+            GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
         }
     }
 
@@ -317,30 +333,40 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        boolean isSingles = gameSession.getPlayers() == 2;
-        final int pointsTeamRed = game.getPointsRedTeam().get();
-        final int pointsTeamBlue = game.getPointsBlueTeam().get();
-        final int setsTeamRead = game.getSetsRedTeam().get();
-        final int setsTeamBlue = game.getSetsBlueTeam().get();
+        short scoringActor = pointPacket.getPlayerPosition();
+        short scoringTeam = pointPacket.getPointsTeam();
+        if (!gameSession.getGameplayActorPositions().contains(scoringActor) || scoringTeam < 0 || scoringTeam > 3)
+            return;
 
-        boolean winningTeamIsRed = game.isRedTeam(pointPacket.getPointsTeam());
-        RallyResult rallyResult = matchRallyStatsConsumer.onPoint(ftClient.getGameSessionId(), winningTeamIsRed);
+        synchronized (game) {
+            if (game.getFinished().get() || gameSession.getCompletionHandled().get())
+                return;
 
-        if (pointPacket.getPlayerPosition() < 4) {
-            game.increasePerformancePointForPlayer(pointPacket.getPlayerPosition());
-            rallyResultMap.computeIfAbsent((int) pointPacket.getPlayerPosition(), k -> new ArrayList<>()).add(rallyResult);
-        }
+            boolean isSingles = game.isSingles();
+            final int pointsTeamRed = game.getPointsRedTeam().get();
+            final int pointsTeamBlue = game.getPointsBlueTeam().get();
+            final int setsTeamRead = game.getSetsRedTeam().get();
+            final int setsTeamBlue = game.getSetsBlueTeam().get();
 
-        if (game.isRedTeam(pointPacket.getPointsTeam()))
-            game.setPoints((byte) (pointsTeamRed + 1), (byte) pointsTeamBlue);
-        else if (game.isBlueTeam(pointPacket.getPointsTeam()))
-            game.setPoints((byte) pointsTeamRed, (byte) (pointsTeamBlue + 1));
+            boolean winningTeamIsRed = game.isRedTeam(scoringTeam);
+            RallyResult rallyResult = matchRallyStatsConsumer.onPoint(ftClient.getGameSessionId(), winningTeamIsRed);
 
-        final boolean isFinished = game.getFinished().get();
+            int ownerPosition = gameSession.getOwnerPositionForActor(scoringActor);
+            game.increasePerformancePointForPlayer(ownerPosition);
+            rallyResultMap.computeIfAbsent(ownerPosition, k -> new ArrayList<>()).add(rallyResult);
 
-        if (isFinished) {
-            this.onEnd(ftClient);
-        } else {
+            if (winningTeamIsRed)
+                game.setPoints((byte) (pointsTeamRed + 1), (byte) pointsTeamBlue);
+            else
+                game.setPoints((byte) pointsTeamRed, (byte) (pointsTeamBlue + 1));
+
+            final boolean isFinished = game.getFinished().get();
+
+            if (isFinished) {
+                this.onEnd(ftClient);
+                return;
+            }
+
             boolean anyTeamWonSet = setsTeamRead != game.getSetsRedTeam().get() || setsTeamBlue != game.getSetsBlueTeam().get();
             if (anyTeamWonSet) {
                 gameSession.setTimesCourtChanged(gameSession.getTimesCourtChanged() + 1);
@@ -350,54 +376,44 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
 
             List<ServeInfo> serveInfo = new ArrayList<>();
             ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
-            ConcurrentLinkedDeque<RoomPlayer> roomPlayerList = activeRoom.getRoomPlayerList();
+            for (short position : gameSession.getGameplayActorPositions()) {
+                boolean shouldPlayerSwitchServingSide = game.shouldSwitchServingSide(isSingles, isRedTeamServing, anyTeamWonSet, position);
+                if (shouldPlayerSwitchServingSide) {
+                    Point playerLocation = game.getPlayerLocationsOnMap().get(position);
+                    game.getPlayerLocationsOnMap().set(position, game.invertPointX(playerLocation));
+                }
+
+                boolean shouldServeBall = game.shouldPlayerServe(isSingles, gameSession.getTimesCourtChanged(), position);
+                byte serveType = ServeType.None;
+                if (shouldServeBall) {
+                    serveType = ServeType.ServeBall;
+                    game.getServePlayerPosition().set(position);
+                } else if (isSingles) {
+                    serveType = ServeType.ReceiveBall;
+                    game.getReceiverPlayerPosition().set(position);
+                }
+
+                ServeInfo playerServeInfo = new ServeInfo();
+                playerServeInfo.setPlayerPosition(position);
+                playerServeInfo.setPlayerStartLocation(game.getPlayerLocationsOnMap().get(position));
+                playerServeInfo.setServeType(serveType);
+                serveInfo.add(playerServeInfo);
+            }
+
+            short pointingTeamPosition = -1;
+            if (game.isRedTeam(pointPacket.getPointsTeam()))
+                pointingTeamPosition = 0;
+            else if (game.isBlueTeam(pointPacket.getPointsTeam()))
+                pointingTeamPosition = 1;
+
+            S2CMatchplayTeamWinsPoint matchplayTeamWinsPoint = new S2CMatchplayTeamWinsPoint(pointingTeamPosition, pointPacket.getBallState(), (byte) game.getPointsRedTeam().get(), (byte) game.getPointsBlueTeam().get());
+            S2CMatchplayTeamWinsSet matchplayTeamWinsSet = anyTeamWonSet
+                    ? new S2CMatchplayTeamWinsSet((byte) game.getSetsRedTeam().get(), (byte) game.getSetsBlueTeam().get())
+                    : null;
             for (FTClient client : clients) {
-                RoomPlayer rp = client.getRoomPlayer();
-                if (rp == null)
-                    continue;
-
-                boolean isActivePlayer = rp.getPosition() < 4;
-                if (isActivePlayer) {
-                    boolean shouldPlayerSwitchServingSide = game.shouldSwitchServingSide(isSingles, isRedTeamServing, anyTeamWonSet, rp.getPosition());
-                    if (shouldPlayerSwitchServingSide) {
-                        Point playerLocation = game.getPlayerLocationsOnMap().get(rp.getPosition());
-                        game.getPlayerLocationsOnMap().set(rp.getPosition(), game.invertPointX(playerLocation));
-                    }
-                }
-
-                short pointingTeamPosition = -1;
-                if (game.isRedTeam(pointPacket.getPointsTeam()))
-                    pointingTeamPosition = 0;
-                else if (game.isBlueTeam(pointPacket.getPointsTeam()))
-                    pointingTeamPosition = 1;
-
-                S2CMatchplayTeamWinsPoint matchplayTeamWinsPoint = new S2CMatchplayTeamWinsPoint(pointingTeamPosition, pointPacket.getBallState(), (byte) game.getPointsRedTeam().get(), (byte) game.getPointsBlueTeam().get());
                 eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTeamWinsPoint, PacketEventType.DEFAULT, 0));
-
-                if (anyTeamWonSet) {
-                    S2CMatchplayTeamWinsSet matchplayTeamWinsSet = new S2CMatchplayTeamWinsSet((byte) game.getSetsRedTeam().get(), (byte) game.getSetsBlueTeam().get());
+                if (matchplayTeamWinsSet != null)
                     eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTeamWinsSet, PacketEventType.DEFAULT, 0));
-                }
-
-                if (isActivePlayer) {
-                    boolean shouldServeBall = game.shouldPlayerServe(isSingles, gameSession.getTimesCourtChanged(), rp.getPosition());
-                    byte serveType = ServeType.None;
-
-                    if (shouldServeBall) {
-                        serveType = ServeType.ServeBall;
-                        game.getServePlayer().set(rp);
-                    }
-                    if (!shouldServeBall && isSingles) {
-                        serveType = ServeType.ReceiveBall;
-                        game.getReceiverPlayer().set(rp);
-                    }
-
-                    ServeInfo playerServeInfo = new ServeInfo();
-                    playerServeInfo.setPlayerPosition(rp.getPosition());
-                    playerServeInfo.setPlayerStartLocation(game.getPlayerLocationsOnMap().get(rp.getPosition()));
-                    playerServeInfo.setServeType(serveType);
-                    serveInfo.add(playerServeInfo);
-                }
             }
 
             if (!serveInfo.isEmpty()) {
@@ -406,10 +422,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     serveInfo.stream()
                             .filter(x -> x.getServeType() == ServeType.ReceiveBall)
                             .findFirst()
-                            .flatMap(receiver -> roomPlayerList.stream()
-                                    .filter(x -> x.getPosition() == receiver.getPlayerPosition())
-                                    .findFirst())
-                            .ifPresent(x -> game.getReceiverPlayer().set(x));
+                            .ifPresent(receiver -> game.getReceiverPlayerPosition().set(receiver.getPlayerPosition()));
                 }
                 S2CMatchplayTriggerServe matchplayTriggerServe = new S2CMatchplayTriggerServe(serveInfo);
                 for (FTClient client : clients)
