@@ -5,6 +5,8 @@ import com.jftse.emulator.server.core.handler.SpiderMineExplodeHandler;
 import com.jftse.emulator.server.core.handler.SpiderMinePlacedHandler;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.BattlemonController;
 import com.jftse.server.core.protocol.IPacket;
 import com.jftse.server.core.shared.packets.relay.CMSGRelay;
 import com.jftse.server.core.shared.packets.relay.CMSGSpiderMineExplode;
@@ -54,6 +56,9 @@ class RelaySessionAuthorizationStoreTest {
         store.put(authorization(100, true, Map.of(
                 1000, List.of((short) 0, (short) 2),
                 2000, List.of((short) 1, (short) 3)
+        ), Map.of(
+                1000, true,
+                2000, true
         )));
         FTClient firstOwner = registeredClient(100, 1000);
         FTClient secondOwner = registeredClient(100, 2000);
@@ -66,6 +71,48 @@ class RelaySessionAuthorizationStoreTest {
         assertTrue(store.canAct(secondOwner, 3));
         assertFalse(store.canAct(secondOwner, 0));
         assertFalse(store.canAct(secondOwner, 2));
+    }
+
+    @Test
+    void possessionRequiresSpecialItemElevenWithAPositiveCount() {
+        assertFalse(BattlemonController.isPossessed(null));
+        assertFalse(BattlemonController.isPossessed(pocket("SPECIAL", 11, 0)));
+        assertFalse(BattlemonController.isPossessed(pocket("SPECIAL", 10, 1)));
+        assertFalse(BattlemonController.isPossessed(pocket("PET_ITEM", 11, 1)));
+        assertTrue(BattlemonController.isPossessed(pocket("SPECIAL", 11, 1)));
+        assertFalse(BattlemonController.isPetActor(0));
+        assertTrue(BattlemonController.isPetActor(2));
+    }
+
+    @Test
+    void battlemonPetCommandsRequireControllerPossession() {
+        store.put(authorization(100, true, Map.of(
+                1000, List.of((short) 0, (short) 2),
+                2000, List.of((short) 1, (short) 3)
+        ), Map.of(
+                1000, true,
+                2000, false
+        )));
+        FTClient firstOwner = registeredClient(100, 1000);
+        FTClient secondOwner = registeredClient(100, 2000);
+
+        assertTrue(store.canAct(firstOwner, 0));
+        assertTrue(store.canAct(firstOwner, 2));
+        assertTrue(store.canAct(secondOwner, 1));
+        assertFalse(store.canAct(secondOwner, 3));
+        assertFalse(store.canAct(firstOwner, 3));
+    }
+
+    @Test
+    void missingControllerFlagsRejectPetCommandsWithoutAffectingHumanActors() {
+        store.put(authorization(100, true, Map.of(
+                1000, List.of((short) 0, (short) 2),
+                2000, List.of((short) 1, (short) 3)
+        )));
+        FTClient firstOwner = registeredClient(100, 1000);
+
+        assertTrue(store.canAct(firstOwner, 0));
+        assertFalse(store.canAct(firstOwner, 2));
     }
 
     @Test
@@ -429,11 +476,23 @@ class RelaySessionAuthorizationStoreTest {
 
     private static RelaySessionAuthorizationMessage authorization(int sessionId, boolean battlemon,
                                                                    Map<Integer, List<Short>> actors) {
-        return authorization(sessionId, UUID.randomUUID().toString(), battlemon, actors);
+        return authorization(sessionId, UUID.randomUUID().toString(), battlemon, actors, null);
+    }
+
+    private static RelaySessionAuthorizationMessage authorization(int sessionId, boolean battlemon,
+                                                                   Map<Integer, List<Short>> actors,
+                                                                   Map<Integer, Boolean> controllers) {
+        return authorization(sessionId, UUID.randomUUID().toString(), battlemon, actors, controllers);
     }
 
     private static RelaySessionAuthorizationMessage authorization(int sessionId, String generation, boolean battlemon,
                                                                    Map<Integer, List<Short>> actors) {
+        return authorization(sessionId, generation, battlemon, actors, null);
+    }
+
+    private static RelaySessionAuthorizationMessage authorization(int sessionId, String generation, boolean battlemon,
+                                                                   Map<Integer, List<Short>> actors,
+                                                                   Map<Integer, Boolean> controllers) {
         return RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(sessionId)
                 .generation(generation)
@@ -444,8 +503,17 @@ class RelaySessionAuthorizationStoreTest {
                         playerId -> playerId,
                         playerId -> "127.0.0.1"
                 )))
+                .battlemonControllerByPlayerId(controllers)
                 .expiresAt(Instant.now().plusSeconds(60))
                 .build();
+    }
+
+    private static PlayerPocket pocket(String category, int itemIndex, int count) {
+        PlayerPocket playerPocket = new PlayerPocket();
+        playerPocket.setCategory(category);
+        playerPocket.setItemIndex(itemIndex);
+        playerPocket.setItemCount(count);
+        return playerPocket;
     }
 
     private FTClient registeredClient(int sessionId, int playerId) {

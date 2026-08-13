@@ -29,8 +29,12 @@ import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.pet.PetStatistic;
 import com.jftse.server.core.protocol.IPacket;
+import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.BattlemonController;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.service.AuthenticationService;
 import com.jftse.server.core.service.PetService;
+import com.jftse.server.core.service.PlayerPocketService;
 import com.jftse.server.core.service.SocialService;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeAllowBattlemon;
@@ -219,6 +223,52 @@ class RoomStartGamePacketHandlerTest {
         assertTrue(authorization.getBattlemon());
         assertEquals(List.of((short) 0, (short) 2), authorization.getActorPositionsByPlayerId().get(100));
         assertEquals(List.of((short) 1, (short) 3), authorization.getActorPositionsByPlayerId().get(200));
+        assertEquals(Boolean.FALSE, authorization.getBattlemonControllerByPlayerId().get(100));
+        assertEquals(Boolean.FALSE, authorization.getBattlemonControllerByPlayerId().get(200));
+    }
+
+    @Test
+    void battlemonRelayAuthorizationGatesPetActorsOnControllerPossession() {
+        Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
+        try {
+            PlayerPocketService playerPocketService = mock(PlayerPocketService.class);
+            ServiceManager serviceManager = mock(ServiceManager.class);
+            when(serviceManager.getPlayerPocketService()).thenReturn(playerPocketService);
+            ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
+
+            FTClient first = client(100L, (short) 0);
+            FTClient second = client(200L, (short) 1);
+            when(first.getPlayer().getPocketId()).thenReturn(11L);
+            when(second.getPlayer().getPocketId()).thenReturn(22L);
+            PlayerPocket ownedController = new PlayerPocket();
+            ownedController.setCategory(EItemCategory.SPECIAL.getName());
+            ownedController.setItemIndex(BattlemonController.SPECIAL_ITEM_INDEX);
+            ownedController.setItemCount(1);
+            when(playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(
+                    BattlemonController.SPECIAL_ITEM_INDEX, EItemCategory.SPECIAL.getName(), 11L))
+                    .thenReturn(ownedController);
+            when(playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(
+                    BattlemonController.SPECIAL_ITEM_INDEX, EItemCategory.SPECIAL.getName(), 22L))
+                    .thenReturn(null);
+
+            GameSession session = new GameSession(true);
+            session.getClients().add(first);
+            session.getClients().add(second);
+            session.addBattlemonActor(first.getRoomPlayer(), pet(10L, "First pet"));
+            session.addBattlemonActor(second.getRoomPlayer(), pet(20L, "Second pet"));
+            session.initializeGameplayActorPositions();
+
+            RelaySessionAuthorizationMessage authorization = RoomStartGamePacketHandler.createRelayAuthorization(
+                    12345,
+                    List.of(first, second),
+                    session
+            );
+
+            assertEquals(Boolean.TRUE, authorization.getBattlemonControllerByPlayerId().get(100));
+            assertEquals(Boolean.FALSE, authorization.getBattlemonControllerByPlayerId().get(200));
+        } finally {
+            ReflectionTestUtils.setField(ServiceManager.class, "instance", previousServiceManager);
+        }
     }
 
     @Test

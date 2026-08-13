@@ -22,13 +22,17 @@ import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.gameserver.GameServer;
 import com.jftse.entities.database.model.pet.Pet;
+import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
+import com.jftse.server.core.item.BattlemonController;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.AuthenticationService;
 import com.jftse.server.core.service.PetService;
+import com.jftse.server.core.service.PlayerPocketService;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.packets.matchplay.*;
 import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
@@ -446,6 +450,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                                                                       GameSession gameSession) {
         Map<Integer, List<Short>> actorPositionsByPlayerId = new LinkedHashMap<>();
         Map<Integer, String> playerAddresses = new LinkedHashMap<>();
+        Map<Integer, Boolean> battlemonControllerByPlayerId = new LinkedHashMap<>();
         for (FTClient client : clients) {
             if (!client.hasPlayer() || client.getRoomPlayer() == null || client.getConnection() == null) {
                 throw new IllegalArgumentException("Relay clients must have a room player");
@@ -470,6 +475,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                 throw new IllegalArgumentException("Relay client has no remote address");
             }
             playerAddresses.put(playerId, remoteAddress.getAddress().getHostAddress());
+            battlemonControllerByPlayerId.put(playerId, ownsBattlemonController(client));
         }
 
         long distinctActorCount = actorPositionsByPlayerId.values().stream()
@@ -488,8 +494,27 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                 .revoked(false)
                 .actorPositionsByPlayerId(actorPositionsByPlayerId)
                 .playerAddresses(playerAddresses)
+                .battlemonControllerByPlayerId(battlemonControllerByPlayerId)
                 .expiresAt(Instant.now().plus(2, ChronoUnit.HOURS))
                 .build();
+    }
+
+    static boolean ownsBattlemonController(FTClient client) {
+        if (client == null || !client.hasPlayer()) {
+            return false;
+        }
+        PlayerPocketService playerPocketService = ServiceManager.getInstance() == null
+                ? null
+                : ServiceManager.getInstance().getPlayerPocketService();
+        if (playerPocketService == null) {
+            return false;
+        }
+        PlayerPocket controller = playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(
+                BattlemonController.SPECIAL_ITEM_INDEX,
+                EItemCategory.SPECIAL.getName(),
+                client.getPlayer().getPocketId()
+        );
+        return BattlemonController.isPossessed(controller);
     }
 
     static void abortStartAndNotifyClients(Room room, Integer gameSessionId, GameSession gameSession,

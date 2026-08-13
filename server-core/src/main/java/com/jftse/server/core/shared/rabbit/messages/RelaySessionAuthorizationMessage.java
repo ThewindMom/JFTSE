@@ -22,6 +22,7 @@ public class RelaySessionAuthorizationMessage extends AbstractBaseMessage {
     private Boolean revoked;
     private Map<Integer, List<Short>> actorPositionsByPlayerId;
     private Map<Integer, String> playerAddresses;
+    private Map<Integer, Boolean> battlemonControllerByPlayerId;
     private Instant expiresAt;
 
     @Builder
@@ -29,6 +30,7 @@ public class RelaySessionAuthorizationMessage extends AbstractBaseMessage {
                                             Boolean revoked,
                                             Map<Integer, List<Short>> actorPositionsByPlayerId,
                                             Map<Integer, String> playerAddresses,
+                                            Map<Integer, Boolean> battlemonControllerByPlayerId,
                                             Instant expiresAt) {
         this.gameSessionId = gameSessionId;
         this.generation = generation;
@@ -36,6 +38,7 @@ public class RelaySessionAuthorizationMessage extends AbstractBaseMessage {
         this.revoked = revoked;
         this.actorPositionsByPlayerId = actorPositionsByPlayerId;
         this.playerAddresses = playerAddresses;
+        this.battlemonControllerByPlayerId = battlemonControllerByPlayerId;
         this.expiresAt = expiresAt;
     }
 

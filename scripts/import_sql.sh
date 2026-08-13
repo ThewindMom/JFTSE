@@ -22,6 +22,7 @@ fi
 SQL_FILES=(
     "battlemon-slot-equipment.sql"
     "pet-level-unsigned.sql"
+    "battlemon-controller.sql"
     "config.sql"
     "status.sql"
     "maps.sql"

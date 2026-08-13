@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.manager;
 
 import com.jftse.emulator.server.net.FTClient;
+import com.jftse.server.core.item.BattlemonController;
 import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +53,14 @@ public class RelaySessionAuthorizationStore {
                 !message.getPlayerAddresses().keySet().equals(message.getActorPositionsByPlayerId().keySet())) {
             throw new IllegalArgumentException("Relay session authorization has incomplete endpoint data");
         }
+        Map<Integer, Boolean> controllerByPlayerId = message.getBattlemonControllerByPlayerId();
+        if (controllerByPlayerId == null) {
+            controllerByPlayerId = Map.of();
+        }
+        if (!controllerByPlayerId.keySet().stream().allMatch(message.getActorPositionsByPlayerId()::containsKey) ||
+                controllerByPlayerId.values().stream().anyMatch(value -> value == null)) {
+            throw new IllegalArgumentException("Relay session authorization has incomplete controller data");
+        }
 
         Map<Integer, Set<Short>> actorsByPlayerId = new HashMap<>();
         Set<Short> claimedActors = new HashSet<>();
@@ -91,6 +100,7 @@ public class RelaySessionAuthorizationStore {
                 battlemon,
                 Map.copyOf(actorsByPlayerId),
                 Map.copyOf(playerAddresses),
+                Map.copyOf(controllerByPlayerId),
                 message.getExpiresAt()
         );
         sessions.compute(message.getGameSessionId(), (sessionId, existing) -> {
@@ -129,9 +139,16 @@ public class RelaySessionAuthorizationStore {
             return false;
         }
         return findForClient(registration)
-                .map(authorization -> authorization.actorPositionsByPlayerId()
-                        .getOrDefault(registration.playerId(), Set.of())
-                        .contains((short) actorPosition))
+                .map(authorization -> {
+                    if (!authorization.actorPositionsByPlayerId()
+                            .getOrDefault(registration.playerId(), Set.of())
+                            .contains((short) actorPosition)) {
+                        return false;
+                    }
+                    return !BattlemonController.isPetActor(actorPosition) ||
+                            Boolean.TRUE.equals(authorization.battlemonControllerByPlayerId()
+                                    .get(registration.playerId()));
+                })
                 .orElse(false);
     }
 
@@ -191,6 +208,7 @@ public class RelaySessionAuthorizationStore {
                                        boolean battlemon,
                                        Map<Integer, Set<Short>> actorPositionsByPlayerId,
                                        Map<Integer, String> playerAddresses,
+                                       Map<Integer, Boolean> battlemonControllerByPlayerId,
                                        Instant expiresAt) {
     }
 }
