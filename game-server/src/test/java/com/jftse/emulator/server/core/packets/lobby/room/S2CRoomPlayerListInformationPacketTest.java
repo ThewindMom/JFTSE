@@ -70,6 +70,32 @@ class S2CRoomPlayerListInformationPacketTest {
         assertEquals(1, emptyPetData[presenceFlagOffset]);
     }
 
+    @Test
+    void fittingPlayerInformationPreservesTheOptionalPet() {
+        RoomPlayer roomPlayer = roomPlayer();
+        S2CRoomFittingPlayerInfoPacket absentPetPacket = new S2CRoomFittingPlayerInfoPacket(
+                roomPlayer.getPosition(), roomPlayer);
+
+        roomPlayer.setPet(new PetView(0, 0, "", 0, 0, 0, 0, 0, 0, 0, 0));
+        S2CRoomFittingPlayerInfoPacket emptyPetPacket = new S2CRoomFittingPlayerInfoPacket(
+                roomPlayer.getPosition(), roomPlayer);
+
+        assertEquals(absentPetPacket.getDataLength() + 20, emptyPetPacket.getDataLength());
+
+        byte[] absentPetData = absentPetPacket.getData();
+        byte[] emptyPetData = emptyPetPacket.getData();
+        int presenceFlagOffset = -1;
+        for (int i = 0; i < absentPetData.length; i++) {
+            if (absentPetData[i] != emptyPetData[i]) {
+                assertEquals(-1, presenceFlagOffset, "only the pet-presence flag may differ before the optional payload");
+                presenceFlagOffset = i;
+                assertEquals(0, absentPetData[i]);
+                assertEquals(1, emptyPetData[i]);
+            }
+        }
+        assertTrue(presenceFlagOffset >= 0, "the pet-presence flag must be encoded");
+    }
+
     private RoomPlayer roomPlayer() {
         return new RoomPlayer(null) {
             @Override
