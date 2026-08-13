@@ -1,63 +1,85 @@
 Remaining special items: decisive red/green excerpts
 ====================================================
 
-RED 1 - missing effect implementation
-Command:
-  mvn -pl game-server -am -Dsurefire.failIfNoSpecifiedTests=false \
-    -Dtest=SpecialItemEffectsTest#resolvesNativeNecklaceAndEarringEffects test
+RED — earlier special-item slice
+--------------------------------
+Missing SpecialItemEffects class; later correctness tests caught promotional
+aliases 39/40/41 returning false and a battle-only +200 HP necklace leaking
+into a generic packet (expected 220, received 420). BUILD FAILURE.
 
-Result:
-  Tests run: 1, Failures: 1, Errors: 0, Skipped: 0
-  ClassNotFoundException: com.jftse.server.core.item.SpecialItemEffects
+RED — SPECIAL 7 / Contract with Guardian
+-----------------------------------------
+Focused test compilation failed before implementation:
+  cannot find symbol: ContractWithGuardianServiceImpl
   BUILD FAILURE
 
-RED 2 - correctness audit after the first implementation pass
-Result:
-  Promotional aliases 39/40/41: expected true but was false (3 cases)
-  Generic status packet HP: expected 220 but was 420
+GREEN:
+  ContractWithGuardianTest
+  Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
+
+RED — SPECIAL 18 / Club Member License
+--------------------------------------
+Pre-implementation service/factory contract:
+  Tests run: 14, Failures: 13, Errors: 0, Skipped: 0
+  factoryRecognizes... expected: not <null>
+  successful/rejection contracts received ITEM_NOT_FOUND
   BUILD FAILURE
 
-The HP failure was decisive: a battle-only +200 necklace had leaked into a
-generic/basic status packet. The alias failures showed that promotional rings
-were not recognized by reward lookup. Additional strict-Mockito errors in the
-same red run were diagnostic noise and are not presented as product failures.
+GREEN:
+  ClubMemberLicenseTest
+  Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
 
-GREEN - exact row and alias regression
+RED — SPECIAL 19 / Personal Board
+---------------------------------
+Join-list packet contract failed to compile before the room-position model:
+  Map<Short,String> cannot be converted to Map<Integer,String>
+  BUILD FAILURE
+
+GREEN:
+  PersonalBoardServiceTest:                 6 passed
+  PersonalBoardRoomLifecycleTest:           3 passed
+  PersonalBoardPacketTest:                  2 passed
+  PersonalBoardRequestPacketHandlerTest:    6 passed
+  Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+
+FINAL FOCUSED GATES
+-------------------
 Command:
-  mvn -pl game-server -am -Dsurefire.failIfNoSpecifiedTests=false \
-    -Dtest=PromotionalRingAliasTest test
+  mvn -pl game-server -am \
+    -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dtest=ContractWithGuardianTest,ClubMemberLicenseTest test
 
 Result:
-  Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+  Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
   BUILD SUCCESS
 
-GREEN - final full reactor test gate
+Command:
+  mvn -pl chat-server -am \
+    -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dtest=PersonalBoardPacketTest,PersonalBoardServiceTest,\
+PersonalBoardRequestPacketHandlerTest,PersonalBoardRoomLifecycleTest test
+
+Result:
+  Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+  BUILD SUCCESS
+
+FINAL FULL REACTOR GATE
+-----------------------
 Command:
   mvn test
 
 Result:
-  auth-server: PlayerNameChangeHandlerTest 1/1 passed
-  game-server: Tests run: 65, Failures: 0, Errors: 0, Skipped: 0
+  auth-server:  Tests run: 1,  Failures: 0, Errors: 0, Skipped: 0
+  game-server:  Tests run: 93, Failures: 0, Errors: 0, Skipped: 0
+  chat-server:  Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
   all 11 reactor modules: SUCCESS
   BUILD SUCCESS
 
-GREEN - final package gate
+FINAL PACKAGE GATE
+------------------
 Command:
   mvn package -DskipTests
 
 Result:
   all 11 reactor modules: SUCCESS
-  BUILD SUCCESS
-
-GREEN - post-commit focused rerun
-Command:
-  mvn -pl game-server,auth-server -am \
-    -Dsurefire.failIfNoSpecifiedTests=false \
-    -Dtest=SpecialItemEffectsTest,SpecialSlotEquipmentServiceImplTest,\
-SpecialItemPacketSerializationTest,PromotionalRingAliasTest,\
-ProposalServiceImplTest,SendProposalRequestHandlerTest,\
-MatchplayGameSettlementTest,PlayerNameChangeHandlerTest test
-
-Result:
-  Tests run: 58, Failures: 0, Errors: 0, Skipped: 0
   BUILD SUCCESS

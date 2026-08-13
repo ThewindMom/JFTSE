@@ -2,19 +2,20 @@
 
 # JFTSE — Remaining Special Items
 
-<div class="subtitle">Fantasy Tennis client reverse engineering, Java server implementation, red/green tests, and native-client validation</div>
+<div class="subtitle">Fantasy Tennis client reverse engineering, Java server implementation, red/green tests, native-client validation, and an explicit unresolved-work register</div>
 
 <div class="metadata">
 
-**Server repository:** `sstokic-tgm/JFTSE`<br>
-**Base branch/commit:** `origin/development` / `65c3665170edc2d912a3187244de89251a809712`<br>
-**Work branch:** `reverse-engineering/remaining-special-items`<br>
-**Faulty-change revert:** `af927924ea3fa2a4cf1259d35f1e153185018d7e`<br>
-**Implementation:** `7079844c6d648aad89686dad5852540ffbb5e31a`<br>
+**Server repository:** `ThewindMom/JFTSE`<br>
+**Development source:** `origin/development` / `65c3665170edc2d912a3187244de89251a809712`<br>
+**Clean reconstructed base:** `b737fc59cf9ad5811318d28eacda2629a6658243`<br>
+**Work branch:** `reverse-engineering/unknown-special-items`<br>
+**Implementation commits:** `ba919b4493e8e1702d88f932baadc2a99d6d462c`, `3a2ad3d5cdb765b6f129edb4813eacd74117a49d`<br>
+**Faulty commit excluded from ancestry:** `fcdeb89a94bb17337f8b8f499b79c5892370004e`<br>
 **Client archive SHA-256:** `c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e`<br>
 **FantaTennis.exe SHA-256:** `5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31`<br>
-**Runtime:** Wine 8.0, Win32 prefix, Xvfb `:108` at 1280×900×24<br>
-**Validation date:** 2026-08-12 UTC
+**Runtime:** Wine 8.0, Win32 prefix, unmodified native client<br>
+**Final validation date:** 2026-08-13 UTC
 
 </div>
 
@@ -24,129 +25,54 @@
 
 # Executive summary
 
-This branch implements the currently understood functional subset of Fantasy
-Tennis special items from first principles. The client catalog, JFTSE packet
-schemas, existing entity/service boundaries, and native runtime were treated
-as separate evidence classes rather than interchangeable proof.
+This branch implements only behavior established from repository contracts,
+decrypted client resources, packet traces, database transitions, and native
+client observation. It retains the earlier special-item work and adds three
+new native-validated items:
 
-The implementation adds match-stat effects for necklaces and earrings,
-per-successful-match consumption, special-slot validation, proposal-card
-consumption, promotional ring aliases, exact duplicate-stack handling, and a
-six-calendar-month nickname cooldown. Match settlement is idempotent per game,
-and proposal-card mutation is transactional with pessimistic row locks.
+| Index | Client item | Implemented behavior | Native result |
+|---:|---|---|---|
+| 7 | Contract with Guardian / “Zero Book” | Reset the basic, battle, and guardian win/loss records; consume one item atomically. | `0x1BDA`, row ID 13; six counters reset; RP/streak/disconnect/shot data preserved; item removed. |
+| 18 | Club Member License | Club master at club level ≥10 increases member capacity by 10, capped at 80; consume on success only. | Capacity 25→35 with removal; capacity 80 rejection retained item and state. |
+| 19 | Personal Board | Consume one board per message, publish/replace the pink overhead board in the current room, restore active boards to joiners, clear on leave/kick/disconnect. | Native `0x22CD`; visible initial and replacement boards; depletion and leave/rejoin clearing observed. |
+
+The earlier implementation covers nickname cooldown, proposal cards,
+necklaces, earrings, special-slot validation and consumption, promotional
+aliases, and exact duplicate-stack behavior. The complete reactor and package
+gates pass.
 
 <div class="callout">
 
-**Proven by executed tests:** item-value mapping, mode filtering, packet field
-serialization, equipment normalization, one-use consumption, exact-row ring
-behavior, proposal validation/transaction behavior, nickname cooldown, and
-single settlement under concurrency. The final full reactor and package gates
-passed.
+**Final automated proof:** 28 focused tests for items 7/18 and 17 focused
+tests for item 19 passed. The full reactor passed with game-server 93 tests,
+chat-server 17 tests, auth-server 1 test, no failures/errors, and all 11 modules
+successful. `mvn package -DskipTests` also passed.
 
 </div>
 
 <div class="callout">
 
-**Observed with the unmodified native client:** the exact release JARs reached
-User Login, authenticated the disposable fixture, displayed `SpecialLab` and
-the channel list, and entered the Main lobby. A pre-final packaged run rendered
-all 12 DB-seeded special-item stacks in Magic Pocket.
+**Final native proof:** the unmodified client exercised the positive item 7,
+positive and max-capacity item 18, and item 19 creation, replacement,
+depletion, leave, and rejoin flows. Each functionality claim below is paired
+with packet, database, test, or visual evidence.
 
 </div>
 
 <div class="warning">
 
-**Not claimed:** native proof of special-slot persistence, proposal UI,
-match-item consumption, match settlement, Battlemon, Personal Board, or items
-5/7/8/18/19/20/22. The character and inventory were DB seeded. A visible
-necklace equip preview did not persist and is explicitly negative evidence.
+**Still unresolved and deliberately not implemented:** indices 5, 8, 20, and
+22. No separate club-level-up item was found. Item 18 changes the maximum club
+member count; it does not increase club level. Native second-client receipt of
+the Personal Board join-list packet `0x22CF` is also still missing.
 
 </div>
 
-## Evidence classification
+# Scope, provenance, and clean history
 
-| Class | Finding |
-|---|---|
-| Observed native runtime | Release client reached login → player/channel selection → Main lobby; earlier package rendered 12 seeded stacks. |
-| Static client reverse engineering | Decrypted `Item_Special.set` defines values, aliases, mode text, one-use-per-game text, proposal cards, and six-month cooldown copy. |
-| JFTSE source baseline | `.packet` files establish `0x1B70`, `0x251D`, and `0x251E`; entities/services define persistence ownership. |
-| Compatibility interpretation | Promotional copies behave like canonical items; WIS catalog effects map to the server's WIL stat; successful settlement is the consumption boundary. |
-| Branch implementation | Java behavior and tests in commit `7079844`. |
+## Documentation basis
 
-# Scope, provenance, and branch history
-
-## Development base and non-destructive removal
-
-The branch was created from `origin/development` at
-`65c3665170edc2d912a3187244de89251a809712`. The faulty commit requested for
-removal, `fcdeb89a94bb17337f8b8f499b79c5892370004e`, was already in published
-development history. It was removed non-destructively by revert commit
-`af927924ea3fa2a4cf1259d35f1e153185018d7e`; history was not rewritten.
-
-```text
-7079844  Implement remaining special item behavior
-af92792  Revert "fix types in pet packets; ..."
-65c3665  origin/development base
-```
-
-The faulty commit remains an ancestor as immutable history, but its patch is
-counteracted by `af92792`. Nothing was pushed during this work.
-
-## Client provenance
-
-The client came from
-[https://www.jftse.com/client/FantaTennis.7z](https://www.jftse.com/client/FantaTennis.7z).
-The archive and executable matched the known JFTSE hashes on the title page.
-`FantaTennis.exe` was unmodified. Runtime copies used a proven Win32 Wine
-prefix; the immutable client copy was not altered.
-
-## Implemented item matrix
-
-| Indices | Implemented behavior | Evidence level |
-|---|---|---|
-| 4 | Next nickname change is six calendar months after the last change. | Static client + unit test |
-| 23–25 | Proposal-only category/index validation; exact owned stack decremented/deleted atomically; `Pocket.belongings` updated on final unit. | Schema/source + handler/service tests |
-| 27–29 | +50/+100/+200 HP; active for Battle/Guardian-family modes, excluded from generic/basic packets. | Static client + serialization/domain tests |
-| 30–37 | STR/STA/DEX/WIL +3/+5; serialized in earring stat fields; consumed after successful supported settlement. | Static client + tests |
-| 39–41 | Promotional aliases of canonical EXP/Gold/Wiseman rings; exact equipped `PlayerPocket` row drives reward and consumption. | Static client + 9 exact-row tests |
-| 42–46 | Promotional +50 HP / +3 STR/STA/DEX/WIL aliases. | Static client + parameterized tests |
-
-Items with an existing implementation outside this slice were not rewritten.
-Unknown or unresolved catalog entries were not guessed.
-
-# First-principles model and invariants
-
-```text
-DB S0
-  + authenticated native action / decoded C2S
-  + handler authorization
-  + transactional service mutation
-  → S2C response/inventory update
-  → DB S1
-  → client-visible state
-```
-
-The implementation enforces these invariants:
-
-1. Special equipment is exactly four slots.
-2. A nonzero slot must identify an owned `SPECIAL` `PlayerPocket` row.
-3. The same pocket row cannot occupy multiple slots; malformed IDs normalize
-   to zero in the authoritative response.
-4. An equipped consumable is decremented once per successful supported match
-   settlement, even if duplicate stale slots reference it.
-5. Final-unit removal clears every slot referencing that row and decrements
-   `Pocket.belongings` once.
-6. A game can begin settlement once (`AtomicBoolean.compareAndSet`).
-7. A proposal record and proposal-card decrement/delete share one transaction.
-8. Proposal mutation rechecks category, index, count, and ownership after a
-   pessimistic lock; rejection does not mutate inventory.
-9. Ring reward lookup and ring consumption use the exact equipped pocket row,
-   not the first stack with a matching catalog index.
-10. Battle-only necklace HP cannot leak into generic/basic status packets.
-
-# Documentation and static client basis
-
-The following project documentation was reviewed on 2026-08-12:
+The JFTSE wiki was treated as game documentation, including:
 
 - [All wiki pages](https://wiki.jftse.com/index.php/Special:AllPages)
 - [JFTSE Roadmap](https://wiki.jftse.com/index.php/JFTSE_Roadmap)
@@ -156,156 +82,191 @@ The following project documentation was reviewed on 2026-08-12:
 - [Stats](https://wiki.jftse.com/index.php/Stats)
 - [Packet Schema format](https://wiki.jftse.com/index.php/Packet_Schema_(.packet)_Format)
 
-The wiki informed terminology and navigation but was not treated as runtime
-proof. The detailed static findings are preserved in
-[static-client-findings.txt](evidence/static-client-findings.txt).
+Wiki and static client text identify intended concepts, but neither is treated
+as proof of a request packet or server state transition. Native packet and DB
+evidence takes precedence where available.
 
-## Important static findings
+## Removing the faulty commit
 
-The decrypted client resource identifies proposal-card indices 23–25; necklace
-values 27–29; earring values 30–37; aliases 39–46; per-game consumption text;
-and a six-month nickname interval. Japanese necklace text is the strongest
-static mode qualifier and explicitly names Battle, Battlemon Battle, and
-Guardian Battle.
+The requested faulty commit was already embedded in the merge history of
+`origin/development`. A simple revert would leave it as an ancestor, so the
+final branch was reconstructed instead. The source tree produced by the prior
+explicit revert was committed on the clean parent `6f3f60d`, then the special
+item commits were replayed.
 
-Conflicting localizations exist. For example, some necklace English/Thai text
-uses imprecise material names, and Chinese nickname text says three months
-while English, German, French, Italian, Japanese, Taiwanese, and Thai text say
-six. This branch chooses six calendar months because it is the dominant client
-resource contract and the requested compatibility behavior; that is not a
-claim about an unavailable original retail backend.
+```text
+3a2ad3d  Implement native special item behavior
+ba919b4  Implement remaining special item behavior
+b737fc5  Reconstruct development without faulty pet packet change
+6f3f60d  Clean parent (does not descend from fcdeb89)
+```
 
-# Reverse-engineered protocol
+`git merge-base --is-ancestor fcdeb89... HEAD` returns exit status 1. The
+reconstructed pre-documentation tree was byte-for-byte equal to the tree that
+previously contained the explicit revert, so this history operation changed
+ancestry without reintroducing the faulty pet packet behavior.
 
-JFTSE packets use the documented eight-byte header followed by packet-specific
-payload. No new packet IDs were invented.
+## Complete implemented item matrix
 
-| ID | Direction | Listener | Payload | Use in this branch | Native status |
-|---|---|---:|---|---|---|
-| `0x1B70` | C2S | game/chat | four repeated `int32` special pocket-row IDs | Validate, normalize, persist, echo authoritative slots | Not observed in the attempted native preview |
-| `0x251D` | C2S | game | receiver string, pocket-row ID, catalog index, message | Proposal validation and atomic card use | Not observed natively |
-| `0x251E` | S2C | game | signed status byte | Existing proposal success/error response | Not observed natively |
+| Indices | Implemented behavior | Evidence level |
+|---|---|---|
+| 4 | Next nickname change is six calendar months after the last change. | Static client + unit test |
+| 7 | Reset six basic/battle/guardian win/loss counters; preserve other statistics; atomic item use. | Native packet/UI/DB + 12 tests |
+| 18 | Club master, level ≥10, capacity +10, maximum 80; no consumption on rejection. | Native positive/negative + 16 tests |
+| 19 | Room-scoped Personal Board creation/replacement, item use, join snapshot, and cleanup. | Native packet/UI/DB + 17 tests |
+| 23–25 | Proposal-only category/index validation and exact-stack transactional consumption. | Source + handler/service tests |
+| 27–29 | +50/+100/+200 HP for Battle/Guardian-family modes, excluded from generic/basic packets. | Static client + tests |
+| 30–37 | STR/STA/DEX/WIL +3/+5 and one use per successful supported settlement. | Static client + tests |
+| 39–41 | Promotional aliases of canonical EXP/Gold/Wiseman rings with exact-row behavior. | Static client + 9 tests |
+| 42–46 | Promotional +50 HP / +3 STR/STA/DEX/WIL aliases. | Static client + parameterized tests |
 
-Exact source declarations are archived in
-[packet-contracts.txt](evidence/packet-contracts.txt).
+Unknown entries were not assigned speculative behavior.
 
-## Listener ownership
+# First-principles model and invariants
 
-| Listener | Port | Role in this validation |
-|---|---:|---|
-| auth | 5894 | Login, character list, nickname change |
-| game | 5895 | Lobby, inventory, proposal, room/match settlement |
-| relay | 5896 | Started and listening; no special-item claim |
-| chat | 5897 | Started and listening; mirrors equipment/stat serialization paths |
-| AC | 3724 | Packaged but not used or claimed in this native run |
+```text
+DB S0
+  + authenticated native action / decoded C2S packet
+  + handler authorization and room context
+  + locked transactional mutation
+  → authoritative S2C state/inventory packet
+  → DB S1
+  → visible native-client result
+```
+
+The implementation enforces these additional item-use invariants:
+
+1. A requested `PlayerPocket.id` must exist, belong to the active player's
+   pocket, match the exact category/index/use type, and have a positive count.
+2. Item mutation and its functional state mutation share one transaction.
+3. A final unit deletes the row and decrements `Pocket.belongings`; a stack
+   decrements and sends an updated count.
+4. Pessimistic locks prevent a replay/concurrent use from applying twice.
+5. Item 7 changes only the six persisted record counters. `totalGames` is a
+   Hibernate formula derived from four of those counters and is refreshed to
+   zero in the immediate S2C view; it is not a seventh persisted reset.
+6. Item 18 locks the inventory row, membership, guild, and pocket. Only an
+   approved rank-3 club master can change capacity; invalid level/capacity
+   leaves the item untouched.
+7. Personal Board text is accepted only from an authenticated player currently
+   represented in a room. Length is 2–80 characters and the existing profanity
+   service is applied before consumption.
+8. Board state is keyed by player ID within one `Room`, broadcast only to that
+   room, translated to current room positions for join snapshots, and removed
+   as part of room cleanup.
+
+The earlier four-slot ownership, one-settlement, proposal-transaction, and
+exact-ring-row invariants remain unchanged.
+
+# Reverse-engineered packet contracts
+
+No packet ID was invented.
+
+| ID | Direction | Payload / role | Proven use |
+|---|---|---|---|
+| `0x1BDA` | C2S game | `int32 PlayerPocket.id` (`quickSlotId` in current schema) | Native item 7 and 18 confirmation requests used row 13. |
+| `0x1B6F` | S2C game | current play-record fields | Item 7 immediately refreshes the client record display. |
+| `0x1B74` | S2C game/chat | removed `PlayerPocket.id` | Native final-unit removal for items 7/18/19. |
+| `0x22CD` | C2S chat | `int32 PlayerPocket.id`, null-terminated UTF-16 message | Native Personal Board request. |
+| `0x22CE` | S2C chat | null-terminated player name and message | Room broadcast that renders the pink board. |
+| `0x22CF` | S2C chat | `int16 count`, repeated (`int16 position`, null-terminated message) | Server join snapshot; serialization/lifecycle tested, not observed by a second native client. |
+| `0x1B70` | C2S game/chat | four special pocket-row IDs | Earlier special-slot validation. |
+| `0x251D` / `0x251E` | C2S/S2C game | proposal request / status | Earlier proposal-card implementation. |
+
+The Personal Board server strings use the existing `Packet.write(String)`
+null-terminated representation. An early fixed-width response rendered badly;
+the final null-terminated `0x22CE` produced the native board correctly.
 
 # Java implementation
 
-## Match-stat effects and packet fields
+## Item 7 — Contract with Guardian / Zero Book
 
-`SpecialItemEffects` is the shared mapping for indices 27–37 and 42–46. It
-writes isolated `specialAddHp`, `specialStrength`, `specialStamina`,
-`specialDexterity`, and `specialWillpower` components into
-`EquippedItemStats`. Keeping the components separate prevents a necklace from
-silently becoming permanent base HP.
+`ContractWithGuardianServiceImpl` locks the requested item and statistic row,
+validates ownership and identity, resets basic/battle/guardian wins and losses,
+and consumes one unit. `ContractWithGuardian` refreshes the in-memory player
+view, sends `S2CPlayerInfoPlayStatsPacket`, then sends count/removal state.
 
-Game and chat `FTPlayer` load exact equipped special rows. Existing status,
-cloth, room, and result packets now serialize earring fields. Generic/basic
-packets write zero for special HP; battle result/stat paths use active necklace
-HP. Battle and Guardian state construction adds the isolated special stats to
-base/clothing/enchantment totals.
-
-## Consumption and settlement
-
-Basic, Battle, and Guardian settlement handlers call `MatchSpecialItemUse`
-only after reaching successful player reward settlement. `MatchplayGame`
-guards settlement with one compare-and-set operation. The service consumes
-each distinct equipped active row once, sends updated count/removal packets,
-and clears exhausted slots.
-
-No native match was completed in this thread. This behavior is proven at the
-service/settlement test boundary, not through client gameplay.
-
-## Promotional rings and duplicate stacks
-
-Indices 39/40/41 are routed to the existing EXP/Gold/Wiseman ring classes.
-Both reward detection and consumption now iterate/receive exact equipped
-`PlayerPocket.id` values. This fixes the case where two stacks share one item
-index and a repository's arbitrary first row is not the equipped row.
-
-## Proposal cards
-
-The handler performs cheap request checks and relationship checks; the service
-then locks the requested inventory row and revalidates category, index, count,
-and pocket ownership in the mutation boundary. A final unit deletes the row,
-locks/updates the pocket count, and creates the proposal in the same
-transaction. Failures map to existing `SMSG_SendProposal` status values.
-
-## Nickname cooldown
-
-The former fixed 30-day calculation is replaced with `Calendar.MONTH + 6` in
-UTC. A January 31 boundary test expects July 31, preserving calendar-month
-semantics rather than approximating six months as a fixed number of days.
-
-# Persistence and fixtures
-
-No production schema migration or catalog seed was needed. New values are
-derived at runtime from existing `PlayerPocket` and `SpecialSlotEquipment`
-rows. Repository lock methods were added for proposal mutation.
-
-The native account, character, pocket, equipment row, and 12 items were
-directly seeded into the disposable lab database. They are not client-created
-evidence. Full fixture and cleanup state is in
-[native-db-state.txt](evidence/native-db-state.txt).
-
-| Fixture group | Rows |
-|---|---|
-| Proposal cards | 23×2, 24×1, 25×1 |
-| Necklaces/earrings | 27, 29, 30, 32, 34, 36; each durable count 2 |
-| Promotional rings | 39, 40, 41; each durable count 2 |
-| Pocket | 12/150 belongings |
-| Authoritative special slots | 0, 0, 0, 0 |
-
-# Red/green testing
-
-The compact evidence transcript is
-[red-green-excerpts.txt](evidence/red-green-excerpts.txt).
-
-## Meaningful red contracts
-
-The first focused red test failed because `SpecialItemEffects` did not exist.
-A later correctness red run caught two substantive regressions:
+Native before/after SQL showed exactly these six transitions:
 
 ```text
-Promotional aliases: expected true but was false (3 cases)
-Generic status HP: expected 220 but was 420
-BUILD FAILURE
+basic win/loss      11/12 → 0/0
+battle win/loss     21/22 → 0/0
+guardian win/loss   31/32 → 0/0
+PlayerPocket.id 13  present → deleted
+Pocket.belongings   13 → 12
 ```
 
-The second value proves the test discriminated between ordinary equipment HP
-(20) and an incorrectly leaked battle-only necklace (+200).
+RP values 101/202/303, streak values 4/9, disconnects 7, and all shot counters
+41–53 remained unchanged.
 
-## Green matrix
+## Item 18 — Club Member License
 
-| Test class | Final count | Contract |
+`ClubMemberLicenseServiceImpl` validates approved club membership, exact master
+rank, club level 10 or higher, and a complete +10 increase that cannot exceed
+80. It locks membership and guild state before mutation. The adapter consumes
+the inventory unit only after the capacity change succeeds.
+
+The native positive database transition was capacity 25→35, item row deleted,
+and belongings 13→12. At capacity 80, the client still sent `0x1BDA`; the
+service emitted no inventory removal, and both guild capacity and the item row
+were unchanged.
+
+This is a **member-capacity** license. No catalog evidence, client action, or
+packet was found for a separate item that increments the club's level.
+
+## Item 19 — Personal Board
+
+The new `CMSGPersonalBoard` handler delegates inventory mutation to
+`PersonalBoardServiceImpl`, stores the accepted message in the current `Room`,
+and broadcasts `0x22CE` only to room clients. `RoomJoinRequestPacketHandler`
+and Town Square join send the current room's `0x22CF` snapshot. Central room
+cleanup removes a leaving/kicked/disconnected player's message.
+
+Native database evidence showed two boards becoming one after the first
+message and the final row disappearing with belongings 13→12 after the
+replacement. A subsequent no-item dialog produced no `0x22CD`, so no server
+mutation occurred. Leaving Town Square and rejoining showed no stale board.
+
+## Earlier special-item slice
+
+`SpecialItemEffects` maps necklace/earring indices and aliases into isolated
+equipment components. Successful supported match settlement consumes active
+rows once under an idempotence guard. Proposal-card mutation locks and
+revalidates the exact inventory row in one transaction. Promotional ring
+reward and consumption use the exact equipped row rather than an arbitrary
+stack sharing the same item index. Nickname cooldown uses six calendar months.
+
+# Red/green and release validation
+
+## Decisive red contracts
+
+| Slice | Red result before implementation |
+|---|---|
+| Item 7 | Test compilation failed: `ContractWithGuardianServiceImpl` did not exist. |
+| Item 18 | 14 tests ran; 13 failed. Factory returned null and all service scenarios returned `ITEM_NOT_FOUND`. |
+| Item 19 | Packet test compilation failed because join-list state was the wrong `Map<Integer,String>` shape rather than position-keyed shorts. |
+| Earlier slice | Missing effect class; promotional aliases unresolved; battle-only +200 HP leaked into a generic packet. |
+
+## Focused green contracts
+
+| Test class | Tests | Result |
 |---|---:|---|
-| `SpecialItemEffectsTest` | 28 | Values, aliases, aggregation, mode activation |
-| `SpecialSlotEquipmentServiceImplTest` | 5 | Four slots, ownership/category, duplicate rows, consumption/removal |
-| `SpecialItemPacketSerializationTest` | 1 | Exact packet length/offsets and no generic necklace HP |
-| `PromotionalRingAliasTest` | 9 | Alias type, reward detection, exact-row consumption |
-| `ProposalServiceImplTest` | 6 | Transactional decrement/delete, ownership, locks |
-| `SendProposalRequestHandlerTest` | 8 | Statuses, no-mutation rejection, success notifications |
-| `MatchplayGameSettlementTest` | 1 | Exactly one concurrent settlement |
-| `PlayerNameChangeHandlerTest` | 1 | Six-calendar-month boundary |
+| `ContractWithGuardianTest` | 12 | pass |
+| `ClubMemberLicenseTest` | 16 | pass |
+| `PersonalBoardServiceTest` | 6 | pass |
+| `PersonalBoardRoomLifecycleTest` | 3 | pass |
+| `PersonalBoardPacketTest` | 2 | pass |
+| `PersonalBoardRequestPacketHandlerTest` | 6 | pass |
 
-Post-commit focused rerun: **58 tests, 0 failures, 0 errors**.
+Focused total: **45 tests, 0 failures, 0 errors**.
 
-## Release gates
+## Final gates
 
 ```text
 mvn test
-game-server: 65 tests, 0 failures, 0 errors
-auth-server: 1 test, 0 failures, 0 errors
+auth-server:  1 test,  0 failures, 0 errors
+game-server: 93 tests, 0 failures, 0 errors
+chat-server: 17 tests, 0 failures, 0 errors
 all 11 reactor modules: SUCCESS
 BUILD SUCCESS
 
@@ -314,188 +275,315 @@ all 11 reactor modules: SUCCESS
 BUILD SUCCESS
 ```
 
-Release JAR hashes and runtime details are in
-[release-runtime-summary.txt](evidence/release-runtime-summary.txt).
+<div class="page-break"></div>
+
+# Native validation — connection and prior slice
+
+The screenshots below use the unmodified `FantaTennis.exe`. The disposable DB
+fixture is disclosed; it is not client-created evidence.
+
+## Login and release connectivity
+
+![Figure 1 — Unmodified client at User Login](evidence/01-release-login-screen.png)
 
 <div class="page-break"></div>
 
-# Native runtime walkthrough
-
-The final release smoke run used the exact packaged JAR hashes, the unmodified
-client, Wine 8.0, a Win32 prefix, Xvfb `:108`, Openbox, loopback routing, and
-supervised Amp services. Packet capture began before login and stopped after
-the client.
-
-## Step 1 — exact release JARs reach User Login
-
-![Figure 1 — Unmodified client at User Login after release services started](evidence/01-release-login-screen.png)
-
-The ID field, password field, and LOG IN button are visible. No credentials are
-shown. The initial green unused region is a Wine/window geometry artifact, not
-server behavior.
+![Figure 2 — Disposable SpecialLab character and channel list](evidence/02-release-player-list.png)
 
 <div class="page-break"></div>
 
-## Step 2 — authenticate and list the seeded character
-
-![Figure 2 — SpecialLab level 1 with Chat and Free channel choices](evidence/02-release-player-list.png)
-
-The native client authenticated against auth port 5894 and rendered the
-DB-seeded `SpecialLab` character. `Free Channel #1 (Good)` was selected. This
-proves final-JAR auth/client compatibility; it does not prove native character
-creation.
+![Figure 3 — Main lobby reached through JFTSE services](evidence/03-release-game-channel.png)
 
 <div class="page-break"></div>
 
-## Step 3 — connect to the game listener
-
-![Figure 3 — Main lobby reached through the exact release game JAR](evidence/03-release-game-channel.png)
-
-The client transitioned to game port 5895 and rendered the Main lobby. The raw
-release capture contains one sustained game conversation (344 frames, 27 kB,
-756.6 seconds). It is not committed because login traffic can contain plaintext
-disposable credentials.
+![Figure 4 — DB-seeded special item inventory from the earlier slice](evidence/04-special-items-pocket.png)
 
 <div class="page-break"></div>
 
-## Step 4 — render the DB-seeded special inventory
+![Figure 5 — Negative special-slot preview: UI-only, no authoritative packet or persistence](evidence/05-special-slot-preview-negative.png)
 
-![Figure 4 — Pre-final packaged run: Magic Pocket Item/Special shows 12 stacks](evidence/04-special-items-pocket.png)
-
-This screenshot predates the final exact-row ring backend correction. It shows
-the same unmodified client and disposable DB fixture rendering 12/150 special
-stacks: proposal cards, necklaces, earrings, and promotional rings. The final
-smoke re-proved login/player-list/lobby compatibility after the tiny exact-row
-change, but did not reopen the pocket successfully. Therefore this figure is
-inventory-rendering evidence, not final-JAR functional evidence for effects.
+The fifth figure remains a deliberate negative control: the client displayed a
+necklace preview, but the DB slots stayed zero and no `0x1B70` arrived.
 
 <div class="page-break"></div>
 
-## Step 5 — negative special-slot experiment
+# Native validation — item 7
 
-![Figure 5 — Client-local necklace preview; explicitly not persistence proof](evidence/05-special-slot-preview-negative.png)
+## Tooltip and identity
 
-The UI shows the gold necklace in the first visual slot and HP 400. However,
-the post-action database remained `0,0,0,0`, and the owning log had no received
-`0x1B70`. This is a client-local preview/failed emission, not a positive equip
-result. It is retained to prevent screenshot-only overclaiming.
-
-## Native evidence result table
-
-| Checkpoint | UI | Packet/listener | DB | Verdict |
-|---|---|---|---|---|
-| Release login | User Login | auth handshake on 5894 | Fixture available/offline before login | Proven |
-| Release auth | SpecialLab/channel list | successful auth conversation | Disposable fixture | Proven |
-| Release game transition | Main lobby | sustained game:5895 conversation | player active, later cleanly offline | Proven |
-| Special inventory | 12 visible stacks | Earlier packaged run | 12 exact seeded rows | Proven only as rendering of seeded data |
-| Special equip preview | Necklace shown, HP 400 | no received `0x1B70` | slots stayed all zero | Negative / not proven |
-| Proposal | Not exercised | no native `0x251D` | no native mutation | Not proven natively |
-| Match consumption | Not exercised | no completed native match | no native mutation | Not proven natively |
-
-# Packet, DB, and artifact evidence
-
-## Release capture boundary
-
-The raw final capture SHA-256 is
-`f3baa146e6be08785cfad4f72a6e2be11acbfbcd2333fe1dd9cc42acd9782b6e`.
-It is omitted from Git because protocol payloads can expose credentials. The
-committed runtime summary records endpoint roles, sizes, conversation totals,
-JAR hashes, and the capture hash without publishing payloads.
+![Figure 6 — Item 7 tooltip: Zero Book / Reset Records / Disable Parcel](evidence/06-special-7-zero-book-tooltip.png)
 
 <div class="page-break"></div>
 
-## Evidence inventory
+## One-use confirmation
 
-| File | Source | Purpose | Claim supported |
-|---|---|---|---|
-| [01-release-login-screen.png](evidence/01-release-login-screen.png) | Native final run | Login UI | Exact client and release stack reach login |
-| [02-release-player-list.png](evidence/02-release-player-list.png) | Native final run | Character/channels | Successful auth and fixture rendering |
-| [03-release-game-channel.png](evidence/03-release-game-channel.png) | Native final run | Main lobby | Auth-to-game transition |
-| [04-special-items-pocket.png](evidence/04-special-items-pocket.png) | Native pre-final run | Seeded special inventory | Client renders all 12 fixture stacks |
-| [05-special-slot-preview-negative.png](evidence/05-special-slot-preview-negative.png) | Native pre-final run | Failed equip experiment | UI preview must not be treated as persistence |
-| [native-db-state.txt](evidence/native-db-state.txt) | MariaDB snapshots | Fixture and post-preview state | Seed disclosure and all-zero slots |
-| [packet-contracts.txt](evidence/packet-contracts.txt) | Repository schemas | Exact payload declarations | `0x1B70`, `0x251D`, `0x251E` contracts |
-| [static-client-findings.txt](evidence/static-client-findings.txt) | Decrypted client resource | Catalog semantics | Values, aliases, modes, consumption text |
-| [red-green-excerpts.txt](evidence/red-green-excerpts.txt) | Maven runs | Red/green proof | Missing/wrong behavior then release green |
-| [release-runtime-summary.txt](evidence/release-runtime-summary.txt) | Final native run | Runtime and capture metadata | Exact JAR/client provenance |
-| [artifact-sha256.txt](evidence/artifact-sha256.txt) | Curated artifacts | Integrity | Screenshot hashes |
+![Figure 7 — Native one-use/disappear confirmation for item 7](evidence/07-special-7-confirmation.png)
 
-# Compatibility interpretations and limitations
-
-1. **Promotional aliases.** Identical icons/descriptions make 39/40/41 and
-   42–46 compatibility aliases of canonical rings/stat items. Retail server
-   implementation history remains unknown.
-2. **WIS → WIL.** The client resource says Wisdom/WIS while this server and UI
-   use Willpower/WIL. The branch maps the catalog field to WIL.
-3. **Consumption boundary.** “Per game” is implemented at successful supported
-   result settlement, not room start or disconnect. This prevents charging a
-   use for an uncompleted room.
-4. **Battlemon.** Static text names Battlemon and the effect mapper recognizes
-   that mode, but no native Battlemon lifecycle was validated here. No complete
-   Battlemon support claim is made.
-5. **Nickname date arithmetic.** Six calendar months follows dominant client
-   text; it is not a fixed 180-day approximation.
-
-## Explicit non-claims
-
-- No native positive or negative proposal walkthrough.
-- No native successful special-slot packet or reconnect persistence proof.
-- No native completed Basic/Battle/Guardian match consumption proof.
-- No multiplayer, relay synchronization, Battlemon, or Personal Board proof.
-- No functionality claim for unresolved indices 5, 7, 8, 18, 19, 20, or 22.
-- No claim that the original retail server used these exact transactions or
-  error mappings.
-- No claim that DB-seeded character/items were created by the client.
-
-# Failures and corrected procedure
-
-1. A clean final native launch first displayed only the JFTSE background; after
-   waiting for Wine initialization, User Login appeared.
-2. GUI input dropped/duplicated initial characters in two login attempts. The
-   server correctly returned invalid-user status. Separating focus, clear,
-   text, tab, and enter helper calls produced the exact username and a
-   successful third attempt.
-3. A final pocket navigation attempt opened Shop/My Info rather than Magic
-   Pocket because custom-cursor and host-cursor coordinates diverged. It was
-   not spliced into positive evidence; the earlier genuine pocket screenshot
-   remains labeled pre-final.
-4. A necklace looked equipped in the UI but never produced authoritative
-   packet/DB state. The report classifies it as a failed experiment rather than
-   treating appearance as proof.
+The confirmation emitted `CMSGUseQuickSlot (0x1BDA)` with row ID 13.
 
 <div class="page-break"></div>
 
-# Reproduction guide
+## Visible inventory result
 
-1. Check out `reverse-engineering/remaining-special-items` and verify commits
-   `af92792` and `7079844`.
-2. Use JDK 21 and run `mvn test`, then `mvn package -DskipTests`.
-3. Verify release JAR hashes against
-   [release-runtime-summary.txt](evidence/release-runtime-summary.txt).
-4. Start MariaDB and RabbitMQ, then supervised auth/game/relay/chat services.
-5. Verify listeners 5894/5895/5896/5897 and DB-advertised endpoint rows.
-6. Seed a disposable account/character/pocket/items; record that this is a DB
-   fixture. Reset login/online state before each run.
-7. Point CRLF `ServerInfo.ini` to `127.0.0.1:5894`.
-8. Start packet capture before interaction. Use a distinct Win32 Wine prefix,
-   Xvfb display, Openbox service, and runtime copy per native client.
-9. Drive `FantaTennis.exe` from its runtime working directory; verify each UI
-   barrier and pair screenshots with packet and DB checks.
-10. Stop client and capture cleanly; inspect PCAP for credentials before any
-    publication. Recheck account offline state.
-11. Build this report with the committed stylesheet and visually inspect every
-    rendered page.
+![Figure 8 — Item 7 removed; belongings visibly changed from 013 to 012](evidence/08-special-7-after-use.png)
+
+The screenshot is paired with the six-counter DB diff and S2C record/removal
+packet trace in [native-special-items-evidence.txt](evidence/native-special-items-evidence.txt).
+
+<div class="page-break"></div>
+
+# Native validation — item 18
+
+## Positive 25→35 capacity flow
+
+![Figure 9 — Club Member License visible before use](evidence/09-special-18-before-use.png)
+
+<div class="page-break"></div>
+
+![Figure 10 — Native one-use confirmation for Club Member License](evidence/10-special-18-confirmation.png)
+
+<div class="page-break"></div>
+
+![Figure 11 — Positive result: license removed after capacity 25→35](evidence/11-special-18-after-success.png)
+
+The native DB transition proves the capacity change; the screenshot proves the
+matching inventory result.
+
+<div class="page-break"></div>
+
+## Maximum-80 negative flow
+
+![Figure 12 — Max-capacity fixture before use; license still present](evidence/12-special-18-max-before.png)
+
+<div class="page-break"></div>
+
+![Figure 13 — Client confirms the max-capacity attempt](evidence/13-special-18-max-confirmation.png)
+
+<div class="page-break"></div>
+
+![Figure 14 — Rejected result: license remains in the first slot of the fourth row](evidence/14-special-18-max-rejected.png)
+
+The client shows no explicit error modal. Rejection is proven by the item still
+being present plus the before/after DB equality: capacity remained 80 and row
+13 remained owned. This avoids claiming that the screenshot alone explains
+why the request was rejected.
+
+<div class="page-break"></div>
+
+# Native validation — item 19
+
+## Initial board
+
+![Figure 15 — Personal Board dialog filled with the first native message](evidence/15-special-19-first-dialog.png)
+
+<div class="page-break"></div>
+
+![Figure 16 — First pink Personal Board rendered above the player](evidence/16-special-19-first-board.png)
+
+Packet `0x22CD` arrived with the item row and message; the item stack changed
+2→1 and null-terminated `0x22CE` rendered correctly.
+
+<div class="page-break"></div>
+
+## Replacement and final-unit depletion
+
+![Figure 17 — Replacement message entered; replacement consumes another board](evidence/17-special-19-replacement-dialog.png)
+
+<div class="page-break"></div>
+
+![Figure 18 — Replacement board visible above the player](evidence/18-special-19-replacement-board.png)
+
+After this request, row 13 was deleted and belongings changed 13→12. Replacing
+a visible board is therefore not a free edit.
+
+<div class="page-break"></div>
+
+## Leave/rejoin lifecycle
+
+![Figure 19 — Player has left Town Square](evidence/19-special-19-after-leave.png)
+
+<div class="page-break"></div>
+
+![Figure 20 — Rejoined Town Square with the prior board cleared](evidence/20-special-19-rejoin-cleared.png)
+
+<div class="page-break"></div>
+
+## Depleted-item behavior
+
+![Figure 21 — Board dialog can open with no item, but submitting emits no request](evidence/21-special-19-no-item-attempt.png)
+
+This final screenshot is not, by itself, a rejection signal. The decisive
+evidence is the empty item state plus no new `0x22CD` in the packet-log interval
+and no DB mutation.
+
+<div class="page-break"></div>
+
+# Evidence inventory
+
+| Evidence | Claim supported |
+|---|---|
+| Figures 1–5 | Client/service connectivity, seeded inventory, and negative special-slot boundary. |
+| Figures 6–8 | Item 7 identity, confirmation, consumption, visible belongings update. |
+| Figures 9–14 | Item 18 positive use and max-80 no-consumption rejection. |
+| Figures 15–21 | Item 19 creation, replacement, depletion, leave/rejoin cleanup, no-item behavior. |
+| [native-special-items-evidence.txt](evidence/native-special-items-evidence.txt) | Sanitized packet/DB transitions for 7, 18, 19. |
+| [red-green-excerpts.txt](evidence/red-green-excerpts.txt) | Decisive red failures and final green gates. |
+| [packet-contracts.txt](evidence/packet-contracts.txt) | Earlier source packet declarations. |
+| [static-client-findings.txt](evidence/static-client-findings.txt) | Earlier decrypted catalog semantics. |
+| [native-db-state.txt](evidence/native-db-state.txt) | Earlier disposable fixture disclosure. |
+| [artifact-sha256.txt](evidence/artifact-sha256.txt) | Integrity hashes for all committed screenshots. |
+
+# What remains missing
+
+This section is intentionally detailed so that future work does not confuse a
+catalog name or tooltip with a completed server contract.
+
+## Index 5 — RingB
+
+Known static facts: it is durable, allows up to 9,999 uses, disables parceling,
+and its resource description literally says `Unknown`.
+
+Missing evidence:
+
+- no user action or C2S trigger has been identified;
+- no equipped/passive/instant lifecycle has been established;
+- no target stat, reward multiplier, room effect, or social effect is known;
+- no DB field transition or S2C synchronization packet is known;
+- no expiry or consumption boundary is known.
+
+Required next proof: observe the item in every plausible equip/use surface,
+capture traffic and DB snapshots, then compare match, reward, room, and social
+state with an A/B fixture. **No functionality claim is made in this branch.**
+
+## Index 8 — Bag of Dwarf
+
+Known static facts: `UseType=Time`, maximum duration 365, and the description
+says the quick slots expand from two to five. Source analysis shows this means
+the in-match crystal/spell queue, not persistent `QuickSlotEquipment`:
+`RoomPlayer` currently has capacity two, a third crystal evicts the oldest, and
+item 21 rotates the first two entries.
+
+Still missing:
+
+1. stable native login and match fixture with no item, valid future expiry,
+   and expired item variants;
+2. native HUD comparison proving two versus five visible/usable queue slots;
+3. at least three, preferably five, distinct crystal acquisitions;
+4. pickup/use/swap packet capture and exact queue ordering;
+5. proof whether entitlement is passive ownership, current expiry, an
+   activation packet, or another lifecycle;
+6. reconnect/match-transition persistence and expiration behavior.
+
+Only after those observations should the server queue capacity become
+expiration-aware. The failed fixture experiment did not reach a stable match
+and is not positive evidence. **Index 8 is not implemented.**
+
+## Index 20 — Betting Coin
+
+Known static facts: this is a count item and the client contains spectator
+betting mode.
+
+Still missing:
+
+- wager request packet ID and payload;
+- whether the stake is coin item count, gold, AP, another currency, or a
+  combination;
+- eligible match phases, player targets, limits, cancellation, and validation;
+- when the item/currency is reserved or consumed;
+- payout formula, settlement packet, winner/draw/abort handling;
+- disconnect, spectator leave, room close, and server restart behavior;
+- what observers, participants, and other bettors receive.
+
+Required fixture: at least two match players plus a spectator, synchronized
+packet capture, and before/after DB snapshots across win, loss, cancel, and
+disconnect cases. **Index 20 is not implemented.**
+
+## Index 22 — Thief's Mask
+
+Known static fact: its description says it hides player information.
+
+Still missing:
+
+- which identity/stat/equipment/club/couple fields are hidden;
+- whether masking affects lobby, room, Town Square, match, ranking, messenger,
+  inspect dialogs, or only one surface;
+- whether party, club, couple, friends, GMs, or self-view bypass the mask;
+- equip/passive/activation and expiration behavior;
+- whether existing packets use redacted values, sentinel values, omitted
+  structures, or a separate flag;
+- observer refresh when the item is equipped, expires, or is removed.
+
+Required fixture: two native clients in controlled observer/subject roles,
+with packet and screenshot A/B comparisons on every information surface.
+**Index 22 is not implemented.**
+
+## Club-level upgrade item
+
+No separate club-level upgrade item was found in the inspected special-item
+catalog, packets, or native flows. Index 18 was proven to modify
+`Guild.maxMemberCount` only. A future club-level claim requires a distinct
+catalog identity and a captured level-changing transaction; capacity evidence
+must not be relabeled as club-level evidence.
+
+## Personal Board multiplayer observation gap
+
+The room-state implementation and exact `0x22CF` byte layout are covered by
+tests. What is still missing is a native second client joining after another
+player has an active board and visibly rendering the `0x22CF` snapshot. Future
+validation should use two clients, capture the join interval, identify packet
+`0x22CF`, verify room-position mapping, and show the board on the observer.
+This gap does not invalidate the proven same-client creation/replacement and
+server lifecycle behavior, but it limits the native multiplayer claim.
+
+## Earlier-slice native gaps
+
+- no native successful `0x1B70` special-slot persistence walkthrough;
+- no native proposal-card `0x251D` transaction;
+- no completed native match showing necklace/earring consumption;
+- no complete native Battlemon effect lifecycle.
+
+# Reproduction and cleanup
+
+1. Check out `reverse-engineering/unknown-special-items` and verify
+   implementation commits `ba919b4` and `3a2ad3d`.
+2. Verify `fcdeb89...` is not an ancestor; the command must return 1.
+3. Use JDK 21; run the two focused commands documented in the evidence file,
+   then `mvn test` and `mvn package -DskipTests`.
+4. Start MariaDB, RabbitMQ, and supervised auth/game/relay/chat services.
+5. Use only a disposable account and record every inserted inventory/stat/guild
+   fixture before the native action.
+6. Use the unmodified client hash from the title page and the Win32 Wine
+   prefix. Start packet capture before interaction.
+7. Pair every client screenshot with packet and DB state; a visual alone is not
+   proof of server mutation.
+8. Stop clients and captures, remove experimental inventory/tutorial/guild
+   rows, restore original statistics/password, mark account/player offline, and
+   restore the advertised game port.
+9. Regenerate the PDF with the committed stylesheet and visually inspect all
+   pages for clipping, blank pages, stale metadata, and broken images.
+
+The final cleanup was executed and verified: experimental rows 13/14,
+tutorial progress, and `LicenseLab` were removed; the baseline 12 inventory
+rows and 12/150 belongings were restored; all statistic fields are zero; the
+original password/offline state and game port 5895 are restored; and all lab
+services are stopped. The sanitized result is included in
+[native-special-items-evidence.txt](evidence/native-special-items-evidence.txt).
+
+<div class="keep">
 
 # Final conclusion
 
-The branch now contains a coherent, tested server implementation for the
-understood remaining special-item slice. All final tests and package gates are
-green, exact release JARs interoperate with the unmodified client through the
-Main lobby, and the report preserves both positive visual evidence and the
-critical failed equip boundary.
+The delivered branch now has proven server behavior for special items 7, 18,
+and 19 in addition to the earlier implemented slice. Item use is authoritative,
+transactional, exact-row based, and tested against replay and rejection paths.
+Native screenshots, packets, and DB transitions show the end-to-end positive
+flows and the important negative boundaries.
 
-The strongest functionality claims are test-backed server contracts. Native
-runtime evidence is deliberately narrower: connectivity, character/channel
-rendering, lobby transition, and seeded inventory rendering. Proposal,
-successful equip persistence, consumption, and match/Battlemon flows remain
-future native experiments rather than claims in this work.
+The branch also records exactly what is not known. RingB remains wholly
+unknown; Bag of Dwarf lacks match entitlement/HUD proof; Betting Coin lacks the
+wager and settlement protocol; Thief's Mask lacks observer masking semantics;
+no club-level item was found; and Personal Board `0x22CF` still needs native
+second-client observation. Those are future reverse-engineering tasks, not
+functionality claimed by this release.
+
+</div>

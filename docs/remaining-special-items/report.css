@@ -151,6 +151,10 @@ img {
   page-break-before: always;
 }
 
+.keep {
+  page-break-inside: avoid;
+}
+
 .small {
   color: #4a596e;
   font-size: 8.3pt;

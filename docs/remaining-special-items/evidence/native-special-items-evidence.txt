@@ -1,0 +1,99 @@
+Native special items: sanitized packet and database evidence
+============================================================
+
+Client:
+  FantaTennis.exe SHA-256
+  5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31
+  Unmodified, Wine 8.0, Win32 prefix
+
+SPECIAL 7 — Contract with Guardian / Zero Book
+-----------------------------------------------
+Native request:
+  CMSGUseQuickSlot { id: 0x1BDA, len: 4, quickSlotId: 13 }
+  payload: 0D 00 00 00
+
+Database transition:
+  basicRecordWin/Loss:       11/12 -> 0/0
+  battleRecordWin/Loss:      21/22 -> 0/0
+  guardianRecordWin/Loss:    31/32 -> 0/0
+  PlayerPocket.id=13:        present -> deleted
+  Pocket.belongings:         13 -> 12
+
+Unchanged:
+  basicRP/battleRP/guardianRP: 101/202/303
+  consecutive/max wins:        4/9
+  disconnects:                 7
+  shot counters:               41 through 53 fixture values
+
+Native S2C:
+  0x1B6F S2CPlayerInfoPlayStatsData, 40-byte payload
+  0x1B74 S2CInventoryItemRemoveAnswer, PlayerPocket.id 13
+
+SPECIAL 18 — Club Member License
+--------------------------------
+Positive fixture before:
+  guild level=10, maxMemberCount=25, approved rank=3 master
+  PlayerPocket.id=13, itemIndex=18, itemCount=1, useType=Instant
+  Pocket.belongings=13
+
+Native request:
+  CMSGUseQuickSlot { id: 0x1BDA, len: 4, quickSlotId: 13 }
+
+Positive result:
+  guild maxMemberCount: 25 -> 35
+  PlayerPocket.id=13:   present -> deleted
+  Pocket.belongings:    13 -> 12
+  S2C 0x1B74 removed row 13
+
+Maximum negative fixture/result:
+  before: maxMemberCount=80; PlayerPocket.id=13 present; belongings=13
+  request: CMSGUseQuickSlot 0x1BDA, row 13
+  after:  maxMemberCount=80; PlayerPocket.id=13 present; belongings=13
+  no inventory removal packet
+
+SPECIAL 19 — Personal Board
+---------------------------
+Initial native request:
+  CMSGPersonalBoard { id: 0x22CD, playerPocketId: 13,
+                      message: "PPB19_GREEN_NULL" }
+
+Initial result:
+  PlayerPocket itemCount: 2 -> 1
+  S2C 0x22CE: null-terminated UTF-16 player name and message
+  pink overhead board visible in client
+
+Replacement/final result:
+  CMSGPersonalBoard { id: 0x22CD, playerPocketId: 13,
+                      message: "PPB19_GREEN_FINAL" }
+  PlayerPocket.id=13: present -> deleted
+  Pocket.belongings:  13 -> 12
+  replacement pink board visible in client
+
+Lifecycle:
+  leave Town Square -> room state removed
+  rejoin Town Square -> prior board absent
+
+No-item attempt:
+  item row absent; dialog could be opened
+  no new 0x22CD observed in the marked interval
+  no database mutation
+
+Known native gap:
+  No second native client joined after publication, so native receipt and
+  rendering of the 0x22CF join-list snapshot remains unobserved. Its exact
+  position/message serialization and room lifecycle are automated-test proven.
+
+FINAL LAB CLEANUP
+-----------------
+Verified after stopping the native client and packet capture:
+  account status=0, loggedInServer=NONE, original password restored
+  player online=false
+  PlayerPocket.id 14 (Bag of Dwarf experiment) absent
+  PlayerPocket.id 13 (7/18/19 experiment) absent
+  baseline PlayerPocket rows 1-12 retained; Pocket.belongings=12/150
+  all 25 persisted PlayerStatistic fields restored to zero
+  11 disposable TutorialProgress rows removed
+  disposable LicenseLab guild and membership removed
+  GameServer.id=1 port restored to 5895
+  experimental audit rows and non-baseline password audit values removed
+  all supervised native-client, capture, GUI, server, DB, and broker services stopped
