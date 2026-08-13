@@ -6,6 +6,7 @@ import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
+import com.jftse.server.core.item.BattlemonController;
 import com.jftse.server.core.protocol.IPacketTranslator;
 import com.jftse.server.core.shared.packets.relay.CMSGPlayerAnimation;
 import com.jftse.server.core.shared.packets.relay.SMSGPlayerAnimation;
@@ -17,8 +18,10 @@ public class PlayerAnimationHandler implements PacketHandler<FTConnection, CMSGP
 
     @Override
     public void handle(FTConnection connection, CMSGPlayerAnimation packet) {
+        boolean controllerCommand = BattlemonController.isPetActor(packet.getPlayerPosition()) &&
+                BattlemonController.coverageArea(packet.getAnimationType()).isPresent();
         if (!RelaySessionAuthorizationStore.getInstance()
-                .canAct(connection.getClient(), packet.getPlayerPosition())) {
+                .canAct(connection.getClient(), packet.getPlayerPosition(), controllerCommand)) {
             return;
         }
         SMSGPlayerAnimation relayPacket = packet.translate(translator);

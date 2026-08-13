@@ -134,6 +134,10 @@ public class RelaySessionAuthorizationStore {
     }
 
     public boolean canAct(FTClient client, int actorPosition) {
+        return canAct(client, actorPosition, false);
+    }
+
+    public boolean canAct(FTClient client, int actorPosition, boolean controllerCommand) {
         FTClient.RelayRegistration registration = client == null ? null : client.getRelayRegistration();
         if (registration == null || registration.spectator()) {
             return false;
@@ -145,7 +149,7 @@ public class RelaySessionAuthorizationStore {
                             .contains((short) actorPosition)) {
                         return false;
                     }
-                    return !BattlemonController.isPetActor(actorPosition) ||
+                    return !controllerCommand || !BattlemonController.isPetActor(actorPosition) ||
                             Boolean.TRUE.equals(authorization.battlemonControllerByPlayerId()
                                     .get(registration.playerId()));
                 })

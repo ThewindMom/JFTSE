@@ -82,6 +82,16 @@ class RelaySessionAuthorizationStoreTest {
         assertTrue(BattlemonController.isPossessed(pocket("SPECIAL", 11, 1)));
         assertFalse(BattlemonController.isPetActor(0));
         assertTrue(BattlemonController.isPetActor(2));
+        assertEquals(BattlemonController.CoverageArea.UP,
+                BattlemonController.coverageArea((byte) 0x6d).orElseThrow());
+        assertEquals(BattlemonController.CoverageArea.DOWN,
+                BattlemonController.coverageArea((byte) 0x6e).orElseThrow());
+        assertEquals(BattlemonController.CoverageArea.LEFT,
+                BattlemonController.coverageArea((byte) 0x6f).orElseThrow());
+        assertEquals(BattlemonController.CoverageArea.RIGHT,
+                BattlemonController.coverageArea((byte) 0x70).orElseThrow());
+        assertTrue(BattlemonController.coverageArea((byte) 0x6c).isEmpty());
+        assertTrue(BattlemonController.coverageArea((byte) 0x71).isEmpty());
     }
 
     @Test
@@ -99,7 +109,9 @@ class RelaySessionAuthorizationStoreTest {
         assertTrue(store.canAct(firstOwner, 0));
         assertTrue(store.canAct(firstOwner, 2));
         assertTrue(store.canAct(secondOwner, 1));
-        assertFalse(store.canAct(secondOwner, 3));
+        assertTrue(store.canAct(secondOwner, 3));
+        assertTrue(store.canAct(firstOwner, 2, true));
+        assertFalse(store.canAct(secondOwner, 3, true));
         assertFalse(store.canAct(firstOwner, 3));
     }
 
@@ -112,7 +124,8 @@ class RelaySessionAuthorizationStoreTest {
         FTClient firstOwner = registeredClient(100, 1000);
 
         assertTrue(store.canAct(firstOwner, 0));
-        assertFalse(store.canAct(firstOwner, 2));
+        assertTrue(store.canAct(firstOwner, 2));
+        assertFalse(store.canAct(firstOwner, 2, true));
     }
 
     @Test
