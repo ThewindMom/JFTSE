@@ -1,5 +1,7 @@
 # Mini-PC final evidence
 
+> **Historical evidence set:** retained for the 2026-08-12 partial run. See the [authoritative native validation report](../native-validation-report.md) and [final curated native evidence](../native-evidence/) for the completed continuation.
+
 This is the safe, curated subset of the final isolated native run. The full
 authentication/anti-cheat capture and full authentication journals are excluded
 because they contain credentials or replayable session material.

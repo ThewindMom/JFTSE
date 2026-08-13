@@ -1,0 +1,10 @@
+captured_at=2026-08-13T07:46:18Z
+task_containers=0
+task_networks=0
+task_volumes=0
+task_processes=0
+listeners=0
+displays=0
+shared_network=1
+bulky_client_dirs=0
+unsafe_pcaps=0

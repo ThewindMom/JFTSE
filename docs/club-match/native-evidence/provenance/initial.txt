@@ -1,0 +1,8 @@
+created=2026-08-13T06:20:53Z
+source_head=5a29788bd46f97cdc69306b0cffdf84a49ad96d6
+4800704cc38f4d0bc788b1f0b7c10cab7d1c91c706deae37af7b32c991261319  game-server/target/game-server.jar
+82178bebda55b968bb7b98332ae8d639d7f04bdb5baf46c92d509cac2de5a723  relay-server/target/relay-server.jar
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  /home/thewind/Projects/jftse-club-match-final/lab/client/immutable/FantaTennis.exe
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  /home/thewind/Projects/jftse-club-match-native-validation-20260813/.amp/task-club-match-final-validation-20260813/lab/clients/host/runtime/FantaTennis.exe
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  /home/thewind/Projects/jftse-club-match-native-validation-20260813/.amp/task-club-match-final-validation-20260813/lab/clients/guest/runtime/FantaTennis.exe
+clients_started=2026-08-13T06:29:13Z

@@ -1,0 +1,48 @@
+137:2026-08-13 06:26:41,186 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCreate 0x1389(5001)
+138:2026-08-13 06:26:41,188 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.lobby.room.CMSGRoomJoin 0x138B(5003)
+139:2026-08-13 06:26:41,189 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCreateQuick 0x138F(5007)
+166:2026-08-13 06:26:41,212 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGPoint 0x183F(6207)
+264:2026-08-13 06:26:41,294 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchReady 0x26F7(9975)
+265:2026-08-13 06:26:41,295 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchStart 0x26F9(9977)
+266:2026-08-13 06:26:41,296 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchTimeExpired 0x26FB(9979)
+3595:CMSGRoomCreate { "id": "0x1389", "len": 71, "data": { "roomName": "Let's play FantasyTennis~", "roomType": 0, "mode": 0, "rule": 0, "players": 4, "isPrivate": false, "mapId": 0, "skillFree": true, "quickSlot": true, "levelRange": -1, "bettingType": 0, "bettingAmount": 0, "ball": 1, "password": "" } }
+3847:CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 0, "unk0": 0, "password": "" } }
+3895:SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 0, "roomType": 6, "mode": 0, "mapId": 0 } }
+5447:CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 0, "unk0": 0, "password": "" } }
+5452:SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 0, "roomType": 6, "mode": 0, "mapId": 0 } }
+5900:CMSGClubMatchReady { "id": "0x26F7", "len": 1, "data": { "ready": true } }
+5910:Packet { "id": "0x26F8", "len": 27, "data": 00 00 01 10 B3 70 13 F5 2A DD 01 90 A3 6B 16 F5 2A DD 01 10 B3 70 13 F5 2A DD 01 }
+5922:Packet { "id": "0x26F8", "len": 27, "data": 00 00 00 10 B3 70 13 F5 2A DD 01 90 A3 6B 16 F5 2A DD 01 10 B3 70 13 F5 2A DD 01 }
+5929:CMSGClubMatchReady { "id": "0x26F7", "len": 1, "data": { "ready": false } }
+5944:Packet { "id": "0x26F8", "len": 2, "data": 01 00 }
+5949:Packet { "id": "0x26F8", "len": 2, "data": 01 00 }
+6193:CMSGClubMatchReady { "id": "0x26F7", "len": 1, "data": { "ready": true } }
+6203:Packet { "id": "0x26F8", "len": 27, "data": 00 00 00 30 FE 4C 62 F5 2A DD 01 B0 EE 47 65 F5 2A DD 01 30 FE 4C 62 F5 2A DD 01 }
+6215:Packet { "id": "0x26F8", "len": 27, "data": 00 00 01 30 FE 4C 62 F5 2A DD 01 B0 EE 47 65 F5 2A DD 01 30 FE 4C 62 F5 2A DD 01 }
+6227:CMSGClubMatchStart { "id": "0x26F9", "len": 0, "data": { } }
+6284:SMSGStartGame { "id": "0x17DE", "len": 2, "data": { "result": 0 } }
+6289:Packet { "id": "0x26FA", "len": 4, "data": 2C 01 00 00 }
+6294:SMSGStartGame { "id": "0x17DE", "len": 2, "data": { "result": 0 } }
+6299:Packet { "id": "0x26FA", "len": 4, "data": 2C 01 00 00 }
+6666:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 0, "unk0": 0, "ballState": 4, "playerPosition": 0 } }
+6735:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 0, "unk0": 0, "ballState": 4, "playerPosition": 0 } }
+6798:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 0, "unk0": 0, "ballState": 4, "playerPosition": 0 } }
+6872:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 0, "unk0": 0, "ballState": 4, "playerPosition": 0 } }
+6940:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7014:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7077:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7129:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7243:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7320:2026-08-13 07:33:55,707 [ThreadManager-VT-Scheduled-1] MatchplayBasicModeHandler [finishExpiredClubMatch] WARN  Club Match session 73447 expired with tied sets 1-1; the original tie-break rule is not yet proven, so no result was sent
+7321:2026-08-13 07:33:55,711 [ThreadManager-VT-Scheduled-1] MatchplayBasicModeHandler [finishClubMatch] INFO  Club Match session 73447 ended without a proven tie result; ordinary Basic rewards, rankings, player statistics, and guild records were not changed
+7344:CMSGPoint { "id": "0x183F", "len": 4, "data": { "pointsTeam": 1, "unk0": 0, "ballState": 4, "playerPosition": 1 } }
+7349:CMSGClubMatchTimeExpired { "id": "0x26FB", "len": 0, "data": { } }
+7354:CMSGClubMatchTimeExpired { "id": "0x26FB", "len": 0, "data": { } }
+7666:CMSGClubMatchReady { "id": "0x26F7", "len": 1, "data": { "ready": true } }
+7676:Packet { "id": "0x26F8", "len": 27, "data": 00 00 00 00 F7 DB 4F F6 2A DD 01 80 E7 D6 52 F6 2A DD 01 00 F7 DB 4F F6 2A DD 01 }
+7688:Packet { "id": "0x26F8", "len": 27, "data": 00 00 01 00 F7 DB 4F F6 2A DD 01 80 E7 D6 52 F6 2A DD 01 00 F7 DB 4F F6 2A DD 01 }
+7713:Packet { "id": "0x26F8", "len": 2, "data": 01 00 }
+8416:CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 0, "unk0": 0, "password": "" } }
+8421:SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 0, "roomType": 6, "mode": 0, "mapId": 0 } }
+9285:CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 0, "unk0": 0, "password": "" } }
+9290:SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 0, "roomType": 6, "mode": 0, "mapId": 0 } }

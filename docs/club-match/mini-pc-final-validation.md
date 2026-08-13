@@ -1,5 +1,7 @@
 # Club Match mini-PC final validation
 
+> **Historical partial run:** this 2026-08-12 join-gate result is superseded by the [2026-08-13 native validation report](native-validation-report.md), whose continuation completed the main Warfare Basic lifecycle while retaining explicit gaps.
+
 **Evidence date:** 2026-08-12  
 **Branch:** `feature/club-match-mode`  
 **Bundle HEAD:** `54dd3cacf7f0c58ab0c6a542416fb5be56b1a44b`  

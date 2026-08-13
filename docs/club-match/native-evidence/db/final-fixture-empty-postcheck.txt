@@ -1,0 +1,6 @@
+cmhost	0	NULL	NULL
+cmguest	0	NULL	NULL
+CMHostA	\0
+CMGuestB	\0
+0
+0

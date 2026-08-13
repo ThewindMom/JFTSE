@@ -1,5 +1,7 @@
 # Club Match draft implementation report
 
+> **Historical implementation draft:** validation-status claims in this file are superseded by the [2026-08-13 native validation report](native-validation-report.md). This file remains as implementation and investigation history.
+
 **Draft date:** 2026-08-11  
 **Scope:** dirty `feature/club-match-mode` working tree plus extracted runtime evidence  
 **Publication status:** Markdown draft updated with the 2026-08-12 mini-PC verdict; no PDF because genuine-client Ready/lifecycle green was not reached
