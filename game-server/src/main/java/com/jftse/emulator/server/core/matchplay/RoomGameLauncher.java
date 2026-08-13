@@ -218,14 +218,7 @@ public class RoomGameLauncher {
                         && room.getClubMatchState().ownsGameSession(gameSessionId)) {
                     return;
                 }
-                boolean allReady = clubMatch
-                        ? room.getRoomPlayerList().stream()
-                        .filter(player -> player.getPosition() >= 0
-                                && player.getPosition() < room.getPlayers())
-                        .allMatch(RoomPlayer::isReady)
-                        : room.getRoomPlayerList().stream()
-                        .filter(player -> !player.isMaster() && player.getPosition() < 4)
-                        .allMatch(RoomPlayer::isReady);
+                boolean allReady = arePlayersReady(room, clubMatch);
                 boolean roomPlayersChanged = clubMatch
                         ? !claimedClubParticipants.equals(clubParticipants(room))
                         || !room.getClubMatchState().matchesParticipants(claimedClubParticipants)
@@ -474,5 +467,16 @@ public class RoomGameLauncher {
                 .map(player -> new ClubMatchState.Participant(player.getPlayerId(), player.getPosition(),
                         player.getGuild() == null ? null : player.getGuild().id()))
                 .toList();
+    }
+
+    static boolean arePlayersReady(Room room, boolean clubMatch) {
+        return clubMatch
+                ? room.getRoomPlayerList().stream()
+                .filter(player -> player.getPosition() >= 0
+                        && player.getPosition() < room.getPlayers())
+                .allMatch(player -> player.isMaster() || player.isReady())
+                : room.getRoomPlayerList().stream()
+                .filter(player -> !player.isMaster() && player.getPosition() < 4)
+                .allMatch(RoomPlayer::isReady);
     }
 }

@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.matchplay;
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.client.GuildView;
 import com.jftse.emulator.server.core.life.room.ClubMatchState;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -75,10 +76,53 @@ class RoomGameLauncherTest {
         assertEquals(null, client.getGameSessionId());
     }
 
+    @Test
+    void clubRelayWaitDoesNotRequireMasterReadyState() {
+        Room room = new Room();
+        room.setPlayers((byte) 2);
+        RoomPlayer master = roomPlayer(1, 0, RED_GUILD);
+        master.setMaster(true);
+        master.setReady(false);
+        RoomPlayer guest = roomPlayer(2, 1, BLUE_GUILD);
+        guest.setReady(true);
+        room.getRoomPlayerList().addAll(List.of(master, guest));
+
+        assertEquals(2, room.getPlayers());
+        assertEquals(2, room.getRoomPlayerList().size());
+        assertFalse(master.isReady());
+        assertTrue(RoomGameLauncher.arePlayersReady(room, true));
+        guest.setReady(false);
+        assertFalse(RoomGameLauncher.arePlayersReady(room, true));
+    }
+
+    @Test
+    void ordinaryRelayWaitStillRequiresEveryNonMasterPlayerReady() {
+        Room room = new Room();
+        room.setPlayers((byte) 2);
+        RoomPlayer master = roomPlayer(1, 0, RED_GUILD);
+        master.setMaster(true);
+        RoomPlayer guest = roomPlayer(2, 1, BLUE_GUILD);
+        room.getRoomPlayerList().addAll(List.of(master, guest));
+
+        assertFalse(RoomGameLauncher.arePlayersReady(room, false));
+        guest.setReady(true);
+        assertTrue(RoomGameLauncher.arePlayersReady(room, false));
+    }
+
     private static FTClient client(long playerId, int position, GuildView guild) {
         FTClient client = mock(FTClient.class);
         FTPlayer player = mock(FTPlayer.class);
         FTConnection connection = mock(FTConnection.class);
+        RoomPlayer roomPlayer = roomPlayer(playerId, position, guild);
+        when(client.hasPlayer()).thenReturn(true);
+        when(client.getPlayer()).thenReturn(player);
+        when(player.getId()).thenReturn(playerId);
+        when(client.getConnection()).thenReturn(connection);
+        when(client.getRoomPlayer()).thenReturn(roomPlayer);
+        return client;
+    }
+
+    private static RoomPlayer roomPlayer(long playerId, int position, GuildView guild) {
         RoomPlayer roomPlayer = new RoomPlayer(null) {
             @Override
             public long getPlayerId() {
@@ -91,12 +135,7 @@ class RoomGameLauncherTest {
             }
         };
         roomPlayer.setPosition((short) position);
-        when(client.hasPlayer()).thenReturn(true);
-        when(client.getPlayer()).thenReturn(player);
-        when(player.getId()).thenReturn(playerId);
-        when(client.getConnection()).thenReturn(connection);
-        when(client.getRoomPlayer()).thenReturn(roomPlayer);
-        return client;
+        return roomPlayer;
     }
 
     private static ClubMatchState.Participant participant(long playerId, int position,
