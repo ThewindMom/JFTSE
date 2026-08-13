@@ -1,5 +1,6 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
+import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
@@ -871,6 +872,8 @@ class RoomStartGamePacketHandlerTest {
         FTPlayer player = mock(FTPlayer.class);
         when(player.getId()).thenReturn(playerId);
         when(player.getItemStats()).thenReturn(new EquippedItemStats());
+        when(player.getItemPartsItemIndex()).thenReturn(
+                new EquippedItemParts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
         RoomPlayer roomPlayer = new RoomPlayer(player);
         roomPlayer.setPosition(position);
         room.getRoomPlayerList().add(roomPlayer);
