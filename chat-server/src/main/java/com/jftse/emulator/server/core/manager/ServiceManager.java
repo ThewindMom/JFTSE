@@ -45,6 +45,8 @@ public class ServiceManager {
     @Autowired
     private PlayerPocketService playerPocketService;
     @Autowired
+    private PersonalBoardService personalBoardService;
+    @Autowired
     private PlayerStatisticService playerStatisticService;
     @Autowired
     private ProductService productService;

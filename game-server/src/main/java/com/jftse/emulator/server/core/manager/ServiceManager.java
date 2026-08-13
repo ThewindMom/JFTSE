@@ -63,6 +63,10 @@ public class ServiceManager {
     @Autowired
     private ProposalService proposalService;
     @Autowired
+    private ClubMemberLicenseService clubMemberLicenseService;
+    @Autowired
+    private ContractWithGuardianService contractWithGuardianService;
+    @Autowired
     private GuildMemberService guildMemberService;
     @Autowired
     private GuildService guildService;

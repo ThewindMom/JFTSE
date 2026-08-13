@@ -3,12 +3,17 @@ package com.jftse.entities.database.repository.guild;
 import com.jftse.entities.database.model.guild.Guild;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
+import javax.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
 public interface GuildRepository extends JpaRepository<Guild, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Guild> findLockedById(Long id);
+
     List<Guild> findAllByName(String name);
 
     @Query("SELECT DISTINCT g FROM Guild g LEFT JOIN FETCH g.memberList gm LEFT JOIN FETCH gm.player p WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :name, '%'))")

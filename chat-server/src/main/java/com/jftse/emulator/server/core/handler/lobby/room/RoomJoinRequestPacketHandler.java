@@ -283,6 +283,8 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             GameManager.getInstance().sendPacketToAllClientsInSameRoom(roomPlayerInformationPacket, client.getConnection());
         }
 
+        GameManager.getInstance().sendPersonalBoardMessages(connection, room);
+
         if (room.getMode() == 2) {
             Packet enableMovement = new Packet(PacketOperations.S2CEnableTownSquareMovement);
             connection.sendTCP(enableMovement);

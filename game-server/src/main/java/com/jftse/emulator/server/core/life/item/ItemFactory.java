@@ -57,6 +57,9 @@ public class ItemFactory {
         if (itemSpecial.getItemIndex() == 6) {
             return new WingOfMemory(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
+        if (itemSpecial.getItemIndex() == 7) {
+            return new ContractWithGuardian(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        }
         if (itemSpecial.getItemIndex() == 26) {
             return new CoupleRing(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
@@ -68,6 +71,9 @@ public class ItemFactory {
         }
         if (itemSpecial.getItemIndex() == 17) {
             return new TrunkLarge(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        }
+        if (itemSpecial.getItemIndex() == 18) {
+            return new ClubMemberLicense(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
         if (itemSpecial.getItemIndex() == 13 || itemSpecial.getItemIndex() == 14) {
             return new MegaphoneSpeaker(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
