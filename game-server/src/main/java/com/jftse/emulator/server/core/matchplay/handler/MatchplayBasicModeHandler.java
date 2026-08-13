@@ -335,7 +335,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
 
         short scoringActor = pointPacket.getPlayerPosition();
         short scoringTeam = pointPacket.getPointsTeam();
-        if (!gameSession.getGameplayActorPositions().contains(scoringActor) || scoringTeam < 0 || scoringTeam > 3)
+        if (scoringTeam < 0 || scoringTeam > 3)
             return;
 
         synchronized (game) {
@@ -351,9 +351,11 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
             boolean winningTeamIsRed = game.isRedTeam(scoringTeam);
             RallyResult rallyResult = matchRallyStatsConsumer.onPoint(ftClient.getGameSessionId(), winningTeamIsRed);
 
-            int ownerPosition = gameSession.getOwnerPositionForActor(scoringActor);
-            game.increasePerformancePointForPlayer(ownerPosition);
-            rallyResultMap.computeIfAbsent(ownerPosition, k -> new ArrayList<>()).add(rallyResult);
+            if (gameSession.getGameplayActorPositions().contains(scoringActor)) {
+                int ownerPosition = gameSession.getOwnerPositionForActor(scoringActor);
+                game.increasePerformancePointForPlayer(ownerPosition);
+                rallyResultMap.computeIfAbsent(ownerPosition, k -> new ArrayList<>()).add(rallyResult);
+            }
 
             if (winningTeamIsRed)
                 game.setPoints((byte) (pointsTeamRed + 1), (byte) pointsTeamBlue);
