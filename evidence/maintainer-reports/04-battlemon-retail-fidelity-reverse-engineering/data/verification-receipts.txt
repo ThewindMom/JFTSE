@@ -1,0 +1,53 @@
+Battlemon retail-fidelity verification receipts
+Runtime: Eclipse Temurin JDK 21.0.12+8
+Verification tree: /tmp/jftse-battlemon-staged-verify
+
+Focused tests
+-------------
+Command:
+JAVA_HOME=/tmp/jdk-21 PATH=/tmp/jdk-21/bin:$PATH \
+  mvn -pl game-server -am \
+  -Dtest=RoomStartGamePacketHandlerTest,BattlemonLifecycleServiceImplTest,BattlemonLifecycleHandlerTest,BattlemonLifecyclePacketTest,BattlemonActorPolicyTest,BattlemonMatchplayGameTest,GameSessionTest,S2CRoomPlayerListInformationPacketTest,S2CGameNetworkSettingsPacketTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+
+Decisive result:
+Tests run: 81, Failures: 0, Errors: 0, Skipped: 0
+game-server: SUCCESS
+BUILD SUCCESS
+Finished at: 2026-08-13T00:06:47Z
+
+Per-class counts:
+RoomStartGamePacketHandlerTest: 21
+BattlemonLifecycleServiceImplTest: 11
+BattlemonLifecycleHandlerTest: 5
+BattlemonLifecyclePacketTest: 3
+BattlemonActorPolicyTest: 14
+BattlemonMatchplayGameTest: 5
+GameSessionTest: 16
+S2CRoomPlayerListInformationPacketTest: 2
+S2CGameNetworkSettingsPacketTest: 4
+Total: 81
+
+Release package
+---------------
+Command:
+JAVA_HOME=/tmp/jdk-21 PATH=/tmp/jdk-21/bin:$PATH \
+  mvn -pl auth-server,chat-server,game-server,relay-server,ac-server \
+  -am -DskipTests package
+
+Decisive result:
+auth-server: SUCCESS
+game-server: SUCCESS
+chat-server: SUCCESS
+relay-server: SUCCESS
+ac-server: SUCCESS
+BUILD SUCCESS
+Finished at: 2026-08-13T00:07:31Z
+
+Runtime JAR SHA-256
+------------------
+48e1030679f9c02ca72a9b38f851674898f5f1ccb7dfed3e8c821f3d28a28f1  game-server.jar
+8137aadda0dc6ca7078a187d7a87df69b51c67ba8a0698004056d8cc0648b87a  auth-server.jar
+49e0914a7a1561e7c078390a1fe4cfef4e45e5299388fe59f04cc28ff16af2ec  chat-server.jar
+597b50a4985958440b1e3f92ec0b7dee92d0a8bab473b52374f2c20230e26d87  relay-server.jar
+8056c5a8c9e16c2bbb6557ae28885bd4d2088f541638bffa18ff72ca1f39cbd6  ac-server.jar
