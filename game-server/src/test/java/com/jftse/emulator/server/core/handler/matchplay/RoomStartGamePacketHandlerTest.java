@@ -24,6 +24,7 @@ import com.jftse.emulator.server.core.rabbit.service.RProducerService;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.gameserver.GameServer;
+import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.pet.PetStatistic;
 import com.jftse.server.core.protocol.IPacket;
@@ -871,6 +872,7 @@ class RoomStartGamePacketHandlerTest {
         when(player.getId()).thenReturn(playerId);
         RoomPlayer roomPlayer = new RoomPlayer(player);
         roomPlayer.setPosition(position);
+        roomPlayer.setEquippedItemStats(new EquippedItemStats());
         room.getRoomPlayerList().add(roomPlayer);
         FTClient client = mock(FTClient.class);
         when(client.hasPlayer()).thenReturn(true);
