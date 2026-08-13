@@ -10,9 +10,15 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
 import java.util.List;
+import java.util.Map;
 
 public class S2CRoomPlayerListInformationPacket extends Packet {
     public S2CRoomPlayerListInformationPacket(List<RoomPlayer> roomPlayerList) {
+        this(roomPlayerList, Map.of());
+    }
+
+    public S2CRoomPlayerListInformationPacket(List<RoomPlayer> roomPlayerList,
+                                              Map<RoomPlayer, Integer> playerHpOverrides) {
         super(PacketOperations.S2CRoomPlayerInformation);
 
         this.write((char) roomPlayerList.size());
@@ -57,7 +63,8 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write((short) 0); // emblem slot 3
             this.write((short) 0); // emblem slot 4
 
-            this.write((BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equippedItemStats.getAddHp()));
+            int playerHp = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equippedItemStats.getAddHp();
+            this.write(playerHpOverrides.getOrDefault(roomPlayer, playerHp));
 
             // status points
             this.write((byte) roomPlayer.getStrength());
