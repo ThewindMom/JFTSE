@@ -70,9 +70,18 @@ public class PetServiceImpl implements PetService {
             return null;
         }
         int currentExperience = pet.getExpPoints() == null ? 0 : Math.max(0, pet.getExpPoints());
-        pet.setExpPoints((int) Math.min(Integer.MAX_VALUE,
-                (long) currentExperience + experience));
+        int newExperience = (int) Math.min(Integer.MAX_VALUE,
+                (long) currentExperience + experience);
+        pet.setExpPoints(newExperience);
+        // LevelExp_Pet.xml is a cumulative EXP table only. Item_PetChar.xml has
+        // no STR/STA/DEX/WIL columns, so a level change does not allocate stats.
+        pet.setLevel(PetLevelTable.toStoredLevel(levelForExperience(newExperience)));
         return petRepository.save(pet);
+    }
+
+    @Override
+    public int levelForExperience(int experience) {
+        return PetLevelTable.levelForExperience(experience);
     }
 
     private Pet createPet(String nameLabel, int strength, int stamina, int dexterity, int willpower,

@@ -23,6 +23,7 @@ public class Pet extends AbstractBaseModel {
     private Player player;
     private Byte type;
     private String name;
+    @Column(columnDefinition = "TINYINT UNSIGNED")
     private Byte level;
     private Integer expPoints;
     private Integer hp;
