@@ -477,10 +477,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         int guardianLevelLimit = this.getGuardianLevelLimit(averagePlayerLevel);
         game.getGuardianLevelLimit().set(guardianLevelLimit);
 
-        roomPlayers.forEach(roomPlayer -> {
-            if (roomPlayer.getPosition() < 4)
-                game.getPlayerBattleStates().add(game.createPlayerBattleState(roomPlayer));
-        });
+        List<RoomPlayer> activeRoomPlayers = roomPlayers.stream()
+                .filter(roomPlayer -> roomPlayer.getPosition() < 4)
+                .toList();
+        activeRoomPlayers.forEach(roomPlayer ->
+                game.getPlayerBattleStates().add(game.createPlayerBattleState(roomPlayer, activeRoomPlayers)));
 
         int activePlayingPlayersCount = (int) roomPlayers.stream().filter(x -> x.getPosition() < 4).count();
         byte guardianStartPosition = 10;
