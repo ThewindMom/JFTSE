@@ -61,7 +61,7 @@ public class RegisterPlayerForSessionHandler implements PacketHandler<FTConnecti
                 .registerClient(sessionId, playerId, isSpectator, authorization.battlemon(),
                         authorization.generation(), client);
 
-        if (registered && isSpectator && connection.getChannelHandlerContext().pipeline().get("readTimeoutHandler") != null) {
+        if (registered && connection.getChannelHandlerContext().pipeline().get("readTimeoutHandler") != null) {
             connection.getChannelHandlerContext().pipeline().remove("readTimeoutHandler");
         }
 

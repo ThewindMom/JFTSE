@@ -188,13 +188,16 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             }
             gameSession.initializeGameplayActorPositions();
             List<Integer> rewardPlayerPositions = rewardPlayerPositions(gameSession);
+            byte scoringPlayers = (byte) (isBattlemon
+                    ? gameSession.getPlayers()
+                    : rewardPlayerPositions.size());
             game = switch (requestedMode) {
                 case GameMode.BASIC -> new MatchplayBasicGame(
-                        (byte) gameSession.getPlayers(),
+                        scoringPlayers,
                         rewardPlayerPositions
                 );
                 case GameMode.BATTLE -> new MatchplayBattleGame(
-                        (byte) gameSession.getPlayers(),
+                        scoringPlayers,
                         rewardPlayerPositions
                 );
                 case GameMode.GUARDIAN -> new MatchplayGuardianGame();

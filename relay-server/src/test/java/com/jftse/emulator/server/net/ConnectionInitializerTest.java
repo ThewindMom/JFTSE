@@ -8,9 +8,8 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collection;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -18,7 +17,7 @@ import static org.mockito.Mockito.when;
 
 class ConnectionInitializerTest {
     @Test
-    void relayConnectionsRemainOpenWhenGameplayHasNoInboundRelayTraffic() throws Exception {
+    void unregisteredRelayConnectionsRetainTheRegistrationTimeout() throws Exception {
         Object previousConfigService = ReflectionTestUtils.getField(ConfigService.class, "instance");
         Object previousRelayManager = ReflectionTestUtils.getField(RelayManager.class, "instance");
         NioSocketChannel channel = new NioSocketChannel();
@@ -30,8 +29,9 @@ class ConnectionInitializerTest {
 
             new ConnectionInitializer().initChannel(channel);
 
-            Collection<ChannelHandler> handlers = channel.pipeline().toMap().values();
-            assertFalse(handlers.stream().anyMatch(ReadTimeoutHandler.class::isInstance));
+            ChannelHandler timeoutHandler = channel.pipeline().get("readTimeoutHandler");
+            assertNotNull(timeoutHandler);
+            assertInstanceOf(ReadTimeoutHandler.class, timeoutHandler);
         } finally {
             channel.unsafe().closeForcibly();
             ReflectionTestUtils.setField(ConfigService.class, "instance", previousConfigService);

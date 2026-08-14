@@ -127,9 +127,10 @@ class BattlemonMatchplayGameTest {
     }
 
     @Test
-    void sparseOrdinaryBasicRewardsOnlyOccupiedPositions() {
-        MatchplayBasicGame game = new MatchplayBasicGame((byte) 4, List.of(1, 3));
+    void sparseOrdinaryBasicUsesSinglesRewardsOnlyForOccupiedPositions() {
+        MatchplayBasicGame game = new MatchplayBasicGame((byte) 2, List.of(1, 3));
 
+        assertTrue(game.isSingles());
         assertEquals(Set.of(1, 3), Set.copyOf(game.getPlayerPositionsOrderedByPerformance()));
 
         game.setPoints((byte) 1, (byte) 0);
@@ -140,8 +141,8 @@ class BattlemonMatchplayGameTest {
     }
 
     @Test
-    void sparseOrdinaryBattleRewardsOnlyOccupiedPositions() {
-        MatchplayBattleGame game = new MatchplayBattleGame((byte) 4, List.of(1, 3));
+    void sparseOrdinaryBattleUsesSinglesRewardsOnlyForOccupiedPositions() {
+        MatchplayBattleGame game = new MatchplayBattleGame((byte) 2, List.of(1, 3));
         game.getPlayerBattleStates().addAll(List.of(
                 state((short) 0, 100L, 100),
                 state((short) 1, 200L, 80),
@@ -149,6 +150,7 @@ class BattlemonMatchplayGameTest {
                 state((short) 3, 400L, 70)
         ));
 
+        assertTrue(game.isSingles());
         assertEquals(List.of(1, 3), game.getPlayerPositionsOrderedByHighestHealth());
     }
 
