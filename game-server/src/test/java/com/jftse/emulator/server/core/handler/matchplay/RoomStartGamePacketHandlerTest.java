@@ -332,9 +332,8 @@ class RoomStartGamePacketHandlerTest {
 
             assertEquals(RoomStatus.NotRunning, room.getStatus());
             assertEquals(List.of(0x17E6), sentPacketIds(first.getConnection()));
-            verify(producer, never()).sendNow(
+            verify(producer, never()).sendRelayActorPolicy(
                     any(RelaySessionAuthorizationMessage.class),
-                    eq(RelaySessionAuthorizationMessage.ROUTING_KEY),
                     eq("MatchplaySystem(GameServer)"));
 
             first.getRoomPlayer().setPet(PetView.of(firstPet));
@@ -343,6 +342,20 @@ class RoomStartGamePacketHandlerTest {
             relayServer.setHost("127.0.0.1");
             relayServer.setPort(5896);
             when(authenticationService.getGameServerByPort(5896)).thenReturn(relayServer);
+
+            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
+
+            assertEquals(RoomStatus.NotRunning, room.getStatus());
+            assertTrue(sessionManager.getGameSessionList().isEmpty());
+            verify(producer).sendRelayActorPolicy(
+                    any(RelaySessionAuthorizationMessage.class),
+                    eq("MatchplaySystem(GameServer)"));
+            verify(threadManager, never()).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
+
+            when(producer.sendRelayActorPolicy(
+                    any(RelaySessionAuthorizationMessage.class),
+                    eq("MatchplaySystem(GameServer)"))).thenReturn(true);
+            second.getRoomPlayer().setReady(true);
 
             handler.handle(first.getConnection(), CMSGStartGame.builder().build());
 
@@ -356,9 +369,8 @@ class RoomStartGamePacketHandlerTest {
                     session.getGameplayActorPositions());
             assertNotNull(session.getOwnedPetSeat(100L));
             assertNotNull(session.getOwnedPetSeat(200L));
-            verify(producer).sendNow(
+            verify(producer, times(2)).sendRelayActorPolicy(
                     any(RelaySessionAuthorizationMessage.class),
-                    eq(RelaySessionAuthorizationMessage.ROUTING_KEY),
                     eq("MatchplaySystem(GameServer)"));
             verify(threadManager).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.SECONDS));
         } finally {

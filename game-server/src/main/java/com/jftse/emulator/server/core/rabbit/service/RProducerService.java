@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.rabbit.service;
 import com.jftse.emulator.common.utilities.RandomUtils;
 import com.jftse.emulator.server.rabbit.RabbitMQConfig;
 import com.jftse.server.core.rabbit.AbstractBaseMessage;
+import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import com.jftse.server.core.thread.ThreadManager;
 import com.jftse.server.core.util.Time;
 import lombok.extern.log4j.Log4j2;
@@ -37,11 +38,12 @@ public class RProducerService {
         threadManager.newTask(() -> send0(message, routingKey, sender));
     }
 
-    public void sendNow(AbstractBaseMessage message, String routingKey, String sender) throws AmqpException {
-        String[] routingKeys = routingKey.split("\\s+");
-        for (String key : routingKeys) {
-            sendToRoutingKey(message, key, sender);
-        }
+    public boolean sendRelayActorPolicy(RelaySessionAuthorizationMessage message, String sender)
+            throws AmqpException {
+        prepareMessage(message, sender);
+        Object reply = rabbitTemplate.convertSendAndReceive(
+                rabbitMQConfig.getExchangeName(), RelaySessionAuthorizationMessage.ROUTING_KEY, message);
+        return message.getGameSessionId().equals(reply);
     }
 
     private void send0(AbstractBaseMessage message, String routingKey, String sender) {
@@ -58,8 +60,7 @@ public class RProducerService {
     }
 
     private void sendToRoutingKey(AbstractBaseMessage message, String routingKey, String sender) throws AmqpException {
-        message.setCorrelationId(RandomUtils.getUUID());
-        message.setSender(sender);
+        prepareMessage(message, sender);
         final long start = Time.getNSTime();
 
         log.debug("[{}] Sending message to {}: type={}, sender={}",
@@ -74,5 +75,10 @@ public class RProducerService {
         log.debug("[{}] Message sent in {} ms",
                 message.getCorrelationId(),
                 Time.nanoToMillis(duration));
+    }
+
+    private void prepareMessage(AbstractBaseMessage message, String sender) {
+        message.setCorrelationId(RandomUtils.getUUID());
+        message.setSender(sender);
     }
 }

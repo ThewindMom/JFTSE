@@ -71,6 +71,21 @@ class RelaySessionAuthorizationStoreTest {
         assertTrue(store.canAct(client(200, 1000), 3));
     }
 
+    @Test
+    void temporaryEmptySessionKeepsPolicyUntilEveryOwnerHasRegistered() {
+        store.put(policy(100, Map.of(
+                1000, List.of((short) 0, (short) 2),
+                2000, List.of((short) 1, (short) 3)), Map.of()));
+
+        store.markParticipantRegistered(100, 1000);
+        assertFalse(store.canRemoveAfterSessionEmpties(100));
+
+        store.markParticipantRegistered(100, 2000);
+        assertTrue(store.canRemoveAfterSessionEmpties(100));
+        store.remove(100);
+        assertTrue(store.canRemoveAfterSessionEmpties(100));
+    }
+
     private static RelaySessionAuthorizationMessage policy(int sessionId,
                                                              Map<Integer, List<Short>> actors,
                                                              Map<Integer, Boolean> controllers) {

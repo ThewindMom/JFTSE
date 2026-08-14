@@ -38,6 +38,15 @@ public class GameSessionManager {
         }
         return id;
     }
+
+    public Integer addRelayActorPolicyGameSession(GameSession gameSession) {
+        Integer id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+        while (gameSessionList.putIfAbsent(id, gameSession) != null) {
+            id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+        }
+        return id;
+    }
+
     public boolean removeGameSession(Integer gameSessionId, GameSession gameSession) {
         return gameSessionList.remove(gameSessionId, gameSession);
     }

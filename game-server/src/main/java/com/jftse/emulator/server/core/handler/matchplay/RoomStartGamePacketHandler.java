@@ -246,7 +246,9 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             room.setStatus(RoomStatus.StartingGame);
         }
 
-        Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
+        Integer gameSessionId = gameSession.hasOwnedPetSeats()
+                ? GameSessionManager.getInstance().addRelayActorPolicyGameSession(gameSession)
+                : GameSessionManager.getInstance().addGameSession(gameSession);
         try {
             if (gameSession.hasOwnedPetSeats()) {
                 RelaySessionAuthorizationMessage relayAuthorization = createRelayAuthorization(
@@ -254,11 +256,11 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                         clientsInRoom,
                         gameSession
                 );
-                GameManager.getInstance().getRProducerService().sendNow(
-                        relayAuthorization,
-                        RelaySessionAuthorizationMessage.ROUTING_KEY,
-                        "MatchplaySystem(GameServer)"
-                );
+                boolean acknowledged = GameManager.getInstance().getRProducerService()
+                        .sendRelayActorPolicy(relayAuthorization, "MatchplaySystem(GameServer)");
+                if (!acknowledged) {
+                    throw new IllegalStateException("Relay did not acknowledge the actor policy");
+                }
             }
         } catch (RuntimeException e) {
             abortStart(room, gameSessionId, gameSession, clientsInRoom);

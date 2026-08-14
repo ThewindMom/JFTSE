@@ -142,8 +142,11 @@ public class GameManager implements ServerLoopHandler {
                 .remove(true)
                 .build();
         try {
-            rProducerService.sendNow(message, RelaySessionAuthorizationMessage.ROUTING_KEY,
-                    "MatchplaySystem(GameServer)");
+            boolean acknowledged = rProducerService.sendRelayActorPolicy(
+                    message, "MatchplaySystem(GameServer)");
+            if (!acknowledged) {
+                log.warn("Relay did not acknowledge actor-policy removal for session {}", gameSessionId);
+            }
         } catch (RuntimeException exception) {
             log.warn("Unable to remove relay actor policy for session {}", gameSessionId, exception);
         }

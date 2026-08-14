@@ -14,7 +14,8 @@ public class RelaySessionAuthorizationConsumer {
     private final RelaySessionAuthorizationStore authorizationStore;
 
     @RabbitListener(queues = "relay-session-authorization")
-    public void receiveMessage(RelaySessionAuthorizationMessage message) {
+    public Integer receiveMessage(RelaySessionAuthorizationMessage message) {
         authorizationStore.put(message);
+        return message.getGameSessionId();
     }
 }

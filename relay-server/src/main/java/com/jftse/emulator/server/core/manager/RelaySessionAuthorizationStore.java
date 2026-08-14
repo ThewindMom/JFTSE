@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RelaySessionAuthorizationStore {
     private static RelaySessionAuthorizationStore instance;
     private final ConcurrentHashMap<Integer, SessionAuthorization> sessions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, Set<Integer>> registeredParticipants = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -67,6 +68,7 @@ public class RelaySessionAuthorizationStore {
         }
         sessions.put(message.getGameSessionId(), new SessionAuthorization(
                 battlemon, Map.copyOf(actors), Map.copyOf(controllers)));
+        registeredParticipants.put(message.getGameSessionId(), ConcurrentHashMap.newKeySet());
     }
 
     public Optional<SessionAuthorization> find(int gameSessionId) {
@@ -104,8 +106,28 @@ public class RelaySessionAuthorizationStore {
         return find(gameSessionId).map(SessionAuthorization::battlemon).orElse(false);
     }
 
+    public void markParticipantRegistered(int gameSessionId, int playerId) {
+        SessionAuthorization policy = sessions.get(gameSessionId);
+        Set<Integer> participants = registeredParticipants.get(gameSessionId);
+        if (policy != null && participants != null &&
+                policy.actorPositionsByPlayerId().containsKey(playerId)) {
+            participants.add(playerId);
+        }
+    }
+
+    public boolean canRemoveAfterSessionEmpties(int gameSessionId) {
+        SessionAuthorization policy = sessions.get(gameSessionId);
+        if (policy == null) {
+            return true;
+        }
+        Set<Integer> participants = registeredParticipants.get(gameSessionId);
+        return participants != null &&
+                participants.containsAll(policy.actorPositionsByPlayerId().keySet());
+    }
+
     public void remove(int gameSessionId) {
         sessions.remove(gameSessionId);
+        registeredParticipants.remove(gameSessionId);
     }
 
     public record SessionAuthorization(boolean battlemon,
