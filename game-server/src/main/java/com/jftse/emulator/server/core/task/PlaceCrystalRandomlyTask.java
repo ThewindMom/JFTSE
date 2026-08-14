@@ -19,16 +19,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PlaceCrystalRandomlyTask extends AbstractTask {
     private final FTConnection connection;
     private final short gameFieldSide;
-    private final GameSession expectedGameSession;
 
     private final EventHandler eventHandler;
 
     public PlaceCrystalRandomlyTask(FTConnection connection, short gameFieldSide) {
         this.connection = connection;
         this.gameFieldSide = gameFieldSide;
-        this.expectedGameSession = connection.getClient() == null
-                ? null
-                : connection.getClient().getActiveGameSession();
 
         eventHandler = GameManager.getInstance().getEventHandler();
     }
@@ -36,9 +32,6 @@ public class PlaceCrystalRandomlyTask extends AbstractTask {
     public PlaceCrystalRandomlyTask(FTConnection connection) {
         this.connection = connection;
         this.gameFieldSide = -1;
-        this.expectedGameSession = connection.getClient() == null
-                ? null
-                : connection.getClient().getActiveGameSession();
 
         eventHandler = GameManager.getInstance().getEventHandler();
     }
@@ -48,7 +41,7 @@ public class PlaceCrystalRandomlyTask extends AbstractTask {
         if (connection.getClient() == null) return;
 
         GameSession gameSession = connection.getClient().getActiveGameSession();
-        if (gameSession == null || gameSession != expectedGameSession) return;
+        if (gameSession == null) return;
 
         MatchplayGame game = gameSession.getMatchplayGame();
         boolean isBattleGame = gameSession.getMatchplayGame() instanceof MatchplayBattleGame;

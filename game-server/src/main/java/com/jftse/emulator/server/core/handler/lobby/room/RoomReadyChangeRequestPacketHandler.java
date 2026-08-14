@@ -1,11 +1,13 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeReady;
@@ -24,11 +26,17 @@ public class RoomReadyChangeRequestPacketHandler implements PacketHandler<FTConn
         Room room = ftClient.getActiveRoom();
         RoomPlayer roomPlayer = ftClient.getRoomPlayer();
         if (room != null && roomPlayer != null) {
-            synchronized (room) {
-                if (room.getStatus() != RoomStatus.NotRunning) {
-                    ftClient.getIsGoingReady().set(false);
-                    return;
+            boolean enhancedOwnedPetSession = room.getRoomType() == RoomType.BATTLEMON ||
+                    room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+            if (enhancedOwnedPetSession) {
+                synchronized (room) {
+                    if (room.getStatus() != RoomStatus.NotRunning) {
+                        ftClient.getIsGoingReady().set(false);
+                        return;
+                    }
+                    roomPlayer.setReady(packet.getReady());
                 }
+            } else {
                 roomPlayer.setReady(packet.getReady());
             }
 

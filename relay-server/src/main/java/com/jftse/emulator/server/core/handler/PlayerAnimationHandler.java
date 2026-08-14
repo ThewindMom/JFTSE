@@ -25,10 +25,9 @@ public class PlayerAnimationHandler implements PacketHandler<FTConnection, CMSGP
             return;
         }
         SMSGPlayerAnimation relayPacket = packet.translate(translator);
-        FTClient.RelayRegistration registration = connection.getClient().getRelayRegistration();
-        if (registration != null) {
-            RelayManager.getInstance().broadcastToSessionGeneration(registration.gameSessionId(),
-                    registration.generation(), relayPacket);
-        }
+        connection.getClient().getGameSessionId().ifPresent(sessionId -> RelayManager.getInstance()
+                .getClientsInSession(sessionId).forEach(c -> {
+                    if (c.getConnection() != null) c.getConnection().sendTCP(relayPacket);
+                }));
     }
 }

@@ -40,7 +40,6 @@ public class FTClient extends Client<FTConnection> {
     private Room activeRoom;
     private RoomPlayer roomPlayer;
     private Integer gameSessionId;
-    private GameSession activeGameSession;
 
     private FruitManager fruitManager = new FruitManager();
 
@@ -153,21 +152,13 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public GameSession getActiveGameSession() {
-        return this.activeGameSession;
+        if (this.gameSessionId == null)
+            return null;
+        return GameSessionManager.getInstance().getGameSessionBySessionId(this.gameSessionId);
     }
 
     public void setActiveGameSession(Integer gameSessionId) {
-        if (gameSessionId == null) {
-            this.gameSessionId = null;
-            this.activeGameSession = null;
-            return;
-        }
-        GameSession gameSession = GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId);
-        if (gameSession == null) {
-            throw new IllegalArgumentException("Game session is not registered: " + gameSessionId);
-        }
         this.gameSessionId = gameSessionId;
-        this.activeGameSession = gameSession;
     }
 
     public void setActivePet(Pet pet) {

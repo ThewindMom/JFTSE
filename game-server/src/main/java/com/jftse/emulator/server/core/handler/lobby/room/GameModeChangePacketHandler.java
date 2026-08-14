@@ -2,10 +2,8 @@ package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
-import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
@@ -30,27 +28,26 @@ public class GameModeChangePacketHandler implements PacketHandler<FTConnection, 
         Room room = client.getActiveRoom();
 
         if (room != null) {
-            RoomPlayer roomPlayer = client.getRoomPlayer();
-            if (roomPlayer == null || !roomPlayer.isMaster()) {
-                return;
-            }
-
             synchronized (room) {
-                if (room.getStatus() != RoomStatus.NotRunning ||
-                        room.getRoomType() == RoomType.BATTLEMON &&
+                boolean dedicatedBattlemon = room.getRoomType() == RoomType.BATTLEMON;
+                boolean leavingEnhancedGuardian = room.getMode() == GameMode.GUARDIAN &&
+                        room.getAllowBattlemon() != 0 && packet.getMode() != GameMode.GUARDIAN;
+                if (dedicatedBattlemon &&
                                 packet.getMode() != GameMode.BASIC && packet.getMode() != GameMode.BATTLE) {
                     return;
                 }
                 room.setMode(packet.getMode());
-                room.getRoomPlayerList().forEach(player -> {
-                    player.setReady(false);
-                    SMSGRoomChangeReady changeReady = SMSGRoomChangeReady.builder()
-                            .position(player.getPosition())
-                            .ready(false)
-                            .build();
-                    GameManager.getInstance().sendPacketToAllClientsInSameRoom(changeReady, connection);
-                });
-                if (room.getRoomType() != RoomType.BATTLEMON && packet.getMode() != GameMode.GUARDIAN) {
+                if (dedicatedBattlemon) {
+                    room.getRoomPlayerList().forEach(player -> {
+                        player.setReady(false);
+                        SMSGRoomChangeReady changeReady = SMSGRoomChangeReady.builder()
+                                .position(player.getPosition())
+                                .ready(false)
+                                .build();
+                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(changeReady, connection);
+                    });
+                }
+                if (leavingEnhancedGuardian) {
                     room.getRoomPlayerList().forEach(player -> {
                         if (player.getPet() == null) {
                             return;

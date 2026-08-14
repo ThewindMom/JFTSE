@@ -97,17 +97,14 @@ public class EventHandler {
     }
 
     public PacketEvent createPacketEvent(FTClient client, Packet packet, PacketEventType packetEventType, long delayMS) {
-        return buildPacketEvent(client, packet, packetEventType, delayMS, false);
-    }
-    public PacketEvent createDetachedSessionPacketEvent(FTClient client, Packet packet,
-                                                         PacketEventType eventType, long delayMS) {
-        return buildPacketEvent(client, packet, eventType, delayMS, true);
-    }
-
-    private PacketEvent buildPacketEvent(FTClient client, Packet packet, PacketEventType packetEventType,
-                                         long delayMS, boolean allowDetachedSession) {
-        return new PacketEvent(client.getConnection(), client, packet, packetEventType,
-                client.getActiveGameSession(), allowDetachedSession, GameTime.getGameTimeMS(), delayMS);
+        return PacketEvent.builder()
+                        .sender(client.getConnection())
+                        .client(client)
+                        .packet(packet)
+                        .packetEventType(packetEventType)
+                        .currentTime(GameTime.getGameTimeMS())
+                        .delayMS(delayMS)
+                        .build();
     }
 
     public RunnableEvent createRunnableEvent(Runnable runnable, long delayMS) {

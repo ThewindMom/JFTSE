@@ -24,24 +24,23 @@ public class RelayPacketRequestHandler implements PacketHandler<FTConnection, CM
                 return;
             }
             byte[] innerPacket = relay.getPacket();
-            if (innerPacket == null || innerPacket.length < 6) {
+            boolean battlemon = RelaySessionAuthorizationStore.getInstance()
+                    .isBattlemon(client.getGameSessionId().get());
+            if (battlemon && (innerPacket == null || innerPacket.length < 6)) {
                 return;
             }
             int packetId = BitKit.bytesToShort(innerPacket, 4);
             IPacket relayPacket = PacketRegistry.decode(packetId, innerPacket);
             if (relayPacket instanceof CMSGDefault defaultPacket) {
-                if (client.isBattlemonSession()) {
+                if (battlemon) {
                     log.warn("Dropping unknown Battlemon relay packet id: 0x{}", Integer.toHexString(packetId));
                     return;
                 }
                 // not found so its wrapped in CMSGDefault and prob not reversed yet
                 // we must still relay it because the client expects the packet to function properly
-                FTClient.RelayRegistration registration = client.getRelayRegistration();
-                if (registration == null) {
-                    return;
-                }
-                RelayManager.getInstance().broadcastToSessionGeneration(registration.gameSessionId(),
-                        registration.generation(), defaultPacket);
+                RelayManager.getInstance().getClientsInSession(client.getGameSessionId().get()).forEach(c -> {
+                    if (c.getConnection() != null) c.getConnection().sendTCP(defaultPacket);
+                });
 
                 log.warn("Unknown packet id: 0x{} ({})", Integer.toHexString(defaultPacket.getPacketId()), (int) defaultPacket.getPacketId());
             } else {

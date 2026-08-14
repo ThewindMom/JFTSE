@@ -20,7 +20,6 @@ import java.util.ArrayList;
 @Log4j2
 public class GuardianAttackTask extends AbstractTask {
     private final FTConnection connection;
-    private final GameSession expectedGameSession;
 
     private final GuardianSkillsService guardianSkillsService;
 
@@ -30,9 +29,6 @@ public class GuardianAttackTask extends AbstractTask {
 
     public GuardianAttackTask(FTConnection connection) {
         this.connection = connection;
-        this.expectedGameSession = connection.getClient() == null
-                ? null
-                : connection.getClient().getActiveGameSession();
 
         this.guardianSkillsService = ServiceManager.getInstance().getGuardianSkillsService();
         this.guardianBattleState = null;
@@ -42,9 +38,6 @@ public class GuardianAttackTask extends AbstractTask {
 
     public GuardianAttackTask(FTConnection connection, GuardianBattleState guardianBattleState) {
         this.connection = connection;
-        this.expectedGameSession = connection.getClient() == null
-                ? null
-                : connection.getClient().getActiveGameSession();
 
         this.guardianSkillsService = ServiceManager.getInstance().getGuardianSkillsService();
         this.guardianBattleState = guardianBattleState;
@@ -56,7 +49,7 @@ public class GuardianAttackTask extends AbstractTask {
     public void run() {
         if (connection.getClient() == null) return;
         GameSession gameSession = connection.getClient().getActiveGameSession();
-        if (gameSession == null || gameSession != expectedGameSession) return;
+        if (gameSession == null) return;
         MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
 
         final boolean hasPhaseEnded = game.isAdvancedBossGuardianMode() && !game.getPhaseManager().getIsRunning().get();

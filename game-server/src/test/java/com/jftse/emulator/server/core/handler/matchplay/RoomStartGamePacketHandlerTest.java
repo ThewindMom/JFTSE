@@ -184,26 +184,6 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @Test
-    void ordinaryRelayAuthorizationMapsEachPlayerToTheirPosition() {
-        GameSession session = new GameSession();
-        FTClient first = client(100L, (short) 0);
-        FTClient second = client(200L, (short) 1);
-
-        RelaySessionAuthorizationMessage authorization = RoomStartGamePacketHandler.createRelayAuthorization(
-                12345,
-                List.of(first, second),
-                session
-        );
-
-        assertFalse(authorization.getBattlemon());
-        assertEquals(List.of((short) 0), authorization.getActorPositionsByPlayerId().get(100));
-        assertEquals(List.of((short) 1), authorization.getActorPositionsByPlayerId().get(200));
-        assertEquals("127.0.0.1", authorization.getPlayerAddresses().get(100));
-        assertFalse(authorization.getRevoked());
-        assertTrue(authorization.getExpiresAt().isAfter(java.time.Instant.now()));
-    }
-
-    @Test
     void battlemonRelayAuthorizationMapsPetsToOwnerEndpoints() {
         GameSession session = new GameSession(true);
         FTClient first = client(100L, (short) 0);
@@ -435,46 +415,6 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @Test
-    void relayRevocationRetriesUntilPublishedWithCappedBackoff() {
-        GameManager gameManager = new GameManager();
-        RProducerService producer = mock(RProducerService.class);
-        ThreadManager threadManager = mock(ThreadManager.class);
-        ReflectionTestUtils.setField(gameManager, "rProducerService", producer);
-        ReflectionTestUtils.setField(gameManager, "threadManager", threadManager);
-        AtomicInteger publishAttempts = new AtomicInteger();
-        doAnswer(invocation -> {
-            if (publishAttempts.getAndIncrement() < 7) {
-                throw new RuntimeException("temporary publish failure");
-            }
-            return null;
-        }).when(producer).sendNow(
-                        any(RelaySessionAuthorizationMessage.class),
-                        eq(RelaySessionAuthorizationMessage.ROUTING_KEY),
-                        eq("MatchplaySystem(GameServer)"));
-        doAnswer(invocation -> {
-            invocation.getArgument(0, Runnable.class).run();
-            return null;
-        }).when(threadManager).schedule(any(Runnable.class), anyLong(), eq(TimeUnit.SECONDS));
-        GameSession session = new GameSession(true);
-
-        gameManager.revokeRelaySession(12345, session);
-        gameManager.revokeRelaySession(12345, session);
-
-        assertTrue(session.getRelayAuthorizationRevoked().get());
-        assertEquals(7, session.getRelayAuthorizationRevocationAttempts().get());
-        verify(producer, times(8)).sendNow(
-                any(RelaySessionAuthorizationMessage.class),
-                eq(RelaySessionAuthorizationMessage.ROUTING_KEY),
-                eq("MatchplaySystem(GameServer)"));
-        verify(threadManager).schedule(any(Runnable.class), eq(2L), eq(TimeUnit.SECONDS));
-        verify(threadManager).schedule(any(Runnable.class), eq(4L), eq(TimeUnit.SECONDS));
-        verify(threadManager).schedule(any(Runnable.class), eq(8L), eq(TimeUnit.SECONDS));
-        verify(threadManager).schedule(any(Runnable.class), eq(16L), eq(TimeUnit.SECONDS));
-        verify(threadManager).schedule(any(Runnable.class), eq(32L), eq(TimeUnit.SECONDS));
-        verify(threadManager, times(2)).schedule(any(Runnable.class), eq(64L), eq(TimeUnit.SECONDS));
-    }
-
-    @Test
     void relayStartupUsesOneSynchronizedStatusSnapshotPerPoll() {
         Object previousSessionManager = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
         try {
@@ -496,10 +436,10 @@ class RoomStartGamePacketHandlerTest {
 
             RoomStartGamePacketHandler.RelayStartupPollResult firstPoll =
                     RoomStartGamePacketHandler.pollRelayStartup(
-                            room, 0, client, sessionId, session, System.nanoTime() + TimeUnit.MINUTES.toNanos(1));
+                            room, 0, client, sessionId, session);
             RoomStartGamePacketHandler.RelayStartupPollResult secondPoll =
                     RoomStartGamePacketHandler.pollRelayStartup(
-                            room, 0, client, sessionId, session, System.nanoTime() + TimeUnit.MINUTES.toNanos(1));
+                            room, 0, client, sessionId, session);
 
             assertEquals(RoomStartGamePacketHandler.RelayStartupPollResult.WAITING, firstPoll);
             assertEquals(RoomStartGamePacketHandler.RelayStartupPollResult.CONNECTED, secondPoll);
@@ -510,23 +450,22 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @Test
-    void relayEndpointRostersPutEveryThreeAndFourPlayerRecipientFirst() {
-        assertRelayEndpointRosters(List.of(100L, 200L, 300L));
-        assertRelayEndpointRosters(List.of(100L, 200L, 300L, 400L));
+    void ordinaryRelayEndpointRostersKeepDevelopmentRotation() {
+        List<FTClient> clients = List.of(client(100L, (short) 0), client(200L, (short) 1),
+                client(300L, (short) 2));
+        assertEquals(List.of(100L, 200L, 300L), playerIds(
+                RoomStartGamePacketHandler.ordinaryRelayEndpointRoster(clients, 0)));
+        assertEquals(List.of(300L, 100L, 200L), playerIds(
+                RoomStartGamePacketHandler.ordinaryRelayEndpointRoster(clients, 1)));
     }
 
     @Test
-    void rewardPositionsUseOnlyOccupiedGameplaySeats() {
-        GameSession ordinarySession = new GameSession();
-        ordinarySession.setPlayers(4);
-        ordinarySession.getClients().add(client(100L, (short) 0));
-        ordinarySession.getClients().add(client(300L, (short) 2));
+    void battlemonRewardPositionsUseOnlyOwnerSeats() {
         GameSession battlemonSession = new GameSession(true);
         battlemonSession.setPlayers(4);
         battlemonSession.getClients().add(client(100L, (short) 0));
         battlemonSession.getClients().add(client(200L, (short) 1));
 
-        assertEquals(List.of(0, 2), RoomStartGamePacketHandler.rewardPlayerPositions(ordinarySession));
         assertEquals(List.of(0, 1), RoomStartGamePacketHandler.rewardPlayerPositions(battlemonSession));
     }
 
@@ -544,10 +483,10 @@ class RoomStartGamePacketHandlerTest {
         room.getRoomPlayerList().add(first.getRoomPlayer());
         room.getRoomPlayerList().add(second.getRoomPlayer());
 
-        GameSession session = new GameSession();
-        session.getClients().add(first);
-        session.getClients().add(second);
-        session.initializeGameplayActorPositions();
+        GameSession session = mock(GameSession.class);
+        when(session.hasOwnedPetSeats()).thenReturn(true);
+        when(session.getClients()).thenReturn(new java.util.concurrent.ConcurrentLinkedDeque<>(List.of(first, second)));
+        when(session.getGameplayActorPositions()).thenReturn(List.of((short) 0, (short) 1, (short) 2));
         when(first.getActiveRoom()).thenReturn(room);
         when(second.getActiveRoom()).thenReturn(room);
         when(first.getActiveGameSession()).thenReturn(session);
@@ -568,16 +507,18 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @Test
-    void gameplayConfigurationChangesAreRejectedOnceRelayStartupBegins() {
+    void battlemonActorChangesAreRejectedOnceRelayStartupBegins() {
+        Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
         try {
+            ReflectionTestUtils.setField(GameManager.class, "instance", mock(GameManager.class));
             ServiceManager serviceManager = mock(ServiceManager.class);
             when(serviceManager.getPetService()).thenReturn(mock(com.jftse.server.core.service.PetService.class));
             ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
 
             Room room = new Room();
+            room.setRoomType((byte) RoomType.BATTLEMON);
             room.setStatus(RoomStatus.StartingGame);
-            room.setMap((byte) 1);
             RoomPlayer roomPlayer = new RoomPlayer(mock(FTPlayer.class));
             roomPlayer.setMaster(true);
             roomPlayer.setPet(new PetView(10L, 1, "Pet", 1, 100, 1, 1, 1, 1, 100, 100));
@@ -593,24 +534,16 @@ class RoomStartGamePacketHandlerTest {
 
             new RoomReadyChangeRequestPacketHandler().handle(connection,
                     CMSGRoomChangeReady.builder().ready(true).build());
-            new RoomMapChangeRequestPacketHandler().handle(connection,
-                    CMSGRoomChangeMap.builder().map((byte) 2).build());
-            new RoomQuickSlotChangePacketHandler().handle(connection,
-                    CMSGRoomChangeQuickSlot.builder().enable(true).build());
-            new RoomSkillFreeChangePacketHandler().handle(connection,
-                    CMSGRoomChangeSkillFree.builder().enable(true).build());
             new RoomPositionChangeRequestPacketHandler().handle(connection,
                     CMSGRoomChangePosition.builder().position((short) 1).build());
             new RoomRequestPetPacketHandler().handle(connection,
                     CMSGRequestPet.builder().slot((byte) 0).build());
 
             assertFalse(roomPlayer.isReady());
-            assertEquals(1, room.getMap());
-            assertFalse(room.isQuickSlot());
-            assertFalse(room.isSkillFree());
             assertEquals(0, roomPlayer.getPosition());
             assertEquals(10L, roomPlayer.getPet().id());
         } finally {
+            ReflectionTestUtils.setField(GameManager.class, "instance", previousGameManager);
             ReflectionTestUtils.setField(ServiceManager.class, "instance", previousServiceManager);
         }
     }
@@ -911,21 +844,8 @@ class RoomStartGamePacketHandlerTest {
         }
     }
 
-    private static void assertRelayEndpointRosters(List<Long> playerIds) {
-        List<FTClient> clients = playerIds.stream()
-                .map(playerId -> client(playerId, playerId.shortValue()))
-                .toList();
-        for (int recipientIndex = 0; recipientIndex < clients.size(); recipientIndex++) {
-            List<FTClient> roster = RoomStartGamePacketHandler.relayEndpointRoster(clients, recipientIndex);
-            List<Long> actualPlayerIds = roster.stream().map(client -> client.getPlayer().getId()).toList();
-            List<Long> expectedPlayerIds = new ArrayList<>(playerIds.size());
-            for (int offset = 0; offset < playerIds.size(); offset++) {
-                expectedPlayerIds.add(playerIds.get((recipientIndex + offset) % playerIds.size()));
-            }
-
-            assertEquals(expectedPlayerIds, actualPlayerIds);
-            assertEquals(playerIds.get(recipientIndex), actualPlayerIds.get(0));
-        }
+    private static List<Long> playerIds(List<FTClient> clients) {
+        return clients.stream().map(client -> client.getPlayer().getId()).toList();
     }
 
     private static List<Integer> sentPacketIds(FTConnection connection) {

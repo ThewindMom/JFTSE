@@ -1,13 +1,13 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.chat.SMSGChatMessageRoom;
@@ -33,14 +33,8 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
         Room room = ftClient.getActiveRoom();
         RoomPlayer requestingSlotChangePlayer = ftClient.getRoomPlayer();
         if (room != null) {
-            synchronized (room) {
-            if (room.getStatus() != RoomStatus.NotRunning) {
-                ftClient.getIsChangingSlot().set(false);
-                return;
-            }
             if (requestingSlotChangePlayer != null) {
-                if (positionToClaim < 0 || positionToClaim >= room.getPositions().size() ||
-                        (room.getRoomType() == RoomType.BATTLEMON && positionToClaim > 1)) {
+                if (room.getRoomType() == RoomType.BATTLEMON && positionToClaim > 1) {
                     ftClient.getIsChangingSlot().set(false);
                     return;
                 }
@@ -51,7 +45,9 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                     return;
                 }
 
-                if (requestingSlotChangePlayer.getPet() != null) {
+                boolean enhancedOwnedPetRoom = room.getRoomType() == RoomType.BATTLEMON ||
+                        room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+                if (enhancedOwnedPetRoom && requestingSlotChangePlayer.getPet() != null) {
                     SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
                             .type((byte) 2)
                             .sender("Room")
@@ -63,9 +59,8 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                 }
 
                 boolean requestingSlotChangePlayerIsMaster = requestingSlotChangePlayer.isMaster();
-                boolean slotIsAvailable = room.getPositions().get(positionToClaim) == RoomPositionState.Free;
                 boolean slotIsInUse = room.getPositions().get(positionToClaim) == RoomPositionState.InUse;
-                if (!slotIsAvailable && !(slotIsInUse && requestingSlotChangePlayerIsMaster)) {
+                if (slotIsInUse && !requestingSlotChangePlayerIsMaster) {
                     SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
                             .type((byte) 2)
                             .sender("Room")
@@ -79,7 +74,7 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                 RoomPlayer playerInSlotToClaim = room.getRoomPlayerList().stream().filter(x -> x.getPosition() == positionToClaim).findAny().orElse(null);
 
                 if (playerInSlotToClaim != null) {
-                    if (playerInSlotToClaim.getPet() != null) {
+                    if (enhancedOwnedPetRoom && playerInSlotToClaim.getPet() != null) {
                         SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
                                 .type((byte) 2)
                                 .sender("Room")
@@ -135,7 +130,6 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
                             .build();
                     GameManager.getInstance().sendPacketToAllClientsInSameRoom(roomChangePosition, ftClient.getConnection());
                 }
-            }
             }
         }
         ftClient.getIsChangingSlot().set(false);

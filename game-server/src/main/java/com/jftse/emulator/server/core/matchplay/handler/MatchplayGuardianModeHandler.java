@@ -154,8 +154,9 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
         if (!game.getFinished().compareAndSet(false, true) ||
-                !gameSession.getCompletionHandled().compareAndSet(false, true))
+                enhancedActorSession && !gameSession.getCompletionHandled().compareAndSet(false, true))
             return;
 
         boolean completionSucceeded = false;
@@ -223,19 +224,20 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 gameLog.setContent(gameLogContent.toString());
                 gameLogService.save(gameLog);
 
+                if (!enhancedActorSession) {
+                    matchRallyStatsConsumer.clearSession(gameSessionId);
+                    gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
+                    if (game.getFinished().get() && gameSession.getClients().isEmpty())
+                        GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+                }
                 return;
             }
         }
 
         MatchplayReward matchplayReward = game.getMatchRewards();
-        matchplayReward.getPlayerRewards().removeIf(reward ->
-                !gameSession.isHumanSeat(reward.getPlayerPosition()));
-        matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
-                .filter(FTClient::hasPlayer)
-                .map(FTClient::getRoomPlayer)
-                .filter(Objects::nonNull)
-                .filter(roomPlayer -> roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() < 4)
-                .collect(Collectors.toUnmodifiableMap(RoomPlayer::getPosition, RoomPlayer::getPlayerId)));
+        if (enhancedActorSession)
+            matchplayReward.getPlayerRewards().removeIf(reward ->
+                    !gameSession.isHumanSeat(reward.getPlayerPosition()));
         game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
 
         GameSessionManager.getInstance().addMatchplayReward(activeRoom.getRoomId(), matchplayReward);
@@ -389,17 +391,20 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 }
             }
 
-            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(
-                    matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats());
+            S2CMatchplaySetGameResultData setGameResultData = enhancedActorSession
+                    ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats())
+                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createDetachedSessionPacketEvent(
-                    client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
             client.setActiveGameSession(null);
         }
 
         GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
+
+        if (!enhancedActorSession)
+            matchRallyStatsConsumer.clearSession(gameSessionId);
 
         eventHandler.offer(eventHandler.createRunnableEvent(new AutoItemRewardPickerTask(new ConcurrentLinkedDeque<>(clients), activeRoom.getRoomId()), TimeUnit.SECONDS.toMillis(9)));
 
@@ -417,6 +422,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
         if (game.getFinished().get() && gameSession.getClients().isEmpty()) {
+            if (!enhancedActorSession)
+                GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
             MatchFinishedMessage message = MatchFinishedMessage.builder()
                     .gameSessionId(gameSessionId)
                     .time(game.getTimeNeeded())
@@ -432,10 +439,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         }
         completionSucceeded = true;
         } finally {
-            if (!completionSucceeded) {
+            if (enhancedActorSession && !completionSucceeded) {
                 GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
             }
-            GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
+            if (enhancedActorSession)
+                GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
         }
     }
 
@@ -443,7 +451,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
     public void onPrepare(FTClient ftClient) {
         Room room = ftClient.getActiveRoom();
         GameSession gameSession = ftClient.getActiveGameSession();
-        if (room == null || gameSession == null || !game.getPlayerBattleStates().isEmpty()) {
+        boolean enhancedActorSession = gameSession != null && gameSession.hasOwnedPetSeats();
+        if (enhancedActorSession && (room == null || !game.getPlayerBattleStates().isEmpty())) {
             throw new IllegalStateException("Guardian game preparation requires an empty game with an active room");
         }
 
@@ -509,19 +518,22 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         game.getGuardianLevelLimit().set(guardianLevelLimit);
 
         List<RoomPlayer> activeRoomPlayers = roomPlayers.stream()
-                .filter(roomPlayer -> gameSession.getGameplayActorPositions().contains(roomPlayer.getPosition()))
+                .filter(roomPlayer -> enhancedActorSession
+                        ? gameSession.getGameplayActorPositions().contains(roomPlayer.getPosition())
+                        : roomPlayer.getPosition() < 4)
                 .toList();
         List<PlayerBattleState> preparedStates = new ArrayList<>();
         activeRoomPlayers.forEach(roomPlayer ->
                 preparedStates.add(game.createPlayerBattleState(roomPlayer, activeRoomPlayers)));
-        gameSession.getOwnedPetSeats().forEach(actor ->
-                preparedStates.add(game.createOwnedPetBattleState(actor)));
+        if (enhancedActorSession)
+            gameSession.getOwnedPetSeats().forEach(actor ->
+                    preparedStates.add(game.createOwnedPetBattleState(actor)));
 
         Set<Short> preparedPositions = preparedStates.stream()
                 .map(state -> (short) state.getPosition())
                 .collect(Collectors.toSet());
-        if (preparedPositions.size() != preparedStates.size() ||
-                !preparedPositions.equals(new HashSet<>(gameSession.getGameplayActorPositions()))) {
+        if (enhancedActorSession && (preparedPositions.size() != preparedStates.size() ||
+                !preparedPositions.equals(new HashSet<>(gameSession.getGameplayActorPositions())))) {
             throw new IllegalStateException("Guardian game preparation produced an invalid gameplay actor set");
         }
         preparedStates.sort(Comparator.comparingInt(PlayerBattleState::getPosition));

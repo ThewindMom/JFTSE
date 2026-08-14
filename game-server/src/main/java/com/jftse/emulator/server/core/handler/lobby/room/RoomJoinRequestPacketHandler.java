@@ -243,10 +243,16 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
         int newPosition = -1;
         if (!isTownSquare) {
-            newPosition = useGmSlot ? 9 : IntStream.range(0, isBattlemon ? 2 : room.getPositions().size())
-                    .filter(position -> room.getPositions().get(position) == RoomPositionState.Free)
-                    .findFirst()
-                    .orElse(-1);
+            if (isBattlemon) {
+                newPosition = IntStream.range(0, 2)
+                        .filter(position -> room.getPositions().get(position) == RoomPositionState.Free)
+                        .findFirst()
+                        .orElse(-1);
+            } else {
+                Optional<Short> num = room.getPositions().stream()
+                        .filter(position -> position == RoomPositionState.Free).findFirst();
+                newPosition = useGmSlot ? 9 : num.map(position -> room.getPositions().indexOf(position)).orElse(-1);
+            }
         } else {
             List<Short> positions = roomPlayerList.stream().map(RoomPlayer::getPosition).toList();
             newPosition = (short) IntStream.range(0, room.getPlayers())
@@ -255,18 +261,17 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
                     .orElse(-1);
         }
 
-        if (newPosition != -1 && !isTownSquare) {
+        if (newPosition != -1 && isBattlemon) {
+            int positionToClaim = newPosition;
             synchronized (room) {
                 PetView currentActivePet = ftClient.getActivePet();
-                boolean battlemonPetUnchanged = !isBattlemon || currentActivePet != null &&
+                boolean battlemonPetUnchanged = currentActivePet != null &&
                         currentActivePet.id() == selectedBattlemonPet.id();
                 boolean canClaimPosition = room.getStatus() == RoomStatus.NotRunning &&
                         battlemonPetUnchanged &&
-                        (useGmSlot && newPosition == MiscConstants.InvisibleGmSlot
-                                ? room.getPositions().get(newPosition) != RoomPositionState.InUse
-                                : room.getPositions().get(newPosition) == RoomPositionState.Free);
+                        room.getPositions().get(positionToClaim) == RoomPositionState.Free;
                 if (canClaimPosition) {
-                    room.getPositions().set(newPosition, RoomPositionState.InUse);
+                    room.getPositions().set(positionToClaim, RoomPositionState.InUse);
                 } else {
                     newPosition = -1;
                 }
@@ -286,6 +291,10 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
             GameManager.getInstance().updateRoomForAllClientsInMultiplayer(ftClient.getConnection(), room);
             return;
+        }
+
+        if (!isTownSquare && !isBattlemon) {
+            room.getPositions().set(newPosition, RoomPositionState.InUse);
         }
 
         Friend couple = socialService.getRelationshipWithFriend(activePlayer.getPlayerRef());

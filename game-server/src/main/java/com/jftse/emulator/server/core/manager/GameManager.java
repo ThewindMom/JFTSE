@@ -61,11 +61,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.net.InetSocketAddress;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -135,51 +132,29 @@ public class GameManager implements ServerLoopHandler {
                             GuildMember::getRequestDate
                     );
 
-    public void revokeRelaySession(Integer gameSessionId, GameSession gameSession) {
-        if (gameSessionId == null || gameSession == null) {
+    public void removeRelayActorPolicy(Integer gameSessionId, GameSession gameSession) {
+        if (gameSessionId == null || gameSession == null || !gameSession.hasOwnedPetSeats()) {
             return;
         }
-
-        AtomicBoolean revocationPublished = gameSession.getRelayAuthorizationRevoked();
-        synchronized (revocationPublished) {
-            if (!revocationPublished.get()) {
-                RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
-                        .gameSessionId(gameSessionId)
-                        .generation(gameSession.getRelayAuthorizationGeneration())
-                        .battlemon(gameSession.isDedicatedBattlemonRoom())
-                        .revoked(true)
-                        .expiresAt(Instant.now().plus(2, ChronoUnit.HOURS))
-                        .build();
-                try {
-                    publishRelayRevocation(message);
-                    revocationPublished.set(true);
-                } catch (RuntimeException exception) {
-                    int attempts = gameSession.getRelayAuthorizationRevocationAttempts().incrementAndGet();
-                    log.warn("Unable to revoke relay authorization for session {} (attempt {})",
-                            gameSessionId, attempts, exception);
-                    if (threadManager != null && !threadManager.isShuttingDown()) {
-                        long retryDelaySeconds = 1L << Math.min(attempts, 6);
-                        try {
-                            threadManager.schedule(() -> revokeRelaySession(gameSessionId, gameSession),
-                                    retryDelaySeconds, TimeUnit.SECONDS);
-                        } catch (RuntimeException schedulingException) {
-                            if (!threadManager.isShuttingDown()) {
-                                log.warn("Unable to schedule relay authorization revocation retry for session {}",
-                                        gameSessionId, schedulingException);
-                            }
-                        }
-                    }
-                }
-            }
+        RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(gameSessionId)
+                .battlemon(gameSession.isDedicatedBattlemonRoom())
+                .remove(true)
+                .build();
+        try {
+            rProducerService.sendNow(message, RelaySessionAuthorizationMessage.ROUTING_KEY,
+                    "MatchplaySystem(GameServer)");
+        } catch (RuntimeException exception) {
+            log.warn("Unable to remove relay actor policy for session {}", gameSessionId, exception);
         }
-    }
-
-    private void publishRelayRevocation(RelaySessionAuthorizationMessage message) {
-        rProducerService.sendNow(message, RelaySessionAuthorizationMessage.ROUTING_KEY,
-                "MatchplaySystem(GameServer)");
     }
 
     public void cleanupFinishedGameSession(Integer gameSessionId, GameSession gameSession, Room room) {
+        if (gameSession == null ||
+                !(gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats())) {
+            return;
+        }
+        boolean removed = false;
         try {
             gameSession.clearCountDownRunnable();
             gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
@@ -198,7 +173,7 @@ public class GameManager implements ServerLoopHandler {
             if (gameSessionManager.getGameSessionBySessionId(gameSessionId) == gameSession) {
                 matchRallyStatsConsumer.clearSession(gameSessionId);
             }
-            boolean removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
+            removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
             if (removed && room != null) {
                 synchronized (room) {
                     room.setStatus(RoomStatus.NotRunning);
@@ -211,8 +186,10 @@ public class GameManager implements ServerLoopHandler {
                 }
             }
         } finally {
+            if (removed) {
+                removeRelayActorPolicy(gameSessionId, gameSession);
+            }
             gameSession.getActors().clear();
-            revokeRelaySession(gameSessionId, gameSession);
         }
     }
 
@@ -540,7 +517,9 @@ public class GameManager implements ServerLoopHandler {
             }
         }
 
-        if (!isTownSquare && roomPlayer.map(RoomPlayer::getPet).orElse(null) != null &&
+        boolean hasEnhancedPetSeat = room.getRoomType() == RoomType.BATTLEMON ||
+                room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+        if (!isTownSquare && hasEnhancedPetSeat && roomPlayer.map(RoomPlayer::getPet).orElse(null) != null &&
                 playerPosition >= 0 && playerPosition <= 1) {
             int petPosition = playerPosition + 2;
             if (room.getPositions().get(petPosition) == RoomPositionState.InUse &&
@@ -548,7 +527,9 @@ public class GameManager implements ServerLoopHandler {
                 room.getPositions().set(petPosition, RoomPositionState.Free);
             }
         }
-        roomPlayer.ifPresent(value -> value.setPet(null));
+        if (hasEnhancedPetSeat) {
+            roomPlayer.ifPresent(value -> value.setPet(null));
+        }
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
         if (room.getRoomPlayerList().isEmpty() && !isTownSquare) {
             removeRoom(room);

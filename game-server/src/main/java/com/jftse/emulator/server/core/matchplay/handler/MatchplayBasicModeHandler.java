@@ -5,6 +5,7 @@ import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.client.PlayerStatisticView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.PacketEventType;
+import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.ServeType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
@@ -90,6 +91,31 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         List<ServeInfo> serveInfo = new ArrayList<>();
 
         GameSession gameSession = ftClient.getActiveGameSession();
+        if (!isEnhancedActorSession(gameSession)) {
+            for (FTClient client : gameSession.getClients()) {
+                RoomPlayer rp = client.getRoomPlayer();
+                if (rp == null || rp.getPosition() >= 4)
+                    continue;
+
+                byte serveType = ServeType.None;
+                if (rp.getPosition() == 0) {
+                    serveType = ServeType.ServeBall;
+                    game.getServePlayer().set(rp);
+                } else if (rp.getPosition() == 1) {
+                    serveType = ServeType.ReceiveBall;
+                    game.getReceiverPlayer().set(rp);
+                }
+                ServeInfo playerServeInfo = new ServeInfo();
+                playerServeInfo.setPlayerPosition(rp.getPosition());
+                playerServeInfo.setPlayerStartLocation(game.getPlayerLocationsOnMap().get(rp.getPosition()));
+                playerServeInfo.setServeType(serveType);
+                serveInfo.add(playerServeInfo);
+            }
+            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(
+                    new S2CMatchplayTriggerServe(serveInfo), ftClient.getConnection());
+            return;
+        }
+
         game.getServePlayerPosition().set(0);
         game.getReceiverPlayerPosition().set(1);
         for (short position : gameSession.getGameplayActorPositions()) {
@@ -131,8 +157,12 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        if (!gameSession.getCompletionHandled().compareAndSet(false, true))
+        boolean enhancedActorSession = isEnhancedActorSession(gameSession);
+        if (enhancedActorSession && !gameSession.getCompletionHandled().compareAndSet(false, true))
             return;
+
+        if (!enhancedActorSession)
+            activeRoom.setStatus(RoomStatus.NotRunning);
 
         boolean completionSucceeded = false;
         try {
@@ -147,19 +177,14 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         gameLogContent.append(redTeamWon ? "Red " : "Blue ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
-        matchplayReward.getPlayerRewards().removeIf(reward ->
-                !gameSession.isHumanSeat(reward.getPlayerPosition()));
+        if (enhancedActorSession)
+            matchplayReward.getPlayerRewards().removeIf(reward ->
+                    !gameSession.isHumanSeat(reward.getPlayerPosition()));
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
         List<FTPlayer> playerList = clients.stream()
                 .filter(FTClient::hasPlayer)
                 .map(FTClient::getPlayer)
                 .collect(Collectors.toList());
-        matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
-                .filter(FTClient::hasPlayer)
-                .map(FTClient::getRoomPlayer)
-                .filter(Objects::nonNull)
-                .filter(roomPlayer -> roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() < 4)
-                .collect(Collectors.toUnmodifiableMap(RoomPlayer::getPosition, RoomPlayer::getPlayerId)));
 
         game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
 
@@ -231,7 +256,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
 
-                GameplayActor ownedPet = gameSession.getOwnedPetSeat(player.getId());
+                GameplayActor ownedPet = enhancedActorSession ? gameSession.getOwnedPetSeat(player.getId()) : null;
                 if (ownedPet != null) {
                     Pet pet = petService.awardExperience(ownedPet.pet().id(), player.getId(), playerReward.getExp());
                     if (pet != null) {
@@ -281,17 +306,22 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     playerDtoList.add(new MatchFinishedMessage.PlayerDto(rp.getName(), "spectator"));
                 }
             }
-            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(
-                    matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats());
+            S2CMatchplaySetGameResultData setGameResultData = enhancedActorSession
+                    ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats())
+                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createDetachedSessionPacketEvent(
-                    client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
             client.setActiveGameSession(null);
         }
 
-        GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
+        if (!enhancedActorSession) {
+            matchRallyStatsConsumer.clearSession(gameSessionId);
+            GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
+        } else {
+            GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
+        }
 
         eventHandler.offer(eventHandler.createRunnableEvent(new AutoItemRewardPickerTask(new ConcurrentLinkedDeque<>(clients), activeRoom.getRoomId()), TimeUnit.SECONDS.toMillis(9)));
 
@@ -304,6 +334,8 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
         if (gameSession.getClients().isEmpty()) {
+            if (!enhancedActorSession)
+                GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
             MatchFinishedMessage message = MatchFinishedMessage.builder()
                     .gameSessionId(gameSessionId)
                     .time(game.getTimeNeeded())
@@ -319,10 +351,11 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         }
         completionSucceeded = true;
         } finally {
-            if (!completionSucceeded) {
+            if (enhancedActorSession && !completionSucceeded) {
                 GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
             }
-            GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
+            if (enhancedActorSession)
+                GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);
         }
     }
 
@@ -347,6 +380,11 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         Room activeRoom = ftClient.getActiveRoom();
         if (activeRoom == null)
             return;
+
+        if (!isEnhancedActorSession(gameSession)) {
+            onOrdinaryPoint(ftClient, pointPacket, gameSession, activeRoom);
+            return;
+        }
 
         short scoringActor = pointPacket.getPlayerPosition();
         short scoringTeam = pointPacket.getPointsTeam();
@@ -446,5 +484,97 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTriggerServe, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(6)));
             }
         }
+    }
+
+    private void onOrdinaryPoint(FTClient ftClient, CMSGPoint pointPacket, GameSession gameSession, Room activeRoom) {
+        boolean isSingles = gameSession.getPlayers() == 2;
+        final int pointsTeamRed = game.getPointsRedTeam().get();
+        final int pointsTeamBlue = game.getPointsBlueTeam().get();
+        final int setsTeamRed = game.getSetsRedTeam().get();
+        final int setsTeamBlue = game.getSetsBlueTeam().get();
+
+        boolean winningTeamIsRed = game.isRedTeam(pointPacket.getPointsTeam());
+        RallyResult rallyResult = matchRallyStatsConsumer.onPoint(ftClient.getGameSessionId(), winningTeamIsRed);
+        if (pointPacket.getPlayerPosition() < 4) {
+            game.increasePerformancePointForPlayer(pointPacket.getPlayerPosition());
+            rallyResultMap.computeIfAbsent((int) pointPacket.getPlayerPosition(), ignored -> new ArrayList<>()).add(rallyResult);
+        }
+
+        if (game.isRedTeam(pointPacket.getPointsTeam()))
+            game.setPoints((byte) (pointsTeamRed + 1), (byte) pointsTeamBlue);
+        else if (game.isBlueTeam(pointPacket.getPointsTeam()))
+            game.setPoints((byte) pointsTeamRed, (byte) (pointsTeamBlue + 1));
+
+        if (game.getFinished().get()) {
+            onEnd(ftClient);
+            return;
+        }
+
+        boolean anyTeamWonSet = setsTeamRed != game.getSetsRedTeam().get() || setsTeamBlue != game.getSetsBlueTeam().get();
+        if (anyTeamWonSet) {
+            gameSession.setTimesCourtChanged(gameSession.getTimesCourtChanged() + 1);
+            game.getPlayerLocationsOnMap().forEach(point -> point.setLocation(game.invertPointY(point)));
+        }
+        boolean isRedTeamServing = game.isRedTeamServing(gameSession.getTimesCourtChanged());
+        List<ServeInfo> serveInfo = new ArrayList<>();
+        ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
+        ConcurrentLinkedDeque<RoomPlayer> roomPlayers = activeRoom.getRoomPlayerList();
+        for (FTClient client : clients) {
+            RoomPlayer rp = client.getRoomPlayer();
+            if (rp == null)
+                continue;
+
+            boolean activePlayer = rp.getPosition() < 4;
+            if (activePlayer && game.shouldSwitchServingSide(isSingles, isRedTeamServing, anyTeamWonSet, rp.getPosition())) {
+                Point location = game.getPlayerLocationsOnMap().get(rp.getPosition());
+                game.getPlayerLocationsOnMap().set(rp.getPosition(), game.invertPointX(location));
+            }
+
+            short pointingTeamPosition = game.isRedTeam(pointPacket.getPointsTeam()) ? (short) 0
+                    : game.isBlueTeam(pointPacket.getPointsTeam()) ? (short) 1 : (short) -1;
+            eventHandler.offer(eventHandler.createPacketEvent(client,
+                    new S2CMatchplayTeamWinsPoint(pointingTeamPosition, pointPacket.getBallState(),
+                            (byte) game.getPointsRedTeam().get(), (byte) game.getPointsBlueTeam().get()),
+                    PacketEventType.DEFAULT, 0));
+            if (anyTeamWonSet)
+                eventHandler.offer(eventHandler.createPacketEvent(client,
+                        new S2CMatchplayTeamWinsSet((byte) game.getSetsRedTeam().get(), (byte) game.getSetsBlueTeam().get()),
+                        PacketEventType.DEFAULT, 0));
+
+            if (activePlayer) {
+                boolean shouldServe = game.shouldPlayerServe(isSingles, gameSession.getTimesCourtChanged(), rp.getPosition());
+                byte serveType = ServeType.None;
+                if (shouldServe) {
+                    serveType = ServeType.ServeBall;
+                    game.getServePlayer().set(rp);
+                } else if (isSingles) {
+                    serveType = ServeType.ReceiveBall;
+                    game.getReceiverPlayer().set(rp);
+                }
+                ServeInfo info = new ServeInfo();
+                info.setPlayerPosition(rp.getPosition());
+                info.setPlayerStartLocation(game.getPlayerLocationsOnMap().get(rp.getPosition()));
+                info.setServeType(serveType);
+                serveInfo.add(info);
+            }
+        }
+
+        if (!serveInfo.isEmpty()) {
+            if (!isSingles) {
+                game.setPlayerLocationsForDoubles(serveInfo);
+                serveInfo.stream().filter(info -> info.getServeType() == ServeType.ReceiveBall).findFirst()
+                        .flatMap(receiver -> roomPlayers.stream()
+                                .filter(rp -> rp.getPosition() == receiver.getPlayerPosition()).findFirst())
+                        .ifPresent(rp -> game.getReceiverPlayer().set(rp));
+            }
+            S2CMatchplayTriggerServe triggerServe = new S2CMatchplayTriggerServe(serveInfo);
+            for (FTClient client : clients)
+                eventHandler.offer(eventHandler.createPacketEvent(client, triggerServe,
+                        PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(6)));
+        }
+    }
+
+    private boolean isEnhancedActorSession(GameSession gameSession) {
+        return gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
     }
 }

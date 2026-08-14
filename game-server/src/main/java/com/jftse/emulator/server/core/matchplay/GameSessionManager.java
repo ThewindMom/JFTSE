@@ -3,10 +3,10 @@ package com.jftse.emulator.server.core.matchplay;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Log4j2
 public class GameSessionManager {
     private static GameSessionManager instance;
-    private static final SecureRandom SESSION_ID_RANDOM = new SecureRandom();
 
     private ConcurrentHashMap<Integer, GameSession> gameSessionList;
     private ConcurrentHashMap<Integer, MatchplayReward> matchplayRewardList;
@@ -33,17 +32,12 @@ public class GameSessionManager {
     }
 
     public Integer addGameSession(GameSession gameSession) {
-        Integer id = nextSessionId();
+        Integer id = Integer.parseInt(RandomStringUtils.randomNumeric(5));
         while (gameSessionList.putIfAbsent(id, gameSession) != null) {
-            id = nextSessionId();
+            id = Integer.parseInt(RandomStringUtils.randomNumeric(5));
         }
         return id;
     }
-
-    private static int nextSessionId() {
-        return SESSION_ID_RANDOM.nextInt(100_000);
-    }
-
     public boolean removeGameSession(Integer gameSessionId, GameSession gameSession) {
         return gameSessionList.remove(gameSessionId, gameSession);
     }
@@ -62,10 +56,6 @@ public class GameSessionManager {
 
     public void removeMatchplayReward(int roomId) {
         matchplayRewardList.remove(roomId);
-    }
-
-    public boolean removeMatchplayReward(int roomId, MatchplayReward matchplayReward) {
-        return matchplayRewardList.remove(roomId, matchplayReward);
     }
 
     public boolean hasMatchplayReward(int roomId) {

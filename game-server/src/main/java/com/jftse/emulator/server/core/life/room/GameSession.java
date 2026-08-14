@@ -18,11 +18,9 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 @Setter
@@ -36,9 +34,6 @@ public class GameSession {
         fireables = new ConcurrentLinkedDeque<>();
         actors = new ConcurrentHashMap<>();
         completionHandled = new AtomicBoolean(false);
-        relayAuthorizationRevoked = new AtomicBoolean(false);
-        relayAuthorizationRevocationAttempts = new AtomicInteger(0);
-        relayAuthorizationGeneration = UUID.randomUUID().toString();
         this.dedicatedBattlemonRoom = dedicatedBattlemonRoom;
         gameplayActorPositions = List.of();
     }
@@ -52,9 +47,6 @@ public class GameSession {
     private ConcurrentLinkedDeque<Fireable> fireables;
     private ConcurrentHashMap<Short, GameplayActor> actors;
     private AtomicBoolean completionHandled;
-    private AtomicBoolean relayAuthorizationRevoked;
-    private AtomicInteger relayAuthorizationRevocationAttempts;
-    private final String relayAuthorizationGeneration;
     private final boolean dedicatedBattlemonRoom;
     private volatile List<Short> gameplayActorPositions;
     private volatile RunnableEvent countDownRunnable;
@@ -66,10 +58,8 @@ public class GameSession {
             gameMode = GameMode.BASIC;
         } else if (game instanceof MatchplayBattleGame) {
             gameMode = GameMode.BATTLE;
-        } else if (game instanceof MatchplayGuardianGame) {
-            gameMode = GameMode.GUARDIAN;
         } else {
-            throw new IllegalArgumentException("matchplay game not supported: " + game.getClass().getName());
+            gameMode = GameMode.GUARDIAN;
         }
 
         this.matchplayGame = game;

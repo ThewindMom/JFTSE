@@ -2,7 +2,6 @@ package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
@@ -10,6 +9,7 @@ import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomChangeAllowBattlemon;
@@ -25,20 +25,15 @@ public class RoomAllowBattlemonChangePacketHandler implements PacketHandler<FTCo
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
         if (room != null) {
-            RoomPlayer roomPlayer = client.getRoomPlayer();
-            if (roomPlayer == null || !roomPlayer.isMaster()) {
-                return;
-            }
-            byte allowBattlemon = room.getRoomType() == RoomType.BATTLEMON
-                    ? (byte) 1
-                    : packet.getAllowBattlemon() == 0 ? (byte) 0 : (byte) 1;
+            boolean dedicatedBattlemon = room.getRoomType() == RoomType.BATTLEMON;
+            boolean enhancedGuardian = room.getMode() == GameMode.GUARDIAN;
+            byte allowBattlemon = dedicatedBattlemon ? (byte) 1
+                    : enhancedGuardian ? (packet.getAllowBattlemon() == 0 ? (byte) 0 : (byte) 1)
+                    : packet.getAllowBattlemon();
             List<S2CPetRequestRoomAnswerPacket> removedPets = new ArrayList<>();
             synchronized (room) {
-                if (room.getStatus() != RoomStatus.NotRunning) {
-                    return;
-                }
                 room.setAllowBattlemon(allowBattlemon);
-                if (allowBattlemon == 0) {
+                if (enhancedGuardian && allowBattlemon == 0) {
                     for (RoomPlayer player : room.getRoomPlayerList()) {
                         PetView pet = player.getPet();
                         if (pet == null) {

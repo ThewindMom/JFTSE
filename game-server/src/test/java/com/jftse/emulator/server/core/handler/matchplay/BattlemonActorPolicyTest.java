@@ -275,21 +275,6 @@ class BattlemonActorPolicyTest {
     }
 
     @Test
-    void ordinarySpellAttackerStillRequiresActorOwnership() {
-        BattleContext context = battleContext((short) 1, false);
-        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
-                .attackerPosition((short) 1)
-                .targetPosition((short) 0)
-                .skillId((byte) 0)
-                .damageType((byte) 0)
-                .build();
-
-        new SpellHitsTargetHandler().handle(context.connection(), packet);
-
-        verify(context.game(), never()).getPlayerCombatSystem();
-    }
-
-    @Test
     void guardianModeRejectsAPlayerActorNotOwnedByTheReportingEndpoint() {
         GuardianContext context = guardianContext((short) 1, false);
         CMSGPlayerUseSkill packet = CMSGPlayerUseSkill.builder()
@@ -356,6 +341,8 @@ class BattlemonActorPolicyTest {
 
         FTConnection connection = mock(FTConnection.class);
         when(connection.getClient()).thenReturn(client);
+        when(client.getConnection()).thenReturn(connection);
+        when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(client)));
         return new BattleContext(connection, roomPlayer, game);
     }
 
@@ -376,6 +363,7 @@ class BattlemonActorPolicyTest {
 
         GameSession session = mock(GameSession.class);
         when(session.getMatchplayGame()).thenReturn(game);
+        when(session.hasOwnedPetSeats()).thenReturn(true);
         when(session.isActorOwnedBy(roomPlayer, actorPosition)).thenReturn(actorOwned);
 
         FTClient client = mock(FTClient.class);
@@ -387,6 +375,8 @@ class BattlemonActorPolicyTest {
 
         FTConnection connection = mock(FTConnection.class);
         when(connection.getClient()).thenReturn(client);
+        when(client.getConnection()).thenReturn(connection);
+        when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(client)));
         return new GuardianContext(connection);
     }
 

@@ -25,6 +25,7 @@ class MatchplayPointPacketHandlerTest {
         when(point.getPlayerPosition()).thenReturn((byte) 3);
         when(connection.getClient()).thenReturn(client);
         when(client.getActiveGameSession()).thenReturn(gameSession);
+        when(gameSession.isDedicatedBattlemonRoom()).thenReturn(true);
         when(gameSession.isGameplayEndpoint(client)).thenReturn(true);
         when(gameSession.getMatchplayGame()).thenReturn(game);
         when(game.getHandleable()).thenReturn(handleable);
@@ -44,6 +45,7 @@ class MatchplayPointPacketHandlerTest {
         CMSGPoint point = mock(CMSGPoint.class);
         when(connection.getClient()).thenReturn(client);
         when(client.getActiveGameSession()).thenReturn(gameSession);
+        when(gameSession.isDedicatedBattlemonRoom()).thenReturn(true);
         when(gameSession.isGameplayEndpoint(client)).thenReturn(false);
         when(gameSession.getMatchplayGame()).thenReturn(game);
         when(game.getHandleable()).thenReturn(handleable);

@@ -5,6 +5,7 @@ import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.emulator.server.core.matchplay.GameSessionManager;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayBackToRoom;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -109,6 +110,21 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
         }
 
         connection.close();
+
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        if (!enhancedActorSession) {
+            ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
+            for (FTClient client : clients) {
+                RoomPlayer rp = client.getRoomPlayer();
+                if (rp == null)
+                    continue;
+                client.getConnection().sendTCP(new S2CMatchplayBackToRoom());
+                client.setActiveGameSession(null);
+            }
+            gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);
+            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+            return;
+        }
 
         if (!gameSession.getCompletionHandled().compareAndSet(false, true)) {
             return;

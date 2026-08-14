@@ -22,13 +22,13 @@ public class SpiderMineExplodeHandler implements PacketHandler<FTConnection, CMS
             return;
         }
         RelaySessionAuthorizationStore authorizationStore = RelaySessionAuthorizationStore.getInstance();
-        FTClient.RelayRegistration registration = client.getRelayRegistration();
-        if (registration == null || !authorizationStore.canParticipate(client) ||
-                !authorizationStore.isAuthorizedActor(registration.gameSessionId(), packet.getTargetPosition())) {
+        if (client.getGameSessionId().isEmpty() || !authorizationStore.canParticipate(client) ||
+                !authorizationStore.isAuthorizedActor(client.getGameSessionId().get(), packet.getTargetPosition())) {
             return;
         }
         SMSGSpiderMineExplode relayPacket = packet.translate(translator);
-        RelayManager.getInstance().broadcastToSessionGeneration(registration.gameSessionId(),
-                registration.generation(), relayPacket);
+        RelayManager.getInstance().getClientsInSession(client.getGameSessionId().get()).forEach(c -> {
+            if (c.getConnection() != null) c.getConnection().sendTCP(relayPacket);
+        });
     }
 }

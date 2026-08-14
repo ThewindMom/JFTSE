@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -17,29 +16,21 @@ public class RelaySessionAuthorizationMessage extends AbstractBaseMessage {
     public static final String ROUTING_KEY = "game.relay.session.authorization";
 
     private Integer gameSessionId;
-    private String generation;
     private Boolean battlemon;
-    private Boolean revoked;
     private Map<Integer, List<Short>> actorPositionsByPlayerId;
-    private Map<Integer, String> playerAddresses;
     private Map<Integer, Boolean> battlemonControllerByPlayerId;
-    private Instant expiresAt;
+    private Boolean remove;
 
     @Builder
-    public RelaySessionAuthorizationMessage(Integer gameSessionId, String generation, Boolean battlemon,
-                                            Boolean revoked,
+    public RelaySessionAuthorizationMessage(Integer gameSessionId, Boolean battlemon,
                                             Map<Integer, List<Short>> actorPositionsByPlayerId,
-                                            Map<Integer, String> playerAddresses,
                                             Map<Integer, Boolean> battlemonControllerByPlayerId,
-                                            Instant expiresAt) {
+                                            Boolean remove) {
         this.gameSessionId = gameSessionId;
-        this.generation = generation;
         this.battlemon = battlemon;
-        this.revoked = revoked;
         this.actorPositionsByPlayerId = actorPositionsByPlayerId;
-        this.playerAddresses = playerAddresses;
         this.battlemonControllerByPlayerId = battlemonControllerByPlayerId;
-        this.expiresAt = expiresAt;
+        this.remove = remove;
     }
 
     @Override

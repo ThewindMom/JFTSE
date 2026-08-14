@@ -44,7 +44,7 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
 
         Room currentClientRoom = client.getActiveRoom();
         RoomPlayer roomPlayer = client.getRoomPlayer();
-        if (currentClientRoom == null || roomPlayer == null || client.getActiveGameSession() != null) { // shouldn't happen
+        if (currentClientRoom == null || roomPlayer == null) { // shouldn't happen
             connection.close();
             return;
         }

@@ -13,7 +13,6 @@ import com.jftse.server.core.service.UptimeService;
 import com.jftse.server.core.shared.MetricsService;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.ServerMetricsContext;
-import com.jftse.server.core.protocol.IPacket;
 import com.jftse.server.core.shared.packets.SMSGInitHandshake;
 import com.jftse.server.core.util.GameTime;
 import com.jftse.server.core.util.IntervalTimer;
@@ -30,9 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Getter
@@ -107,129 +104,31 @@ public class RelayManager implements ServerLoopHandler {
         }
     }
 
-    public boolean registerClient(final int sessionId, final int playerId, final boolean spectator,
-                                  final boolean battlemon, final String authorizationGeneration,
-                                  final FTClient client) {
-        AtomicBoolean registered = new AtomicBoolean(false);
-        sessionMap.compute(sessionId, (ignored, existingClients) -> {
-            ConcurrentLinkedDeque<FTClient> clientList = existingClients == null
-                    ? new ConcurrentLinkedDeque<>()
-                    : existingClients;
-            RelaySessionAuthorizationStore.SessionAuthorization currentAuthorization =
-                    relaySessionAuthorizationStore.find(sessionId).orElse(null);
-            if (currentAuthorization == null ||
-                    !currentAuthorization.generation().equals(authorizationGeneration) ||
-                    client.getGameSessionId().isPresent() || clientList.stream()
-                    .anyMatch(registeredClient -> authorizationGeneration.equals(
-                            registeredClient.getRelayAuthorizationGeneration()) &&
-                            registeredClient.getPlayerId() == playerId)) {
-                return existingClients;
-            }
-            client.setGameSessionId(sessionId);
-            client.setPlayerId(playerId);
-            client.setSpectator(spectator);
-            client.setBattlemonSession(battlemon);
-            client.setRelayAuthorizationGeneration(authorizationGeneration);
-            clientList.add(client);
-            registered.set(true);
-            return clientList;
-        });
+    public void addClientToSession(final int sessionId, final FTClient client) {
+        ConcurrentLinkedDeque<FTClient> clientList = sessionMap.computeIfAbsent(sessionId, k -> new ConcurrentLinkedDeque<>());
+        clientList.add(client);
+        sessionMap.put(sessionId, clientList);
 
-        if (!registered.get()) {
-            return false;
-        }
         playerCount.getAndIncrement();
         maxPlayerCount = Math.max(maxPlayerCount, playerCount.get());
-        return true;
     }
 
     public void removeClient(final int sessionId, final FTClient client) {
-        AtomicBoolean foundSession = new AtomicBoolean(false);
-        sessionMap.computeIfPresent(sessionId, (ignored, clientList) -> {
-            foundSession.set(true);
+        ConcurrentLinkedDeque<FTClient> clientList = sessionMap.get(sessionId);
+        if (clientList != null) {
             if (clientList.remove(client)) {
                 playerCount.getAndDecrement();
             }
-            return clientList.isEmpty() ? null : clientList;
-        });
-        if (!foundSession.get()) {
+
+            if (clientList.isEmpty() && sessionMap.remove(sessionId, clientList))
+                relaySessionAuthorizationStore.remove(sessionId);
+        } else {
             log.warn("({}) Client not found in session ({})", client.getConnection().getIPString(), sessionId);
         }
     }
 
-    public final List<FTClient> getClientsInSession(final int sessionId, final String authorizationGeneration) {
-        if (authorizationGeneration == null) {
-            return List.of();
-        }
-        ConcurrentLinkedDeque<FTClient> clientsInSession = sessionMap.get(sessionId);
-        return clientsInSession == null ? List.of() : clientsInSession.stream()
-                .filter(client -> authorizationGeneration.equals(client.getRelayAuthorizationGeneration()))
-                .toList();
-    }
-
-    public void broadcastToSessionGeneration(final int sessionId, final String authorizationGeneration,
-                                             final IPacket packet) {
-        if (authorizationGeneration == null || packet == null) {
-            return;
-        }
-        sessionMap.computeIfPresent(sessionId, (ignored, clientList) -> {
-            RelaySessionAuthorizationStore.SessionAuthorization currentAuthorization =
-                    relaySessionAuthorizationStore.find(sessionId).orElse(null);
-            if (currentAuthorization == null ||
-                    !currentAuthorization.generation().equals(authorizationGeneration)) {
-                return clientList;
-            }
-            clientList.stream()
-                    .filter(client -> authorizationGeneration.equals(client.getRelayAuthorizationGeneration()))
-                    .map(FTClient::getConnection)
-                    .filter(java.util.Objects::nonNull)
-                    .forEach(connection -> connection.sendTCP(packet));
-            return clientList;
-        });
-    }
-
-    public void revokeSessionGeneration(final int sessionId, final String authorizationGeneration) {
-        AtomicReference<List<FTClient>> revokedClients = new AtomicReference<>(List.of());
-        sessionMap.computeIfPresent(sessionId, (ignored, clientList) -> {
-            List<FTClient> matchingClients = clientList.stream()
-                    .filter(client -> authorizationGeneration.equals(client.getRelayAuthorizationGeneration()))
-                    .toList();
-            matchingClients.forEach(client -> {
-                if (clientList.remove(client)) {
-                    playerCount.getAndDecrement();
-                }
-                client.clearGameSessionId();
-            });
-            revokedClients.set(matchingClients);
-            return clientList.isEmpty() ? null : clientList;
-        });
-        revokedClients.get().forEach(client -> {
-            if (client.getConnection() != null) {
-                client.getConnection().close();
-            }
-        });
-    }
-
-    public void revokeOtherSessionGenerations(final int sessionId, final String authorizationGeneration) {
-        AtomicReference<List<FTClient>> revokedClients = new AtomicReference<>(List.of());
-        sessionMap.computeIfPresent(sessionId, (ignored, clientList) -> {
-            List<FTClient> matchingClients = clientList.stream()
-                    .filter(client -> !authorizationGeneration.equals(client.getRelayAuthorizationGeneration()))
-                    .toList();
-            matchingClients.forEach(client -> {
-                if (clientList.remove(client)) {
-                    playerCount.getAndDecrement();
-                }
-                client.clearGameSessionId();
-            });
-            revokedClients.set(matchingClients);
-            return clientList.isEmpty() ? null : clientList;
-        });
-        revokedClients.get().forEach(client -> {
-            if (client.getConnection() != null) {
-                client.getConnection().close();
-            }
-        });
+    public final List<FTClient> getClientsInSession(final int sessionId) {
+        return new ArrayList<>(sessionMap.get(sessionId));
     }
 
     public void queueConnection(FTConnection connection) {
@@ -249,13 +148,6 @@ public class RelayManager implements ServerLoopHandler {
         }
 
         updateSessions(diff);
-
-        if (timers[ServerTimers.SUPDATE_RELAY_AUTHORIZATIONS.value()].passed()) {
-            timers[ServerTimers.SUPDATE_RELAY_AUTHORIZATIONS.value()].reset();
-            relaySessionAuthorizationStore.removeExpired().forEach(expiredAuthorization ->
-                    revokeSessionGeneration(expiredAuthorization.gameSessionId(),
-                            expiredAuthorization.generation()));
-        }
 
         if (timers[ServerTimers.SUPDATE_METRICS.value()].passed()) {
             timers[ServerTimers.SUPDATE_METRICS.value()].reset();
@@ -315,13 +207,11 @@ public class RelayManager implements ServerLoopHandler {
         }
         timers[ServerTimers.SUPDATE_UPTIME.value()].setInterval(TimeUnit.MINUTES.toMillis(serverConfService.get("UpdateUptimeInterval", Integer.class)));
         timers[ServerTimers.SUPDATE_METRICS.value()].setInterval(TimeUnit.SECONDS.toMillis(serverConfService.get("UpdateMetricsInterval", Integer.class)));
-        timers[ServerTimers.SUPDATE_RELAY_AUTHORIZATIONS.value()].setInterval(TimeUnit.MINUTES.toMillis(1));
     }
 
     public enum ServerTimers {
         SUPDATE_METRICS,
-        SUPDATE_UPTIME,
-        SUPDATE_RELAY_AUTHORIZATIONS;
+        SUPDATE_UPTIME;
 
         public static final int COUNT = values().length;
 

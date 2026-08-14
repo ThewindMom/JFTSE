@@ -6,22 +6,19 @@ import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMes
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/** Optional per-session actor policy. Absence deliberately preserves the development relay behavior. */
 @Service
 public class RelaySessionAuthorizationStore {
     private static RelaySessionAuthorizationStore instance;
-
     private final ConcurrentHashMap<Integer, SessionAuthorization> sessions = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Instant> revokedGenerations = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -33,104 +30,47 @@ public class RelaySessionAuthorizationStore {
     }
 
     public void put(RelaySessionAuthorizationMessage message) {
-        if (message == null || message.getGameSessionId() == null || message.getGeneration() == null ||
-                message.getGeneration().isBlank() || message.getBattlemon() == null || message.getRevoked() == null ||
-                message.getExpiresAt() == null ||
-                !message.getExpiresAt().isAfter(Instant.now())) {
-            throw new IllegalArgumentException("Relay session authorization is incomplete or expired");
+        if (message == null || message.getGameSessionId() == null) {
+            throw new IllegalArgumentException("Relay actor policy has no session id");
         }
-
-        if (Boolean.TRUE.equals(message.getRevoked())) {
-            revokedGenerations.put(message.getGeneration(), message.getExpiresAt());
-            sessions.computeIfPresent(message.getGameSessionId(), (sessionId, authorization) ->
-                    authorization.generation().equals(message.getGeneration()) ? null : authorization);
+        if (Boolean.TRUE.equals(message.getRemove())) {
+            remove(message.getGameSessionId());
             return;
         }
-        if (revokedGenerations.containsKey(message.getGeneration())) {
-            return;
+        if (message.getBattlemon() == null || message.getActorPositionsByPlayerId() == null) {
+            throw new IllegalArgumentException("Relay actor policy is incomplete");
         }
-        if (message.getActorPositionsByPlayerId() == null || message.getPlayerAddresses() == null ||
-                !message.getPlayerAddresses().keySet().equals(message.getActorPositionsByPlayerId().keySet())) {
-            throw new IllegalArgumentException("Relay session authorization has incomplete endpoint data");
-        }
-        Map<Integer, Boolean> controllerByPlayerId = message.getBattlemonControllerByPlayerId();
-        if (controllerByPlayerId == null) {
-            controllerByPlayerId = Map.of();
-        }
-        if (!controllerByPlayerId.keySet().stream().allMatch(message.getActorPositionsByPlayerId()::containsKey) ||
-                controllerByPlayerId.values().stream().anyMatch(value -> value == null)) {
-            throw new IllegalArgumentException("Relay session authorization has incomplete controller data");
+        Map<Integer, Boolean> controllers = message.getBattlemonControllerByPlayerId() == null
+                ? Map.of() : message.getBattlemonControllerByPlayerId();
+        if (!message.getActorPositionsByPlayerId().keySet().containsAll(controllers.keySet()) ||
+                controllers.values().stream().anyMatch(value -> value == null)) {
+            throw new IllegalArgumentException("Relay actor policy has invalid controller data");
         }
 
-        Map<Integer, Set<Short>> actorsByPlayerId = new HashMap<>();
-        Set<Short> claimedActors = new HashSet<>();
+        Map<Integer, Set<Short>> actors = new HashMap<>();
+        Set<Short> claimed = new HashSet<>();
         for (Map.Entry<Integer, List<Short>> entry : message.getActorPositionsByPlayerId().entrySet()) {
             if (entry.getKey() == null || entry.getValue() == null) {
-                throw new IllegalArgumentException("Relay session authorization contains a null player or actor list");
+                throw new IllegalArgumentException("Relay actor policy contains null data");
             }
-            Set<Short> actorPositions = new HashSet<>(entry.getValue());
-            if (actorPositions.stream().anyMatch(position -> position == null || position < 0 || position > 3)) {
-                throw new IllegalArgumentException("Relay actor position is outside the gameplay range");
+            Set<Short> positions = new HashSet<>(entry.getValue());
+            if (positions.size() != entry.getValue().size() || positions.stream().anyMatch(position ->
+                    position == null || position < 0 || position > 3 || !claimed.add(position))) {
+                throw new IllegalArgumentException("Relay actor policy has invalid or overlapping actors");
             }
-            if (actorPositions.size() != entry.getValue().size() ||
-                    actorPositions.stream().anyMatch(position -> !claimedActors.add(position))) {
-                throw new IllegalArgumentException("Relay actor ownership overlaps");
-            }
-            actorsByPlayerId.put(entry.getKey(), Set.copyOf(actorPositions));
+            actors.put(entry.getKey(), Set.copyOf(positions));
         }
-
         boolean battlemon = Boolean.TRUE.equals(message.getBattlemon());
-        if (battlemon && (actorsByPlayerId.size() != 2 ||
-                !new HashSet<>(actorsByPlayerId.values()).equals(Set.of(
-                        Set.of((short) 0, (short) 2),
-                        Set.of((short) 1, (short) 3))))) {
-            throw new IllegalArgumentException("Battlemon relay authorization has an invalid actor layout");
+        if (battlemon && (actors.size() != 2 || !new HashSet<>(actors.values()).equals(Set.of(
+                Set.of((short) 0, (short) 2), Set.of((short) 1, (short) 3))))) {
+            throw new IllegalArgumentException("Battlemon relay actor policy has an invalid layout");
         }
-
-        Map<Integer, String> playerAddresses = new HashMap<>();
-        message.getPlayerAddresses().forEach((playerId, address) -> {
-            if (address == null || address.isBlank()) {
-                throw new IllegalArgumentException("Relay endpoint address is missing");
-            }
-            playerAddresses.put(playerId, address);
-        });
-
-        SessionAuthorization newAuthorization = new SessionAuthorization(
-                message.getGeneration(),
-                battlemon,
-                Map.copyOf(actorsByPlayerId),
-                Map.copyOf(playerAddresses),
-                Map.copyOf(controllerByPlayerId),
-                message.getExpiresAt()
-        );
-        sessions.compute(message.getGameSessionId(), (sessionId, existing) -> {
-            if (existing == null || !existing.expiresAt().isAfter(Instant.now())) {
-                return newAuthorization;
-            }
-            if (existing.generation().equals(newAuthorization.generation()) && existing.equals(newAuthorization)) {
-                return existing;
-            }
-            throw new IllegalStateException("Relay session already has a different live authorization");
-        });
+        sessions.put(message.getGameSessionId(), new SessionAuthorization(
+                battlemon, Map.copyOf(actors), Map.copyOf(controllers)));
     }
 
     public Optional<SessionAuthorization> find(int gameSessionId) {
-        SessionAuthorization authorization = sessions.get(gameSessionId);
-        if (authorization != null && !authorization.expiresAt().isAfter(Instant.now())) {
-            authorization = null;
-        }
-        return Optional.ofNullable(authorization);
-    }
-
-    public boolean canRegister(int gameSessionId, int playerId, boolean spectator, String remoteAddress) {
-        return find(gameSessionId)
-                .map(authorization -> {
-                    Set<Short> actorPositions = authorization.actorPositionsByPlayerId().get(playerId);
-                    String expectedAddress = authorization.playerAddresses().get(playerId);
-                    return actorPositions != null && spectator == actorPositions.isEmpty() &&
-                            expectedAddress != null && expectedAddress.equals(remoteAddress);
-                })
-                .orElse(false);
+        return Optional.ofNullable(sessions.get(gameSessionId));
     }
 
     public boolean canAct(FTClient client, int actorPosition) {
@@ -138,48 +78,26 @@ public class RelaySessionAuthorizationStore {
     }
 
     public boolean canAct(FTClient client, int actorPosition, boolean controllerCommand) {
-        FTClient.RelayRegistration registration = client == null ? null : client.getRelayRegistration();
-        if (registration == null || registration.spectator()) {
-            return false;
-        }
-        return findForClient(registration)
-                .map(authorization -> {
-                    if (!authorization.actorPositionsByPlayerId()
-                            .getOrDefault(registration.playerId(), Set.of())
-                            .contains((short) actorPosition)) {
-                        return false;
-                    }
-                    return !controllerCommand || !BattlemonController.isPetActor(actorPosition) ||
-                            Boolean.TRUE.equals(authorization.battlemonControllerByPlayerId()
-                                    .get(registration.playerId()));
-                })
-                .orElse(false);
+        if (client == null || client.getGameSessionId().isEmpty()) return false;
+        SessionAuthorization policy = sessions.get(client.getGameSessionId().get());
+        if (policy == null) return true;
+        if (client.isSpectator() || !policy.actorPositionsByPlayerId()
+                .getOrDefault(client.getPlayerId(), Set.of()).contains((short) actorPosition)) return false;
+        return !controllerCommand || !BattlemonController.isPetActor(actorPosition) ||
+                Boolean.TRUE.equals(policy.battlemonControllerByPlayerId().get(client.getPlayerId()));
     }
 
     public boolean canParticipate(FTClient client) {
-        FTClient.RelayRegistration registration = client == null ? null : client.getRelayRegistration();
-        if (registration == null || registration.spectator()) {
-            return false;
-        }
-        return findForClient(registration)
-                .map(authorization -> !authorization.actorPositionsByPlayerId()
-                        .getOrDefault(registration.playerId(), Set.of())
-                        .isEmpty())
-                .orElse(false);
-    }
-
-    private Optional<SessionAuthorization> findForClient(FTClient.RelayRegistration registration) {
-        return find(registration.gameSessionId())
-                .filter(authorization -> authorization.generation()
-                        .equals(registration.generation()))
-                .filter(authorization -> authorization.battlemon() == registration.battlemonSession());
+        if (client == null || client.getGameSessionId().isEmpty()) return false;
+        SessionAuthorization policy = sessions.get(client.getGameSessionId().get());
+        return policy == null || !client.isSpectator() &&
+                !policy.actorPositionsByPlayerId().getOrDefault(client.getPlayerId(), Set.of()).isEmpty();
     }
 
     public boolean isAuthorizedActor(int gameSessionId, int actorPosition) {
-        return find(gameSessionId)
-                .map(authorization -> authorization.actorPositionsByPlayerId().values().stream()
-                        .anyMatch(positions -> positions.contains((short) actorPosition)))
-                .orElse(false);
+        SessionAuthorization policy = sessions.get(gameSessionId);
+        return policy == null || policy.actorPositionsByPlayerId().values().stream()
+                .anyMatch(positions -> positions.contains((short) actorPosition));
     }
 
     public boolean isBattlemon(int gameSessionId) {
@@ -190,29 +108,7 @@ public class RelaySessionAuthorizationStore {
         sessions.remove(gameSessionId);
     }
 
-    public List<ExpiredAuthorization> removeExpired() {
-        return removeExpired(Instant.now());
-    }
-
-    List<ExpiredAuthorization> removeExpired(Instant now) {
-        List<ExpiredAuthorization> expiredAuthorizations = new ArrayList<>();
-        sessions.forEach((sessionId, authorization) -> {
-            if (!authorization.expiresAt().isAfter(now) && sessions.remove(sessionId, authorization)) {
-                expiredAuthorizations.add(new ExpiredAuthorization(sessionId, authorization.generation()));
-            }
-        });
-        revokedGenerations.entrySet().removeIf(entry -> !entry.getValue().isAfter(now));
-        return List.copyOf(expiredAuthorizations);
-    }
-
-    public record ExpiredAuthorization(int gameSessionId, String generation) {
-    }
-
-    public record SessionAuthorization(String generation,
-                                       boolean battlemon,
+    public record SessionAuthorization(boolean battlemon,
                                        Map<Integer, Set<Short>> actorPositionsByPlayerId,
-                                       Map<Integer, String> playerAddresses,
-                                       Map<Integer, Boolean> battlemonControllerByPlayerId,
-                                       Instant expiresAt) {
-    }
+                                       Map<Integer, Boolean> battlemonControllerByPlayerId) {}
 }

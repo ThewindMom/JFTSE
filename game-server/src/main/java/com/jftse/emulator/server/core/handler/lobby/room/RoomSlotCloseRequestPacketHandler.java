@@ -1,13 +1,13 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomPositionState;
-import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCloseSlot;
@@ -30,23 +30,19 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
         byte slot = packet.getSlot();
         Room room = client.getActiveRoom();
         if (room != null) {
-            RoomPlayer roomPlayer = client.getRoomPlayer();
-            if (slot < 0 || slot >= room.getPositions().size() || roomPlayer == null || !roomPlayer.isMaster() ||
-                    room.getRoomType() == RoomType.BATTLEMON && slot != 1) {
-                client.getIsClosingSlot().set(false);
-                return;
-            }
-            synchronized (room) {
+            boolean enhanced = room.getRoomType() == RoomType.BATTLEMON ||
+                    room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+            if (enhanced) {
+                RoomPlayer roomPlayer = client.getRoomPlayer();
                 boolean petUsesSlot = room.getRoomPlayerList().stream()
                         .anyMatch(player -> player.getPet() != null && player.getPosition() + 2 == slot);
-                if (room.getStatus() != RoomStatus.NotRunning || petUsesSlot ||
-                        close && room.getRoomPlayerList().stream()
-                                .anyMatch(player -> player.getPosition() == slot)) {
+                if (room.getRoomType() == RoomType.BATTLEMON &&
+                        (slot != 1 || roomPlayer == null || !roomPlayer.isMaster()) || petUsesSlot) {
                     client.getIsClosingSlot().set(false);
                     return;
                 }
-                room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
             }
+            room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
 
             SMSGRoomCloseSlot closeSlot = SMSGRoomCloseSlot.builder().slot(slot).close(close).build();
             GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(c -> {

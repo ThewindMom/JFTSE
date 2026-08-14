@@ -26,6 +26,24 @@ public class ConnectedToRelayHandler implements PacketHandler<FTConnection, CMSG
         RoomPlayer roomPlayer = ftClient.getRoomPlayer();
         Room room = ftClient.getActiveRoom();
         GameSession gameSession = ftClient.getActiveGameSession();
+        boolean enhancedActorSession = gameSession != null &&
+                (gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats());
+        if (!enhancedActorSession) {
+            if (roomPlayer == null || !roomPlayer.getConnectedToRelay().compareAndSet(false, true)) {
+                SMSGConnectedToRelay answer = SMSGConnectedToRelay.builder().result((byte) 1).build();
+                connection.sendTCP(answer);
+                if (room != null) {
+                    synchronized (room) {
+                        room.setStatus(RoomStatus.RelayConnectionFailed);
+                    }
+                }
+                return;
+            }
+            if (room.getRoomPlayerList().stream().allMatch(rp -> rp.getConnectedToRelay().get())) {
+                room.setStatus(RoomStatus.RelayConnectionSuccess);
+            }
+            return;
+        }
         if (roomPlayer == null || room == null || gameSession == null ||
                 room.getStatus() != RoomStatus.StartingGame ||
                 !gameSession.getClients().contains(ftClient) ||

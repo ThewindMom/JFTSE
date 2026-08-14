@@ -61,9 +61,6 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
         if (roomPlayer == null)
             return;
 
-        // The native client does not reliably populate playerPosition here (the second
-        // endpoint reports zero), so crystal ownership must come from the authenticated
-        // room player rather than this client-controlled field.
         short playerPosition = roomPlayer.getPosition();
         Queue<SkillCrystal> pickedUpSkillCrystals = roomPlayer.getPickedUpSkillCrystals();
 
@@ -71,9 +68,8 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
         if (game == null)
             return;
 
-        if (!(game instanceof MatchplayBattleGame) && !(game instanceof MatchplayGuardianGame))
-            return;
         boolean isBattleGame = game instanceof MatchplayBattleGame;
+
         SkillCrystal skillCrystal = isBattleGame ?
                 ((MatchplayBattleGame) game).getSkillCrystals().stream()
                         .filter(x -> x.getId() == packet.getCrystalId())
@@ -88,11 +84,10 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
             return;
         }
 
-        boolean removed = isBattleGame
-                ? ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal)
-                : ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
-        if (!removed)
-            return;
+        if (isBattleGame)
+            ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal);
+        else
+            ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
 
         short gameFieldSide = -1;
         boolean isRedTeam = game.isRedTeam(playerPosition);

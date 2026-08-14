@@ -86,7 +86,8 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return;
 
         CMSGSpellHitsTargetExtended spellHitsTargetExt = new CMSGSpellHitsTargetExtended(spellHitsTarget);
-        if (game instanceof MatchplayBattleGame battleGame) {
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             boolean liveAttacker = battleGame.getPlayerBattleStates().stream()
                     .anyMatch(state -> state.getPosition() == attackerPosition);
@@ -94,7 +95,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             if (!gameSession.isGameplayEndpoint(ftClient) || !liveAttacker && !guardianEffect) {
                 return;
             }
-        } else if (game instanceof MatchplayGuardianGame guardianGame) {
+        } else if (enhancedActorSession && game instanceof MatchplayGuardianGame guardianGame) {
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             short targetPosition = spellHitsTargetExt.getTargetPosition();
             boolean livePlayerAttacker = attackerPosition >= 0 && attackerPosition < 4 &&
@@ -113,7 +114,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                             .noneMatch(state -> state.getPosition() == targetPosition)) {
                 return;
             }
-        } else {
+        } else if (enhancedActorSession) {
             return;
         }
 
@@ -131,7 +132,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             this.handleUniqueSkill(ftClient.getConnection(), game, skill, spellHitsTargetExt);
             return;
         }
-        if (game instanceof MatchplayBattleGame battleGame && battleGame.getPlayerBattleStates().stream()
+        if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame && battleGame.getPlayerBattleStates().stream()
                 .noneMatch(state -> state.getPosition() == spellHitsTargetExt.getTargetPosition())) {
             return;
         }
@@ -182,9 +183,14 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         PlayerBattleState playerBattleState = null;
 
         try {
-            playerBattleState = isBattleGame ?
-                    ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(
-                            skill.getDamage().shortValue(), spellHitsTargetExt.getAttackerPosition()) :
+            GameSession gameSession = connection.getClient().getActiveGameSession();
+            boolean enhancedActorSession = gameSession != null &&
+                    (gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats());
+            playerBattleState = isBattleGame ? enhancedActorSession
+                    ? ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(
+                            skill.getDamage().shortValue(), spellHitsTargetExt.getAttackerPosition())
+                    : ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(
+                            skill.getDamage().shortValue(), connection.getClient().getRoomPlayer()) :
                     ((MatchplayGuardianGame) game).getPlayerCombatSystem().reviveAnyPlayer(skill.getDamage().shortValue());
         } catch (ValidationException ve) {
             log.warn(ve.getMessage());
@@ -520,11 +526,16 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
     }
 
     private void handleAnyTeamDead(FTConnection connection, MatchplayBattleGame game) {
-        boolean allPlayersTeamRedDead = game.isTeamDead(true);
-        boolean allPlayersTeamBlueDead = game.isTeamDead(false);
+        GameSession gameSession = connection.getClient().getActiveGameSession();
+        boolean enhancedActorSession = gameSession != null &&
+                (gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats());
+        boolean allPlayersTeamRedDead = enhancedActorSession ? game.isTeamDead(true) : game.getPlayerBattleStates().stream()
+                .filter(x -> game.isRedTeam(x.getPosition())).allMatch(x -> x.getCurrentHealth().get() < 1);
+        boolean allPlayersTeamBlueDead = enhancedActorSession ? game.isTeamDead(false) : game.getPlayerBattleStates().stream()
+                .filter(x -> game.isBlueTeam(x.getPosition())).allMatch(x -> x.getCurrentHealth().get() < 1);
 
         if ((allPlayersTeamRedDead || allPlayersTeamBlueDead) &&
-                game.getFinishScheduled().compareAndSet(false, true)) {
+                (enhancedActorSession ? game.getFinishScheduled().compareAndSet(false, true) : !game.getFinished().get())) {
             ThreadManager.getInstance().newTask(new FinishGameTask(connection));
         }
     }

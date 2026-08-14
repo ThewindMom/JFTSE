@@ -25,12 +25,8 @@ public class BallAnimationHandler implements PacketHandler<FTConnection, CMSGBal
             return;
         }
 
-        FTClient.RelayRegistration registration = client.getRelayRegistration();
-        if (registration == null) {
-            return;
-        }
         MatchBallSyncMessage mbsm = MatchBallSyncMessage.builder()
-                .gameSessionId(registration.gameSessionId())
+                .gameSessionId(client.getGameSessionId().orElse(null))
                 .playerId(client.getPlayerId())
                 .playerPos((int) packet.getPlayerPosition())
                 .hitAct(BallHitAction.valueOf(packet.getHitAct()))
@@ -43,7 +39,9 @@ public class BallAnimationHandler implements PacketHandler<FTConnection, CMSGBal
         RProducerService.getInstance().send(mbsm, "game.stats.match.rally", "MatchplaySystem(RelayServer)");
 
         SMSGBallAnimation relayPacket = packet.translate(translator);
-        RelayManager.getInstance().broadcastToSessionGeneration(registration.gameSessionId(),
-                registration.generation(), relayPacket);
+        client.getGameSessionId().ifPresent(sessionId -> RelayManager.getInstance()
+                .getClientsInSession(sessionId).forEach(c -> {
+                    if (c.getConnection() != null) c.getConnection().sendTCP(relayPacket);
+                }));
     }
 }

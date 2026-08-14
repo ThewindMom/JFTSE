@@ -7,6 +7,8 @@ import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayBackToRoom;
 import com.jftse.emulator.server.core.rabbit.messages.RefreshFriendListMessage;
 import com.jftse.emulator.server.core.rabbit.messages.RefreshFriendRelationMessage;
@@ -67,7 +69,9 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
     }
 
     private void handleDisconnectRequest(FTConnection connection, CMSGDisconnectRequest packet) {
-        if (connection.getClient().getActiveGameSession() == null)
+        GameSession gameSession = connection.getClient().getActiveGameSession();
+        if (gameSession == null ||
+                !(gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats()))
             GameManager.getInstance().handleRoomPlayerChanges(connection, true);
 
         SMSGDisconnectResponse response = SMSGDisconnectResponse.builder().status((byte) 0).build();
@@ -82,37 +86,34 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
 
         final FTPlayer player = client.getPlayer();
         if (player != null) {
-            try {
-                Player p = player.getPlayer();
-                p.setOnline(false);
-                ServiceManager.getInstance().getPlayerService().save(p);
+            Player p = player.getPlayer();
+            p.setOnline(false);
+            ServiceManager.getInstance().getPlayerService().save(p);
 
-                Account account = client.getAccount();
-                if (account != null && account.getStatus() != AuthenticationServiceImpl.ACCOUNT_BLOCKED_USER_ID) {
-                    UpdateAccountRequest request = UpdateAccountRequest.newBuilder()
-                            .setAccountId(account.getId())
-                            .setTimestamp(System.currentTimeMillis())
-                            .setServer(ServerType.GAME_SERVER.getValue())
-                            .setAccountAction(AccountAction.newBuilder().setAction(com.jftse.server.core.util.AccountAction.DISCONNECT.getValue()).build())
-                            .build();
-                    ServiceManager.getInstance().getGrpcAuthService().updateAccount(request);
-                }
-
-                RefreshFriendListMessage refreshFriendListMessage = RefreshFriendListMessage.builder().playerId(player.getId()).build();
-                NotifyGuildMemberListOnDisconnectMessage notifyGuildMemberListOnDisconnectMessage = NotifyGuildMemberListOnDisconnectMessage.builder().playerId(player.getId()).build();
-                RefreshFriendRelationMessage refreshFriendRelationMessage = RefreshFriendRelationMessage.builder().playerId(player.getId()).build();
-
-                RProducerService.getInstance().send(refreshFriendListMessage, "game.messenger.friendList chat.messenger.friendList", "GameServer");
-                RProducerService.getInstance().send(notifyGuildMemberListOnDisconnectMessage, "game.messenger.guildList chat.messenger.guildList", "GameServer");
-                RProducerService.getInstance().send(refreshFriendRelationMessage, "game.messenger.friendRelation chat.messenger.friendRelation", "GameServer");
-            } catch (RuntimeException exception) {
-                log.warn("Unable to publish all persistence or presence updates while disconnecting player {}",
-                        player.getId(), exception);
+            Account account = client.getAccount();
+            if (account != null && account.getStatus() != AuthenticationServiceImpl.ACCOUNT_BLOCKED_USER_ID) {
+                UpdateAccountRequest request = UpdateAccountRequest.newBuilder()
+                        .setAccountId(account.getId())
+                        .setTimestamp(System.currentTimeMillis())
+                        .setServer(ServerType.GAME_SERVER.getValue())
+                        .setAccountAction(AccountAction.newBuilder().setAction(com.jftse.server.core.util.AccountAction.DISCONNECT.getValue()).build())
+                        .build();
+                ServiceManager.getInstance().getGrpcAuthService().updateAccount(request);
             }
+
+            RefreshFriendListMessage refreshFriendListMessage = RefreshFriendListMessage.builder().playerId(player.getId()).build();
+            NotifyGuildMemberListOnDisconnectMessage notifyGuildMemberListOnDisconnectMessage = NotifyGuildMemberListOnDisconnectMessage.builder().playerId(player.getId()).build();
+            RefreshFriendRelationMessage refreshFriendRelationMessage = RefreshFriendRelationMessage.builder().playerId(player.getId()).build();
+
+            RProducerService.getInstance().send(refreshFriendListMessage, "game.messenger.friendList chat.messenger.friendList", "GameServer");
+            RProducerService.getInstance().send(notifyGuildMemberListOnDisconnectMessage, "game.messenger.guildList chat.messenger.guildList", "GameServer");
+            RProducerService.getInstance().send(refreshFriendRelationMessage, "game.messenger.friendRelation chat.messenger.friendRelation", "GameServer");
         }
 
         GameSession gameSession = client.getActiveGameSession();
-        if (gameSession != null) {
+        boolean enhancedActorSession = gameSession != null &&
+                (gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats());
+        if (enhancedActorSession) {
             final Integer gameSessionId = client.getGameSessionId();
             Room currentClientRoom = client.getActiveRoom();
             RoomPlayer roomPlayer = client.getRoomPlayer();
@@ -167,6 +168,40 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
                 gameSession.getClients().remove(client);
             }
             client.setActiveGameSession(null);
+        } else if (gameSession != null) {
+            Room currentClientRoom = client.getActiveRoom();
+            if (currentClientRoom != null) {
+                if (player != null && currentClientRoom.getStatus() == RoomStatus.Running) {
+                    PlayerStatistic playerStatistic = ServiceManager.getInstance().getPlayerStatisticService().findPlayerStatisticById(player.getPlayerStatisticId());
+                    playerStatistic.setNumberOfDisconnects(playerStatistic.getNumberOfDisconnects() + 1);
+                    ServiceManager.getInstance().getPlayerStatisticService().save(playerStatistic);
+                }
+                RoomPlayer roomPlayer = client.getRoomPlayer();
+                if (roomPlayer != null) {
+                    roomPlayer.getConnectedToRelay().compareAndSet(true, false);
+                    notifyClients = roomPlayer.getPosition() < 4;
+                    if (notifyClients) {
+                        synchronized (currentClientRoom) {
+                            currentClientRoom.setStatus(RoomStatus.NotRunning);
+                        }
+                        client.setActiveRoom(currentClientRoom);
+                        gameSession.getClients().forEach(c -> {
+                            Room room = c.getActiveRoom();
+                            if (room != null && c.getConnection() != null &&
+                                    c.getConnection().getId() != connection.getId()) {
+                                c.getConnection().sendTCP(new S2CMatchplayBackToRoom());
+                            }
+                        });
+                        GameSessionManager.getInstance().getGameSessionList()
+                                .remove(client.getGameSessionId(), gameSession);
+                    }
+                }
+                MatchplayGame game = gameSession.getMatchplayGame();
+                game.getScheduledFutures().forEach(sf -> sf.cancel(false));
+                game.getScheduledFutures().clear();
+                GameManager.getInstance().getMatchRallyStatsConsumer().clearSession(client.getGameSessionId());
+                client.setActiveGameSession(null);
+            }
         }
         GameManager.getInstance().handleRoomPlayerChanges(connection, notifyClients);
     }

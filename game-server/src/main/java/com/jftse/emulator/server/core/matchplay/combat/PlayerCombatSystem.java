@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.matchplay.combat;
 
 import com.jftse.emulator.common.exception.ValidationException;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
@@ -163,6 +164,13 @@ public class PlayerCombatSystem implements PlayerCombatable {
             return newPlayerHealth;
         else
             return (short) currentHealth;
+    }
+
+    @Override
+    public PlayerBattleState reviveAnyPlayer(short revivePercentage, RoomPlayer roomPlayer) throws ValidationException {
+        if (roomPlayer == null)
+            return null;
+        return reviveAnyPlayer(revivePercentage, roomPlayer.getPosition());
     }
 
     @Override

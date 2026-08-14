@@ -49,6 +49,45 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
             if (roomPlayer == null) {
                 return;
             }
+            boolean dedicatedBattlemon = room.getRoomType() == RoomType.BATTLEMON;
+            boolean guardianOwnedPetFeature = room.getMode() == GameMode.GUARDIAN &&
+                    room.getAllowBattlemon() != 0;
+            boolean enhanced = dedicatedBattlemon || guardianOwnedPetFeature;
+            if (!enhanced) {
+                if (room.getAllowBattlemon() == 0) {
+                    S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
+                            S2CPetRequestRoomAnswerPacket.PET_NOT_ALLOWED, false, requestedSlot, null);
+                    connection.sendTCP(answer);
+                    return;
+                }
+                if (ftClient.getActivePet() == null) {
+                    S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
+                            S2CPetRequestRoomAnswerPacket.NO_PET_SELECTED, false, requestedSlot, null);
+                    connection.sendTCP(answer);
+                    return;
+                }
+                boolean slotNotFree = room.getRoomPlayerList().stream()
+                        .anyMatch(player -> player.getPosition() == requestedSlot + 2);
+                if (slotNotFree) {
+                    S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
+                            S2CPetRequestRoomAnswerPacket.NO_FREE_SLOT, false, requestedSlot, null);
+                    connection.sendTCP(answer);
+                    return;
+                }
+                boolean isAdd = false;
+                PetView ordinaryPet = roomPlayer.getPet();
+                if (ordinaryPet != null) {
+                    roomPlayer.setPet(null);
+                } else {
+                    roomPlayer.setPet(ftClient.getActivePet());
+                    ordinaryPet = roomPlayer.getPet();
+                    isAdd = true;
+                }
+                S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
+                        S2CPetRequestRoomAnswerPacket.SUCCESS, isAdd, requestedSlot, ordinaryPet);
+                GameManager.getInstance().sendPacketToAllClientsInSameRoom(answer, connection);
+                return;
+            }
             slot = (byte) roomPlayer.getPosition();
             PetView pet;
             synchronized (room) {
@@ -62,7 +101,7 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
 
                 pet = roomPlayer.getPet();
                 if (pet != null) {
-                    if (room.getRoomType() == RoomType.BATTLEMON) {
+                    if (dedicatedBattlemon) {
                         S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
                                 S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null);
                         connection.sendTCP(answer);
@@ -76,8 +115,7 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
                                     .noneMatch(player -> player.getPosition() == petPosition)) {
                         room.getPositions().set(petPosition, RoomPositionState.Free);
                     }
-                } else if (room.getAllowBattlemon() == 0 ||
-                        room.getRoomType() != RoomType.BATTLEMON && room.getMode() != GameMode.GUARDIAN) {
+                } else if (!dedicatedBattlemon && !guardianOwnedPetFeature) {
                     S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.PET_NOT_ALLOWED, false, slot, null);
                     connection.sendTCP(petRequestRoomAnswerPacket);
                     return;
@@ -121,8 +159,7 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
                 int petPosition = roomPlayer.getPosition() + 2;
                 if (ftClient.getActiveRoom() != room || room.getStatus() != RoomStatus.NotRunning ||
                         requestedSlot != roomPlayer.getPosition() || roomPlayer.getPet() != null ||
-                        room.getAllowBattlemon() == 0 ||
-                        room.getRoomType() != RoomType.BATTLEMON && room.getMode() != GameMode.GUARDIAN ||
+                        !dedicatedBattlemon && !(room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0) ||
                         roomPlayer.getPosition() < 0 || roomPlayer.getPosition() > 1 ||
                         petPosition >= room.getPositions().size() ||
                         room.getPositions().get(petPosition) != RoomPositionState.Free ||

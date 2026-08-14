@@ -45,12 +45,15 @@ public class RProducerService {
     }
 
     private void send0(AbstractBaseMessage message, String routingKey, String sender) {
-        try {
-            sendNow(message, routingKey, sender);
-        } catch (AmqpException ae) {
-            log.error("[{}] Failed to send message: {}",
-                    message.getCorrelationId(),
-                    ae.getMessage());
+        String[] routingKeys = routingKey.split("\\s+");
+        for (String key : routingKeys) {
+            try {
+                sendToRoutingKey(message, key, sender);
+            } catch (AmqpException ae) {
+                log.error("[{}] Failed to send message: {}",
+                        message.getCorrelationId(),
+                        ae.getMessage());
+            }
         }
     }
 
