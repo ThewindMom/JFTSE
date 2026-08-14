@@ -36,4 +36,5 @@ public class Pet extends AbstractBaseModel {
     private Integer lifeMax;
     private Date validUntil;
     private Boolean alive;
+    private Date lifecycleUpdatedAt;
 }

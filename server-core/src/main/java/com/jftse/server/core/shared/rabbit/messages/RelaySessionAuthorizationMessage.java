@@ -17,17 +17,19 @@ public class RelaySessionAuthorizationMessage extends AbstractBaseMessage {
 
     private Integer gameSessionId;
     private Boolean battlemon;
+    private Boolean ownedPetSession;
     private Map<Integer, List<Short>> actorPositionsByPlayerId;
     private Map<Integer, Boolean> battlemonControllerByPlayerId;
     private Boolean remove;
 
     @Builder
-    public RelaySessionAuthorizationMessage(Integer gameSessionId, Boolean battlemon,
+    public RelaySessionAuthorizationMessage(Integer gameSessionId, Boolean battlemon, Boolean ownedPetSession,
                                             Map<Integer, List<Short>> actorPositionsByPlayerId,
                                             Map<Integer, Boolean> battlemonControllerByPlayerId,
                                             Boolean remove) {
         this.gameSessionId = gameSessionId;
         this.battlemon = battlemon;
+        this.ownedPetSession = ownedPetSession;
         this.actorPositionsByPlayerId = actorPositionsByPlayerId;
         this.battlemonControllerByPlayerId = battlemonControllerByPlayerId;
         this.remove = remove;

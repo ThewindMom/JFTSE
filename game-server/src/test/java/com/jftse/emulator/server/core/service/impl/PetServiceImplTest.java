@@ -85,7 +85,7 @@ class PetServiceImplTest {
     }
 
     @Test
-    void displayedLevelTwoFiftyFitsTheUnsignedPetLevelByteWithoutRaisingStats() {
+    void battlemonAwardStopsBeforeTheFirstMissingNativeAiProfile() {
         Pet pet = pet(0, true, new Date(System.currentTimeMillis() + 60_000));
         pet.setHp(180);
         pet.setStrength((byte) 0);
@@ -97,13 +97,23 @@ class PetServiceImplTest {
 
         Pet result = petService.awardExperience(7L, 11L, 1_408_515);
 
-        assertEquals(1_408_515, result.getExpPoints());
-        assertEquals(250, Byte.toUnsignedInt(result.getLevel()));
+        assertEquals(4807, result.getExpPoints());
+        assertEquals(13, Byte.toUnsignedInt(result.getLevel()));
         assertEquals(180, result.getHp());
         assertEquals((byte) 0, result.getStrength());
         assertEquals((byte) 0, result.getStamina());
         assertEquals((byte) 0, result.getDexterity());
         assertEquals((byte) 0, result.getWillpower());
+    }
+
+    @Test
+    void battlemonAwardRejectsAnExistingUnsupportedLevel() {
+        Pet pet = pet(4808, true, new Date(System.currentTimeMillis() + 60_000));
+        pet.setLevel((byte) 14);
+        when(petRepository.findByIdAndPlayerIdForUpdate(7L, 11L)).thenReturn(Optional.of(pet));
+
+        assertNull(petService.awardExperience(7L, 11L, 100));
+        verify(petRepository, never()).save(pet);
     }
 
     private static Pet pet(int experience, boolean alive, Date validUntil) {
@@ -112,6 +122,8 @@ class PetServiceImplTest {
         pet.setLevel((byte) 1);
         pet.setAlive(alive);
         pet.setValidUntil(validUntil);
+        pet.setHunger(100);
+        pet.setEnergy(50);
         return pet;
     }
 }

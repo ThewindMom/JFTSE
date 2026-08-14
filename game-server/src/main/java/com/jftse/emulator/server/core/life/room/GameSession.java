@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +35,7 @@ public class GameSession {
         fireables = new ConcurrentLinkedDeque<>();
         actors = new ConcurrentHashMap<>();
         completionHandled = new AtomicBoolean(false);
+        resultId = UUID.randomUUID().toString();
         this.dedicatedBattlemonRoom = dedicatedBattlemonRoom;
         gameplayActorPositions = List.of();
     }
@@ -46,7 +48,10 @@ public class GameSession {
     private ConcurrentLinkedDeque<FTClient> clients;
     private ConcurrentLinkedDeque<Fireable> fireables;
     private ConcurrentHashMap<Short, GameplayActor> actors;
+    private final ConcurrentHashMap<SkillHitKey, SkillHitAuthorization> skillHitAuthorizations =
+            new ConcurrentHashMap<>();
     private AtomicBoolean completionHandled;
+    private final String resultId;
     private final boolean dedicatedBattlemonRoom;
     private volatile List<Short> gameplayActorPositions;
     private volatile RunnableEvent countDownRunnable;
@@ -179,9 +184,40 @@ public class GameSession {
                 : !client.isSpectator() && clients.contains(client);
     }
 
+    public void authorizeSkillHits(int attackerPosition, int targetPosition, int skillId, long nowNanos) {
+        SkillHitKey key = new SkillHitKey((short) attackerPosition, (byte) skillId);
+        skillHitAuthorizations.put(key,
+                new SkillHitAuthorization((short) targetPosition, nowNanos + 15_000_000_000L));
+    }
+
+    public boolean tryConsumeSkillHit(int attackerPosition, int targetPosition, int skillId, long nowNanos) {
+        SkillHitKey key = new SkillHitKey((short) attackerPosition, (byte) skillId);
+        SkillHitAuthorization authorization = skillHitAuthorizations.get(key);
+        if (authorization == null || nowNanos > authorization.expiresAtNanos ||
+                authorization.targetPosition >= 0 && authorization.targetPosition != targetPosition) {
+            skillHitAuthorizations.remove(key, authorization);
+            return false;
+        }
+        return authorization.consumedTargets.add((short) targetPosition);
+    }
+
     public int getOwnerPositionForActor(int actorPosition) {
         GameplayActor actor = actors.get((short) actorPosition);
         return actor == null ? actorPosition : actor.ownerPosition();
+    }
+
+    private record SkillHitKey(short attackerPosition, byte skillId) {
+    }
+
+    private static final class SkillHitAuthorization {
+        private final short targetPosition;
+        private final long expiresAtNanos;
+        private final java.util.Set<Short> consumedTargets = ConcurrentHashMap.newKeySet();
+
+        private SkillHitAuthorization(short targetPosition, long expiresAtNanos) {
+            this.targetPosition = targetPosition;
+            this.expiresAtNanos = expiresAtNanos;
+        }
     }
 
     public synchronized void initializeGameplayActorPositions() {

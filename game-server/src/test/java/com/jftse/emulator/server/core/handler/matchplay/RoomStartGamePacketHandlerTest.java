@@ -135,6 +135,9 @@ class RoomStartGamePacketHandlerTest {
         selectedPet.setValidUntil(Date.from(Instant.now().plus(30, ChronoUnit.DAYS)));
         assertEquals(selectedPetView, gameManager.getValidatedActiveBattlemonPet(client));
         verify(client).setActivePet(selectedPet);
+
+        selectedPet.setLevel((byte) 14);
+        assertNull(gameManager.getValidatedActiveBattlemonPet(client));
     }
 
     @Test
@@ -201,6 +204,7 @@ class RoomStartGamePacketHandlerTest {
         );
 
         assertTrue(authorization.getBattlemon());
+        assertTrue(authorization.getOwnedPetSession());
         assertEquals(List.of((short) 0, (short) 2), authorization.getActorPositionsByPlayerId().get(100));
         assertEquals(List.of((short) 1, (short) 3), authorization.getActorPositionsByPlayerId().get(200));
         assertEquals(Boolean.FALSE, authorization.getBattlemonControllerByPlayerId().get(100));
@@ -269,6 +273,7 @@ class RoomStartGamePacketHandlerTest {
         );
 
         assertFalse(authorization.getBattlemon());
+        assertTrue(authorization.getOwnedPetSession());
         assertEquals(List.of((short) 0, (short) 2), authorization.getActorPositionsByPlayerId().get(100));
         assertEquals(List.of((short) 1, (short) 3), authorization.getActorPositionsByPlayerId().get(200));
         assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3),
@@ -338,6 +343,16 @@ class RoomStartGamePacketHandlerTest {
 
             first.getRoomPlayer().setPet(PetView.of(firstPet));
             second.getRoomPlayer().setPet(PetView.of(secondPet));
+            secondPet.setLevel((byte) 14);
+            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
+
+            assertEquals(RoomStatus.NotRunning, room.getStatus());
+            assertTrue(sessionManager.getGameSessionList().isEmpty());
+            verify(producer, never()).sendRelayActorPolicy(
+                    any(RelaySessionAuthorizationMessage.class),
+                    eq("MatchplaySystem(GameServer)"));
+
+            secondPet.setLevel((byte) 13);
             GameServer relayServer = new GameServer();
             relayServer.setHost("127.0.0.1");
             relayServer.setPort(5896);

@@ -190,7 +190,6 @@ figcaption {
   color: #4a596e;
   font-size: 8.5pt;
 }
-
 </style></head><body>
 <div class="title-page"><h1>JFTSE — Native Battlemon AI level selection</h1>
 <div class="subtitle">Proof that JFTSE supplies the level and the unmodified Fantasy Tennis client owns AI profile selection</div><p><strong>Branch:</strong> <code>feature/battlemon-complete</code><br>
@@ -233,11 +232,11 @@ any owned-pet mapping/fallback for levels 14–250.</p>
 </tr>
 <tr>
 <td>Compatibility interpretation</td>
-<td>None added. Native behavior remains authoritative.</td>
+<td>Because owned profiles are established only for levels 1–13, JFTSE uses level 13 as a fail-safe gameplay boundary without rewriting persisted higher levels.</td>
 </tr>
 <tr>
 <td>Implementation in this work</td>
-<td>Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, and this report. No Java AI.</td>
+<td>Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, participation guard, EXP cap, and this report. No Java AI.</td>
 </tr>
 </tbody></table>
 <h1>First-principles proof</h1>
@@ -328,13 +327,15 @@ prints requested level, matched level, owned-pet model, record address, and all
 <p>The executable&#39;s owned-pet resources contain records 1–13, while JFTSE&#39;s
 displayed progression supports 1–250. This report does not bridge that gap by
 invention. A level above 13 reaches the native exact lookup but has no proven
-owned record; therefore the server must preserve the real level and must not
-silently clamp it. A future claim about native behavior above 13 requires a
-separate runtime experiment.</p>
+owned record; therefore the server preserves the real level, does not silently
+clamp it, blocks that pet from gameplay, and caps new awards immediately below
+the level-14 threshold. The attempted two-client level-14 runtime experiment
+left both clients unhealthy and did not isolate level 14 as the cause. A future
+claim about native behavior above 13 requires a clean surviving control.</p>
 <h1>Conclusion</h1>
-<p>No Java decision tree is warranted. The smallest correct server contract is
-already the implemented one: persist and serialize the independent pet
-<code>type</code>, <code>level</code>, and stats. The validated client selects the exact native
-<code>[LevelN]</code> record and executes <code>TennisAIMgr</code> behavior itself.</p>
-
+<p>No Java decision tree is warranted. The server persists and serializes the
+independent pet <code>type</code>, <code>level</code>, and stats, while enforcing the established
+1–13 owned-profile boundary for participation and new EXP. Within that boundary
+the validated client selects the exact native <code>[LevelN]</code> record and executes
+<code>TennisAIMgr</code> behavior itself.</p>
 </body></html>

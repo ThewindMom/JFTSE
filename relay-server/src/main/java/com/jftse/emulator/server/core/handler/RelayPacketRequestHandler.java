@@ -24,16 +24,16 @@ public class RelayPacketRequestHandler implements PacketHandler<FTConnection, CM
                 return;
             }
             byte[] innerPacket = relay.getPacket();
-            boolean battlemon = RelaySessionAuthorizationStore.getInstance()
-                    .isBattlemon(client.getGameSessionId().get());
-            if (battlemon && (innerPacket == null || innerPacket.length < 6)) {
+            boolean ownedPetSession = RelaySessionAuthorizationStore.getInstance()
+                    .isOwnedPetSession(client.getGameSessionId().get());
+            if (ownedPetSession && (innerPacket == null || innerPacket.length < 8)) {
                 return;
             }
             int packetId = BitKit.bytesToShort(innerPacket, 4);
             IPacket relayPacket = PacketRegistry.decode(packetId, innerPacket);
             if (relayPacket instanceof CMSGDefault defaultPacket) {
-                if (battlemon) {
-                    log.warn("Dropping unknown Battlemon relay packet id: 0x{}", Integer.toHexString(packetId));
+                if (ownedPetSession) {
+                    log.warn("Dropping unknown owned-pet relay packet id: 0x{}", Integer.toHexString(packetId));
                     return;
                 }
                 // not found so its wrapped in CMSGDefault and prob not reversed yet

@@ -33,6 +33,8 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.AuthenticationService;
 import com.jftse.server.core.service.PetService;
+import com.jftse.server.core.service.impl.BattlemonPetCompatibilityPolicy;
+import com.jftse.server.core.service.impl.PetLifecyclePolicy;
 import com.jftse.server.core.service.PlayerPocketService;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.packets.matchplay.*;
@@ -138,8 +140,8 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                 return;
             }
             Pet pet = petService.findByIdAndPlayerId(petView.id(), roomPlayer.getPlayerId());
-            if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) ||
-                    pet.getValidUntil() == null || pet.getValidUntil().before(new Date())) {
+            if (!PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now()) ||
+                    !BattlemonPetCompatibilityPolicy.canParticipate(pet)) {
                 connection.sendTCP(roomStartGameAck);
                 return;
             }
@@ -602,6 +604,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
         return RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(gameSessionId)
                 .battlemon(gameSession.isDedicatedBattlemonRoom())
+                .ownedPetSession(gameSession.hasOwnedPetSeats())
                 .remove(false)
                 .actorPositionsByPlayerId(actorPositionsByPlayerId)
                 .battlemonControllerByPlayerId(battlemonControllerByPlayerId)

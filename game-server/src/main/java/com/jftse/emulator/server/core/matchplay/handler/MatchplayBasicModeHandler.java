@@ -34,6 +34,7 @@ import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
+import com.jftse.emulator.server.core.service.MatchResultService;
 import com.jftse.emulator.server.core.task.AutoItemRewardPickerTask;
 import com.jftse.emulator.server.core.utils.RankingUtils;
 import com.jftse.emulator.server.net.FTClient;
@@ -66,6 +67,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
     private final PetService petService;
+    private final MatchResultService matchResultService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -79,6 +81,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         this.pocketService = ServiceManager.getInstance().getPocketService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
         this.petService = ServiceManager.getInstance().getPetService();
+        this.matchResultService = ServiceManager.getInstance().getMatchResultService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
     }
@@ -166,6 +169,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
 
         boolean completionSucceeded = false;
         try {
+        Runnable completion = () -> {
 
         gameSession.getFireables().forEach(f -> f.setCancelled(true));
         gameSession.getFireables().clear();
@@ -255,6 +259,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                 player.syncCouplePoints(player.getCouplePoints() + playerReward.getCouplePoints());
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
+                ServiceManager.getInstance().getPlayerService().save(player.getPlayer());
 
                 GameplayActor ownedPet = enhancedActorSession ? gameSession.getOwnedPetSeat(player.getId()) : null;
                 if (ownedPet != null) {
@@ -349,7 +354,23 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
         }
-        completionSucceeded = true;
+        };
+        if (enhancedActorSession)
+            completionSucceeded = matchResultService.executeOnce(gameSession.getResultId(), completion);
+        else {
+            completion.run();
+            completionSucceeded = true;
+        }
+        } catch (RuntimeException exception) {
+            if (enhancedActorSession) {
+                log.error("Match result transaction failed for session {}; closing clients to discard rolled-back in-memory state",
+                        gameSessionId, exception);
+                gameSession.getClients().forEach(client -> {
+                    if (client.getConnection() != null)
+                        client.getConnection().close();
+                });
+            }
+            throw exception;
         } finally {
             if (enhancedActorSession && !completionSucceeded) {
                 GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());

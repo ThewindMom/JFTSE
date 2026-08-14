@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -21,21 +22,26 @@ public class PetServiceImpl implements PetService {
     private final PetStatisticRepository petStatisticRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Pet findById(Long id) {
-        return petRepository.findById(id).orElse(null);
+        Pet pet = petRepository.findByIdForUpdate(id).orElse(null);
+        return refresh(pet, Instant.now());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Pet findByIdAndPlayerId(Long id, Long playerId) {
-        return petRepository.findByIdAndPlayerId(id, playerId).orElse(null);
+        Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
+        return refresh(pet, Instant.now());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Pet> findAllByPlayerId(Long playerId) {
-        return petRepository.findAllByPlayerId(playerId);
+        Instant now = Instant.now();
+        List<Pet> pets = petRepository.findAllByPlayerIdForUpdate(playerId);
+        pets.forEach(pet -> refresh(pet, now));
+        return pets;
     }
 
     @Override
@@ -65,13 +71,13 @@ public class PetServiceImpl implements PetService {
             return null;
         }
         Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
-        if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) || pet.getValidUntil() == null ||
-                !pet.getValidUntil().after(new Date())) {
-            return null;
-        }
+        Instant now = Instant.now();
+        PetLifecyclePolicy.refresh(pet, now);
+        if (!PetLifecyclePolicy.canParticipate(pet, now) ||
+                !BattlemonPetCompatibilityPolicy.canParticipate(pet)) return null;
         int currentExperience = pet.getExpPoints() == null ? 0 : Math.max(0, pet.getExpPoints());
-        int newExperience = (int) Math.min(Integer.MAX_VALUE,
-                (long) currentExperience + experience);
+        int newExperience = BattlemonPetCompatibilityPolicy.capExperience(
+                (int) Math.min(Integer.MAX_VALUE, (long) currentExperience + experience));
         pet.setExpPoints(newExperience);
         // LevelExp_Pet.xml is a cumulative EXP table only. Item_PetChar.xml has
         // no STR/STA/DEX/WIL columns, so a level change does not allocate stats.
@@ -104,6 +110,7 @@ public class PetServiceImpl implements PetService {
         pet.setLifeMax(lifeMax);
         pet.setAlive(true);
         pet.setValidUntil(calculateValidUntil(life));
+        pet.setLifecycleUpdatedAt(new Date());
 
         return petRepository.save(pet);
     }
@@ -112,5 +119,12 @@ public class PetServiceImpl implements PetService {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, life);
         return calendar.getTime();
+    }
+
+    private Pet refresh(Pet pet, Instant now) {
+        if (pet != null && PetLifecyclePolicy.refresh(pet, now)) {
+            return petRepository.save(pet);
+        }
+        return pet;
     }
 }

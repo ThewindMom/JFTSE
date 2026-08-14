@@ -46,8 +46,8 @@ any owned-pet mapping/fallback for levels 14–250.
 | Observed native runtime | JFTSE emitted `0x151B` with `PotekoTest` level `0B`; the unmodified client displayed level 11. |
 | Static client reverse engineering | Exact-level lookup, model vector selection, 88-byte profile copy, Basic and Double call sites, and missing-level failure path. |
 | JFTSE source baseline | `Pet.level` is an independent unsigned byte and is serialized separately from `type` and STR/STA/DEX/WIL. |
-| Compatibility interpretation | None added. Native behavior remains authoritative. |
-| Implementation in this work | Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, and this report. No Java AI. |
+| Compatibility interpretation | Because owned profiles are established only for levels 1–13, JFTSE uses level 13 as a fail-safe gameplay boundary without rewriting persisted higher levels. |
+| Implementation in this work | Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, participation guard, EXP cap, and this report. No Java AI. |
 
 # First-principles proof
 
@@ -130,13 +130,16 @@ prints requested level, matched level, owned-pet model, record address, and all
 The executable's owned-pet resources contain records 1–13, while JFTSE's
 displayed progression supports 1–250. This report does not bridge that gap by
 invention. A level above 13 reaches the native exact lookup but has no proven
-owned record; therefore the server must preserve the real level and must not
-silently clamp it. A future claim about native behavior above 13 requires a
-separate runtime experiment.
+owned record; therefore the server preserves the real level, does not silently
+clamp it, blocks that pet from gameplay, and caps new awards immediately below
+the level-14 threshold. The attempted two-client level-14 runtime experiment
+left both clients unhealthy and did not isolate level 14 as the cause. A future
+claim about native behavior above 13 requires a clean surviving control.
 
 # Conclusion
 
-No Java decision tree is warranted. The smallest correct server contract is
-already the implemented one: persist and serialize the independent pet
-`type`, `level`, and stats. The validated client selects the exact native
-`[LevelN]` record and executes `TennisAIMgr` behavior itself.
+No Java decision tree is warranted. The server persists and serializes the
+independent pet `type`, `level`, and stats, while enforcing the established
+1–13 owned-profile boundary for participation and new EXP. Within that boundary
+the validated client selects the exact native `[LevelN]` record and executes
+`TennisAIMgr` behavior itself.

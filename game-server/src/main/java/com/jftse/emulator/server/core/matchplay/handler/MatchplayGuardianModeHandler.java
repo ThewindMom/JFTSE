@@ -36,6 +36,7 @@ import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
+import com.jftse.emulator.server.core.service.MatchResultService;
 import com.jftse.emulator.server.core.task.AutoItemRewardPickerTask;
 import com.jftse.emulator.server.core.task.DefeatTimerTask;
 import com.jftse.emulator.server.core.task.GuardianAttackTask;
@@ -86,6 +87,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
     private final ScenarioService scenarioService;
     private final PlayerStatisticService playerStatisticService;
     private final PetService petService;
+    private final MatchResultService matchResultService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -102,6 +104,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         this.scenarioService = ServiceManager.getInstance().getScenarioService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
         this.petService = ServiceManager.getInstance().getPetService();
+        this.matchResultService = ServiceManager.getInstance().getMatchResultService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
 
@@ -161,6 +164,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
         boolean completionSucceeded = false;
         try {
+        Runnable completion = () -> {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (game.getEndTime() == null)
             game.setEndTime(new AtomicReference<>(cal.getTime()));
@@ -310,6 +314,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 player.syncCouplePoints(player.getCouplePoints() + playerReward.getCouplePoints());
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
+                ServiceManager.getInstance().getPlayerService().save(player.getPlayer());
 
                 GameplayActor ownedPet = gameSession.getOwnedPetSeat(player.getId());
                 if (ownedPet != null) {
@@ -437,7 +442,23 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                     .build();
             RProducerService.getInstance().send(message, "game.stats.match", "MatchplaySystem");
         }
-        completionSucceeded = true;
+        };
+        if (enhancedActorSession)
+            completionSucceeded = matchResultService.executeOnce(gameSession.getResultId(), completion);
+        else {
+            completion.run();
+            completionSucceeded = true;
+        }
+        } catch (RuntimeException exception) {
+            if (enhancedActorSession) {
+                log.error("Match result transaction failed for session {}; closing clients to discard rolled-back in-memory state",
+                        gameSessionId, exception);
+                gameSession.getClients().forEach(client -> {
+                    if (client.getConnection() != null)
+                        client.getConnection().close();
+                });
+            }
+            throw exception;
         } finally {
             if (enhancedActorSession && !completionSucceeded) {
                 GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());

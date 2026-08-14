@@ -3,8 +3,9 @@
 ## Result
 
 The validated native Fantasy Tennis client selects a pet AI profile by exact
-pet level. JFTSE must send the real level; it must not run TennisAI in Java and
-must not clamp levels to 13.
+pet level. JFTSE must not run TennisAI in Java or silently rewrite persisted
+levels. Runtime validation now establishes a separate safety boundary:
+Battlemon participation and newly awarded pet EXP must not cross level 13.
 
 This conclusion combines two evidence classes:
 
@@ -17,8 +18,52 @@ This conclusion combines two evidence classes:
 
 The executable does not clamp the requested level. A missing record follows the
 native `AI Level(%d) requested not found for nPetModel(%d)` path and returns
-failure. Consequently, levels above 13 remain deliberately unmapped for owned
-pet profiles until a native match establishes some separate fallback.
+failure. JFTSE therefore adopts level 13 as a fail-safe compatibility boundary:
+existing levels above 13 are retained for data compatibility but cannot enter
+owned-pet gameplay, and awards stop at 4,807 cumulative EXP (one point before
+the client table's level-14 threshold of 4,808). This is a policy chosen from
+the proven missing-profile risk, not a claim that the attempted runtime test
+isolated a level-14 crash.
+
+## Inconclusive level-14 runtime experiment
+
+The fixture set player 2's pet to level 14 and cumulative EXP 4,808 while the
+control owner's pet remained level 1. Both owners selected their pets and the
+server completed room and relay admission. At 2026-08-14 13:28:42 UTC both
+relay clients registered and both game clients received:
+
+```text
+SMSGStartGame result=0
+```
+
+The level-14 owner disconnected at 13:28:44, less than two seconds later. The
+control client stopped producing relay traffic and timed out at 13:29:43. The
+captured client screens show a blank level-14 process and a Wine `Program
+Error`/failed debugger attachment on the control process. No gameplay frame was
+reached. Because the level-1 control was also unhealthy, this experiment does
+not establish that level 14 caused the failure or provide a clean surviving
+control. It is consistent with the static missing-profile risk but is not
+independent runtime proof of that risk.
+
+Two setup recordings were captured at verified 60/1 FPS, but they ended before
+the decisive start and therefore are not presented as crash evidence. The
+available runtime evidence is the synchronized server packet/disconnect
+timeline and the post-failure native screenshots.
+
+## Level-13 policy validation
+
+After implementing the compatibility boundary, a second run swapped the
+fixture: player 2 was the level-1 control and player 3 owned the level-14 pet.
+The unmodified client displayed `BoongaTest` as level 14 with cumulative EXP
+4,808 and next threshold 1,085. The level-1 owner created a Battlemon room; the
+level-14 owner then received `Could not enter the room`, while the server sent
+`SMSGRoomJoin result=65526`. The control owner remained healthy in the room.
+
+Both desktops were captured at 1280×800, 60/1 FPS for 300 seconds (18,000
+frames each). This validates the implemented fail-safe admission behavior and
+removes the crash from the supported path. It still does not prove that level
+14 itself caused the earlier two-client initialization failure, because the
+new policy deliberately prevents level-14 gameplay before native AI lookup.
 
 ## Exact native contract
 
@@ -95,7 +140,9 @@ both pet-AI call sites, and the named pet's level byte in `0x151B`.
 
 - This proves native selection of an exact loaded `[LevelN]` profile; it does
   not reimplement or fully describe lob, smash, prediction, or delay decisions.
-- It does not claim a valid owned-pet mapping for levels 14–250.
+- It proves that levels above 13 have no established owned-pet AI profile. The
+  level-14 runtime experiment was inconclusive and does not establish the cause
+  of the observed two-client failure.
 - `AI_Default` records beyond 13 are not evidence of an owned `AI_PetA`…`K`
   fallback.
 - No pet stat growth, evolution, HP growth, or Java AI is inferred or added.

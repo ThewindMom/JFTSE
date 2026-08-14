@@ -29,6 +29,17 @@ class RelaySessionAuthorizationStoreTest {
         assertTrue(store.canParticipate(client));
         assertTrue(store.isAuthorizedActor(100, 27));
         assertFalse(store.isBattlemon(100));
+        assertFalse(store.isOwnedPetSession(100));
+    }
+
+    @Test
+    void missingReservedOwnedPetPolicyFailsClosedAfterRelayRestart() {
+        FTClient client = client(150_000, 999);
+
+        assertFalse(store.canAct(client, 0));
+        assertFalse(store.canParticipate(client));
+        assertFalse(store.isAuthorizedActor(150_000, 0));
+        assertTrue(store.isOwnedPetSession(150_000));
     }
 
     @Test
@@ -47,6 +58,37 @@ class RelaySessionAuthorizationStoreTest {
         assertFalse(store.canAct(second, 3, true));
         assertTrue(store.isAuthorizedActor(100, 1));
         assertFalse(store.isAuthorizedActor(100, 4));
+        assertTrue(store.isOwnedPetSession(100));
+    }
+
+    @Test
+    void guardianOwnedPetPolicyIsStrictWithoutRequiringDedicatedLayout() {
+        store.put(RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(150)
+                .battlemon(false)
+                .ownedPetSession(true)
+                .actorPositionsByPlayerId(Map.of(1000, List.of((short) 0, (short) 2)))
+                .build());
+
+        assertFalse(store.isBattlemon(150));
+        assertTrue(store.isOwnedPetSession(150));
+        assertTrue(store.canAct(client(150, 1000), 2));
+    }
+
+    @Test
+    void rejectsOwnedPetFlagThatDisagreesWithActorLayout() {
+        assertThrows(IllegalArgumentException.class, () -> store.put(RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(150)
+                .battlemon(false)
+                .ownedPetSession(false)
+                .actorPositionsByPlayerId(Map.of(1000, List.of((short) 0, (short) 2)))
+                .build()));
+        assertThrows(IllegalArgumentException.class, () -> store.put(RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(151)
+                .battlemon(false)
+                .ownedPetSession(true)
+                .actorPositionsByPlayerId(Map.of(1000, List.of((short) 0)))
+                .build()));
     }
 
     @Test
@@ -59,11 +101,13 @@ class RelaySessionAuthorizationStoreTest {
         Map<Integer, List<Short>> actors = new LinkedHashMap<>();
         actors.put(1000, mutable);
         store.put(RelaySessionAuthorizationMessage.builder().gameSessionId(200).battlemon(false)
+                .ownedPetSession(false)
                 .actorPositionsByPlayerId(actors).build());
         mutable.add((short) 1);
         assertFalse(store.canAct(client(200, 1000), 1));
 
         store.put(RelaySessionAuthorizationMessage.builder().gameSessionId(200).battlemon(false)
+                .ownedPetSession(false)
                 .actorPositionsByPlayerId(Map.of(2000, List.of((short) 1))).build());
         assertFalse(store.canAct(client(200, 1000), 0));
         assertTrue(store.canAct(client(200, 2000), 1));
@@ -72,24 +116,23 @@ class RelaySessionAuthorizationStoreTest {
     }
 
     @Test
-    void temporaryEmptySessionKeepsPolicyUntilEveryOwnerHasRegistered() {
+    void policyRemainsStrictAcrossTransientDisconnectUntilExplicitRemoval() {
         store.put(policy(100, Map.of(
                 1000, List.of((short) 0, (short) 2),
                 2000, List.of((short) 1, (short) 3)), Map.of()));
 
-        store.markParticipantRegistered(100, 1000);
-        assertFalse(store.canRemoveAfterSessionEmpties(100));
-
-        store.markParticipantRegistered(100, 2000);
-        assertTrue(store.canRemoveAfterSessionEmpties(100));
+        assertFalse(store.canAct(client(100, 1000), 1));
+        assertTrue(store.isOwnedPetSession(100));
         store.remove(100);
-        assertTrue(store.canRemoveAfterSessionEmpties(100));
+        assertTrue(store.canAct(client(100, 1000), 1));
+        assertFalse(store.isOwnedPetSession(100));
     }
 
     private static RelaySessionAuthorizationMessage policy(int sessionId,
                                                              Map<Integer, List<Short>> actors,
                                                              Map<Integer, Boolean> controllers) {
         return RelaySessionAuthorizationMessage.builder().gameSessionId(sessionId).battlemon(true)
+                .ownedPetSession(true)
                 .actorPositionsByPlayerId(actors).battlemonControllerByPlayerId(controllers).build();
     }
 

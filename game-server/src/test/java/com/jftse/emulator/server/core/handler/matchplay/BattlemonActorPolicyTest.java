@@ -29,6 +29,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -122,6 +123,20 @@ class BattlemonActorPolicyTest {
         new PlayerUseSkillHandler().handle(context.connection(), packet);
 
         verify(skillService, never()).findSkillByIndex(org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void ownerCannotApplySpellDamageAsOpponentActor() {
+        BattleContext context = battleContext((short) 1, false);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 0)
+                .skillId((byte) 6)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -329,6 +344,9 @@ class BattlemonActorPolicyTest {
         when(session.getMatchplayGame()).thenReturn(game);
         when(session.isDedicatedBattlemonRoom()).thenReturn(true);
         when(session.isActorOwnedBy(roomPlayer, actorPosition)).thenReturn(actorOwned);
+        when(session.tryConsumeSkillHit(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
         when(session.getFireables()).thenReturn(new ConcurrentLinkedDeque<>());
 
         FTClient client = mock(FTClient.class);
@@ -358,6 +376,7 @@ class BattlemonActorPolicyTest {
         playerStates.add(new PlayerBattleState((short) 1, 200L, 100, 10, 10, 10, 10));
         GuardianBattleState guardianState = mock(GuardianBattleState.class);
         when(guardianState.getPosition()).thenReturn(10);
+        when(guardianState.getCurrentHealth()).thenReturn(new AtomicInteger(100));
         when(game.getPlayerBattleStates()).thenReturn(playerStates);
         when(game.getGuardianBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(guardianState)));
 

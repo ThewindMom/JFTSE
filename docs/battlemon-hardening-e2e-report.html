@@ -1,0 +1,302 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@page {
+  size: A4;
+  margin: 16mm 17mm 18mm;
+}
+
+html {
+  color: #172033;
+  font-family: "DejaVu Sans", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: #102548;
+  font-weight: 650;
+  line-height: 1.2;
+  page-break-after: avoid;
+}
+
+h1 {
+  border-bottom: 2px solid #3a72b8;
+  font-size: 24pt;
+  margin-top: 0;
+  padding-bottom: 7px;
+}
+
+h2 {
+  border-bottom: 1px solid #b9c9df;
+  font-size: 17pt;
+  margin-top: 1.3em;
+  padding-bottom: 4px;
+}
+
+h3 {
+  font-size: 13pt;
+  margin-top: 1.15em;
+}
+
+h4 {
+  font-size: 11pt;
+}
+
+p,
+li,
+table,
+pre,
+figure {
+  page-break-inside: avoid;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 9.2pt;
+  margin: 0.8em 0 1.2em;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #afbdd0;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eaf0f8;
+  color: #102548;
+}
+
+tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+code {
+  background: #eef2f7;
+  border-radius: 3px;
+  color: #27364d;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 0.88em;
+  padding: 1px 3px;
+}
+
+pre {
+  background: #172033;
+  border-left: 4px solid #4e88cf;
+  color: #f1f5fa;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 8.2pt;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 9px 11px;
+  white-space: pre-wrap;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+blockquote {
+  background: #f0f5fb;
+  border-left: 4px solid #3a72b8;
+  color: #263b5b;
+  margin: 1em 0;
+  padding: 7px 12px;
+}
+
+a {
+  color: #215d9c;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  height: auto;
+  margin: 0.6em auto 0.3em;
+  max-height: 205mm;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+figure {
+  margin: 0.8em 0 1.2em;
+  text-align: center;
+}
+
+figcaption {
+  color: #4a596e;
+  font-size: 8.8pt;
+  margin-top: 4px;
+}
+
+.title-page {
+  padding-top: 28mm;
+  text-align: center;
+}
+
+.title-page h1 {
+  border: 0;
+  font-size: 30pt;
+  margin-bottom: 0.3em;
+}
+
+.subtitle {
+  color: #34547c;
+  font-size: 16pt;
+  margin-bottom: 2em;
+}
+
+.metadata {
+  background: #f0f5fb;
+  border: 1px solid #c3d2e6;
+  margin: 2em auto;
+  max-width: 150mm;
+  padding: 13px 18px;
+  text-align: left;
+}
+
+.callout {
+  background: #edf7ef;
+  border: 1px solid #8ab796;
+  border-left: 5px solid #2f7d45;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.warning {
+  background: #fff7e7;
+  border: 1px solid #d9b46a;
+  border-left: 5px solid #b6790f;
+  margin: 1em 0;
+  padding: 9px 12px;
+}
+
+.page-break {
+  page-break-before: always;
+}
+
+.small {
+  color: #4a596e;
+  font-size: 8.5pt;
+}
+</style></head><body>
+<h1>Battlemon hardening and native validation</h1>
+<p>Date: 2026-08-14</p>
+<p>Base: <code>caa49b075253d21d05160f04d4e525ffe5b634c0</code></p>
+<p>Branch: <code>feature/battlemon-hardening-e2e</code></p>
+<h2>Implemented policy</h2>
+<ul>
+<li>Pet movement and autonomous behavior remain native-client owned. The server
+does not invent a second AI loop.</li>
+<li>The complete client EXP table remains available for display, but gameplay is
+admitted only at levels 1–13. This is a chosen fail-safe boundary based on
+established <code>AI_Pet</code> profile records, not proof that level 14 caused the
+earlier ambiguous two-client failure. New pet EXP stops at 4,807; existing
+higher stored/displayed levels are not rewritten.</li>
+<li>Every relay session containing an owned pet installs an actor-ownership
+policy. Unknown and malformed inner relay packets are dropped rather than
+forwarded. Sessions without owned pets retain the existing relay behavior.</li>
+<li>Skill and spell reports require a live, authorized actor and a gameplay
+endpoint. Non-gameplay endpoints and spectators cannot submit combat. A
+nonzero spell hit must consume a recent matching skill authorization; each
+authorized target can be consumed once. Server-scheduled DoT ticks do not
+re-enter this client-report gate.</li>
+<li>Enhanced-match reward persistence and the durable result claim share one
+serializable transaction. A random per-session UUID identifies concurrent or
+repeated completion calls for that live session; an independent claim token
+distinguishes inserts from duplicate-key no-op updates without relying on
+connector affected-row behavior. Transaction failure rolls back the claim
+and persistence and closes participating clients so rolled-back in-memory
+mutations cannot remain usable. This provides atomic duplicate suppression,
+not durable delivery after a process restart or a failed completion.</li>
+<li>Lifecycle is an explicit compatibility policy: lazy whole-day decay under a
+pessimistic pet lock, hunger −1/day and energy −4/day. Expiry or zero hunger
+marks a pet dead; zero energy blocks gameplay but does not mark it dead. A
+null lifecycle cursor initializes without retroactive decay.</li>
+<li>PET_ITEM effects implemented: indices 1–4 (+1 stat), 5–8 (+2), 9–12 (+5),
+13 (+1 validity day), 14 (+5 <code>lifeMax</code>), 16–19 (hunger), 20–22 (energy), and
+23 (+50 hunger and energy), with species caps and a stat cap of 127. Index 15
+remains unknown and fails without consumption.</li>
+<li>Dedicated Battlemon deliberately remains the evidenced topology: two owners
+at 0/1 and one owned pet each at 2/3. Guardian <code>Allow Battlemon</code> remains an
+all-active-owner rule. Unsupported dedicated topologies and spectators fail
+admission rather than being extrapolated.</li>
+<li>Reconnect is not synthesized. Disconnecting a gameplay owner aborts and
+cleans the enhanced match, resets the room, removes relay authorization, and
+returns remaining clients to the room. A fresh match is required. A transient
+empty relay connection list does not remove actor authorization; only the
+explicit game-server cleanup message does, so reconnect cannot fail open.</li>
+</ul>
+<h2>Automated verification</h2>
+<ul>
+<li>Full Maven reactor regression from the final source tree: 130 game-server
+tests, 9 relay-server tests, and all other module suites passed.</li>
+<li>SQL integration checks against MySQL 8.0.23 prove result-claim rollback and
+concurrent duplicate behavior: the second transaction observes the first
+claim token and cannot claim the same result.</li>
+<li>The final focused/full rerun and package logs are stored under
+<code>.amp/tmp/battlemon-hardening-e2e/logs/</code>.</li>
+</ul>
+<h2>Native observations</h2>
+<ul>
+<li>Two 1280×800 recordings were captured at 60/1 FPS for the level-boundary
+policy run: 300 seconds and 18,000 frames per client. The level-14 pet and
+4,808 EXP rendered in the unmodified client, while room admission failed
+safely and the level-1 control remained healthy.</li>
+<li>This validates policy behavior only. It does not isolate level 14 as the
+cause of the earlier initialization failure.</li>
+<li>A further 1280×800, 60 FPS, six-minute native recording covers the PET_ITEM
+setup path. The unmodified client listed the fixture items, rejected feeding
+with no selected Battlemon without a database mutation, then emitted
+<code>CMSGPickupPet</code> for PotekoTest and accepted <code>SMSGPickupPet result=0</code>. Returning
+from Housing reset the Wine client before a positive item mutation, so this
+run does not claim native validation of every implemented effect. The item
+fixture was restored exactly afterward.</li>
+<li>The final packaged JARs were deployed together in the emulator container.
+Two isolated native clients then authenticated (<code>SMSGLogin result=0</code>) and
+entered the game server (<code>SMSGLoginData result=0</code>); both authoritative player
+rows were online on <code>GAME_SERVER</code>. A post-deployment 1280×800, 60 FPS,
+120-second recording contains 7,200 frames. This is a release smoke test, not
+additional proof of the PET_ITEM effects or match edge cases.</li>
+</ul>
+<p>Raw local evidence is retained under <code>.amp/tmp/battlemon-hardening-e2e/</code>:</p>
+<ul>
+<li><code>video/final4-level1-control-b.mp4</code> — 1280×800, 60 FPS, 18,000 frames.</li>
+<li><code>video/final4-level14-subject-c.mp4</code> — 1280×800, 60 FPS, 18,000 frames.</li>
+<li><code>video/final-all-pet-items-60fps.mp4</code> — 1280×800, 60 FPS, 21,600 frames,
+SHA-256 <code>cb45dfca2405d3cd27773eddf09beea5dbc83ed5894ed46cf379cb855af4f286</code>.</li>
+<li><code>video/final-postdeploy-native-60fps.mp4</code> — 1280×800, 60 FPS, 7,200 frames,
+SHA-256 <code>bc9995779daebe41e5cb630aa3eb30f50d5f7685bacc36d78ca505e9ecec0240</code>.</li>
+<li><code>db/post-all-pet-items-restore.txt</code> — post-run fixture and account-state
+restoration proof.</li>
+<li><code>logs/final-source-full-maven-test.log</code> and
+<code>logs/final-postreview-package.log</code> — regression and release packaging from
+the exact final source tree.</li>
+</ul>
+<h2>Non-claims</h2>
+<ul>
+<li>Hunger/energy rates, revive expiry, level-13 admission, and stat cap are
+compatibility decisions, not recovered retail formulas.</li>
+<li>Result de-duplication does not survive reconstruction of a match into a new
+<code>GameSession</code>, and failed completions are not durably queued for retry.</li>
+<li>The native PET_ITEM run proves enumeration, selection preconditions, and pet
+pickup, but not every positive item effect; those effects currently have
+automated service/packet coverage.</li>
+<li>No new meaning is assigned to unknown controller direction/command fields or
+unknown relay payloads.</li>
+<li>Index 15, retail ranking/matchmaking formulas, alternate dedicated
+topologies, mid-match reconnection, and historical balance are not claimed.</li>
+</ul>
+
+</body></html>

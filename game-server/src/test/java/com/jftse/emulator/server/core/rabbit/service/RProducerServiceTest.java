@@ -23,6 +23,7 @@ class RProducerServiceTest {
         RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(12345)
                 .battlemon(true)
+                .ownedPetSession(true)
                 .build();
 
         when(rabbitTemplate.convertSendAndReceive(

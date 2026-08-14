@@ -108,7 +108,6 @@ public class RelayManager implements ServerLoopHandler {
         ConcurrentLinkedDeque<FTClient> clientList = sessionMap.computeIfAbsent(sessionId, k -> new ConcurrentLinkedDeque<>());
         clientList.add(client);
         sessionMap.put(sessionId, clientList);
-        relaySessionAuthorizationStore.markParticipantRegistered(sessionId, client.getPlayerId());
 
         playerCount.getAndIncrement();
         maxPlayerCount = Math.max(maxPlayerCount, playerCount.get());
@@ -121,10 +120,8 @@ public class RelayManager implements ServerLoopHandler {
                 playerCount.getAndDecrement();
             }
 
-            if (clientList.isEmpty() &&
-                    relaySessionAuthorizationStore.canRemoveAfterSessionEmpties(sessionId) &&
-                    sessionMap.remove(sessionId, clientList))
-                relaySessionAuthorizationStore.remove(sessionId);
+            if (clientList.isEmpty())
+                sessionMap.remove(sessionId, clientList);
         } else {
             log.warn("({}) Client not found in session ({})", client.getConnection().getIPString(), sessionId);
         }

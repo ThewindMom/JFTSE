@@ -43,6 +43,8 @@ import com.jftse.server.core.protocol.IPacket;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.ServerLoopMetricsService;
+import com.jftse.server.core.service.impl.PetLifecyclePolicy;
+import com.jftse.server.core.service.impl.BattlemonPetCompatibilityPolicy;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.ServerMetricsContext;
 import com.jftse.server.core.shared.packets.SMSGInitHandshake;
@@ -139,6 +141,7 @@ public class GameManager implements ServerLoopHandler {
         RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(gameSessionId)
                 .battlemon(gameSession.isDedicatedBattlemonRoom())
+                .ownedPetSession(gameSession.hasOwnedPetSeats())
                 .remove(true)
                 .build();
         try {
@@ -692,8 +695,9 @@ public class GameManager implements ServerLoopHandler {
         }
         Pet pet = serviceManager.getPetService().findByIdAndPlayerId(
                 selectedPet.id(), client.getPlayer().getId());
-        if (pet == null || !Boolean.TRUE.equals(pet.getAlive()) ||
-                pet.getValidUntil() == null || pet.getValidUntil().before(new Date())) {
+        boolean compatibleBattlemonPet = PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now()) &&
+                BattlemonPetCompatibilityPolicy.canParticipate(pet);
+        if (!compatibleBattlemonPet) {
             return null;
         }
         PetView currentPet = client.getActivePet();

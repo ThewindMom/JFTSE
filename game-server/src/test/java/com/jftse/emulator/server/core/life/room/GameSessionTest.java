@@ -165,6 +165,26 @@ class GameSessionTest {
         assertFalse(session.isGameplayEndpoint(detachedSpectator));
     }
 
+    @Test
+    void skillHitAuthorizationAllowsEachTargetExactlyOnceAndExpires() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 3_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 4_000L));
+        assertFalse(session.tryConsumeSkillHit(3, 1, 7, 4_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 2, 7, 15_000_001_001L));
+    }
+
+    @Test
+    void targetedSkillCannotBeReplayedAgainstAnotherTarget() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, 0, 7, 1_000L);
+
+        assertFalse(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+    }
+
     private static FTClient clientFor(RoomPlayer roomPlayer) {
         FTClient client = mock(FTClient.class);
         when(client.getRoomPlayer()).thenReturn(roomPlayer);

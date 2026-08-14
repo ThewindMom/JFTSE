@@ -8,6 +8,7 @@ import com.jftse.entities.database.repository.pet.PetRepository;
 import com.jftse.entities.database.repository.pocket.PlayerPocketRepository;
 import com.jftse.entities.database.repository.pocket.PocketRepository;
 import com.jftse.server.core.item.EItemCategory;
+import com.jftse.server.core.service.impl.PetLifecyclePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     @Transactional
     public MutationResult usePetItem(long playerId, long pocketId, long petId, long itemPocketId) {
         Pet pet = petRepository.findByIdAndPlayerIdForUpdate(petId, playerId).orElse(null);
+        PetLifecyclePolicy.refresh(pet, Instant.now());
         PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.PET_ITEM.getName());
         if (!isUsablePet(pet) || item == null || !applyPetItem(pet, item.getItemIndex())) {
             return MutationResult.failed(itemPocketId);
@@ -46,6 +48,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     public MutationResult renamePet(long playerId, long pocketId, long itemPocketId,
                                     byte petType, String newName) {
         Pet pet = findUniquePetByType(playerId, petType);
+        PetLifecyclePolicy.refresh(pet, Instant.now());
         PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.SPECIAL.getName());
         if (!isUsablePet(pet) || item == null || item.getItemIndex() != 10 ||
                 newName == null || newName.isBlank() || newName.length() < 2 || newName.length() > 12) {
@@ -61,8 +64,9 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     @Transactional
     public MutationResult revivePet(long playerId, long pocketId, long itemPocketId, byte petType) {
         Pet pet = findUniquePetByType(playerId, petType);
-        PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.SPECIAL.getName());
         Instant now = Instant.now();
+        PetLifecyclePolicy.refresh(pet, now);
+        PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.SPECIAL.getName());
         PetLimits limits = pet == null ? null : PetLimits.forType(pet.getType());
         if (pet == null || item == null || item.getItemIndex() != 9 ||
                 !Boolean.FALSE.equals(pet.getAlive()) ||
@@ -78,6 +82,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
         pet.setEnergy(limits.energy());
         pet.setHunger(limits.hunger());
         pet.setValidUntil(Date.from(now.plus(Math.min(pet.getLifeMax(), MAX_LIFE), ChronoUnit.DAYS)));
+        pet.setLifecycleUpdatedAt(Date.from(now));
         pet = petRepository.save(pet);
         return consume(item, pet);
     }
@@ -103,9 +108,8 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     }
 
     private boolean isUsablePet(Pet pet) {
-        return pet != null && Boolean.TRUE.equals(pet.getAlive()) &&
-                PetLimits.forType(pet.getType()) != null && pet.getValidUntil() != null &&
-                pet.getValidUntil().after(new Date());
+        return pet != null && PetLimits.forType(pet.getType()) != null &&
+                PetLifecyclePolicy.isAlive(pet, Instant.now());
     }
 
     private Pet findUniquePetByType(long playerId, byte petType) {

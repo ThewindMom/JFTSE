@@ -85,10 +85,13 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         boolean attackerIsPlayer = attackerPosition < 4;
 
         boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        if (enhancedActorSession && !gameSession.isGameplayEndpoint(ftClient))
+            return;
         if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
             if (!attackerIsPlayer || !gameSession.isActorOwnedBy(roomPlayer, attackerPosition))
                 return;
-            if (battleGame.getPlayerBattleStates().stream().noneMatch(state -> state.getPosition() == attackerPosition))
+            if (battleGame.getPlayerBattleStates().stream().noneMatch(state ->
+                    state.getPosition() == attackerPosition && state.getCurrentHealth().get() > 0))
                 return;
             if (targetPosition >= 0 && battleGame.getPlayerBattleStates().stream()
                     .noneMatch(state -> state.getPosition() == targetPosition))
@@ -97,10 +100,12 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
             boolean livePlayerAttacker = attackerIsPlayer &&
                     gameSession.isActorOwnedBy(roomPlayer, attackerPosition) &&
                     guardianGame.getPlayerBattleStates().stream()
-                            .anyMatch(state -> state.getPosition() == attackerPosition);
+                            .anyMatch(state -> state.getPosition() == attackerPosition &&
+                                    state.getCurrentHealth().get() > 0);
             boolean liveGuardianAttacker = attackerIsGuardian &&
                     guardianGame.getGuardianBattleStates().stream()
-                            .anyMatch(state -> state.getPosition() == attackerPosition);
+                            .anyMatch(state -> state.getPosition() == attackerPosition &&
+                                    state.getCurrentHealth().get() > 0);
             if (!livePlayerAttacker && !liveGuardianAttacker)
                 return;
             if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
@@ -156,6 +161,11 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
                     }
                 }
             }
+        }
+
+        if (enhancedActorSession && skill != null) {
+            gameSession.authorizeSkillHits(attackerPosition, targetPosition,
+                    skill.getId().byteValue(), Time.getNSTime());
         }
 
         SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()

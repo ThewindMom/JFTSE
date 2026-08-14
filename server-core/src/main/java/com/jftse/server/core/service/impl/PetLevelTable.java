@@ -47,6 +47,14 @@ final class PetLevelTable {
         return (byte) Math.min(Math.max(displayedLevel, 1), MAX_LEVEL);
     }
 
+    static int experienceBeforeLevel(int displayedLevel) {
+        if (displayedLevel <= 1) {
+            return 0;
+        }
+        int thresholdIndex = Math.min(displayedLevel - 1, THRESHOLDS.length - 1);
+        return THRESHOLDS[thresholdIndex] - 1;
+    }
+
     private static int[] load() {
         try (InputStream inputStream = ResourceUtil.getResource("res/LevelExp_Pet.xml")) {
             if (inputStream == null) {

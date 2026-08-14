@@ -11,12 +11,16 @@ import com.jftse.entities.database.repository.pocket.PlayerPocketRepository;
 import com.jftse.entities.database.repository.pocket.PocketRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,6 +62,37 @@ class BattlemonLifecycleServiceImplTest {
         assertEquals(2, item.getItemCount());
         verify(petRepository).save(pet);
         verify(playerPocketRepository).save(item);
+    }
+
+    @ParameterizedTest
+    @MethodSource("statPetItems")
+    void appliesEveryStatPetItemIndex(int itemIndex, int strength, int stamina,
+                                      int dexterity, int willpower) {
+        Pet pet = pet(2L, (byte) 1);
+        PlayerPocket item = item(24L, "PET_ITEM", itemIndex, 2);
+        when(petRepository.findByIdAndPlayerIdForUpdate(2L, 5L)).thenReturn(Optional.of(pet));
+        when(playerPocketRepository.findByIdAndPocketIdForUpdate(24L, 5L)).thenReturn(Optional.of(item));
+
+        assertTrue(service.usePetItem(5L, 5L, 2L, 24L).successful());
+        assertEquals(strength, Byte.toUnsignedInt(pet.getStrength()));
+        assertEquals(stamina, Byte.toUnsignedInt(pet.getStamina()));
+        assertEquals(dexterity, Byte.toUnsignedInt(pet.getDexterity()));
+        assertEquals(willpower, Byte.toUnsignedInt(pet.getWillpower()));
+        assertEquals(1, item.getItemCount());
+    }
+
+    @ParameterizedTest
+    @MethodSource("recoveryPetItems")
+    void appliesEveryRecoveryPetItemIndex(int itemIndex, int energy, int hunger) {
+        Pet pet = pet(2L, (byte) 1);
+        PlayerPocket item = item(24L, "PET_ITEM", itemIndex, 2);
+        when(petRepository.findByIdAndPlayerIdForUpdate(2L, 5L)).thenReturn(Optional.of(pet));
+        when(playerPocketRepository.findByIdAndPocketIdForUpdate(24L, 5L)).thenReturn(Optional.of(item));
+
+        assertTrue(service.usePetItem(5L, 5L, 2L, 24L).successful());
+        assertEquals(energy, pet.getEnergy());
+        assertEquals(hunger, pet.getHunger());
+        assertEquals(1, item.getItemCount());
     }
 
     @Test
@@ -199,16 +234,17 @@ class BattlemonLifecycleServiceImplTest {
     }
 
     @Test
-    void rejectsAliveExpiredPetBecauseReviveItemTargetsDeadPetsOnly() {
+    void expiryTransitionsPetToDeadAndAllowsRevival() {
         Pet pet = pet(2L, (byte) 1);
         pet.setValidUntil(Date.from(Instant.now().minusSeconds(1)));
         PlayerPocket root = item(21L, "SPECIAL", 9, 3);
         when(petRepository.findAllByPlayerIdAndTypeForUpdate(5L, (byte) 1)).thenReturn(List.of(pet));
         when(playerPocketRepository.findByIdAndPocketIdForUpdate(21L, 5L)).thenReturn(Optional.of(root));
 
-        assertFalse(service.revivePet(5L, 5L, 21L, (byte) 1).successful());
-        assertEquals(3, root.getItemCount());
-        verify(playerPocketRepository, never()).save(root);
+        assertTrue(service.revivePet(5L, 5L, 21L, (byte) 1).successful());
+        assertTrue(pet.getAlive());
+        assertEquals(2, root.getItemCount());
+        assertTrue(pet.getValidUntil().after(new Date()));
     }
 
     @Test
@@ -293,5 +329,23 @@ class BattlemonLifecycleServiceImplTest {
         item.setUseType("Count");
         item.setItemCount(count);
         return item;
+    }
+
+    private static Stream<Arguments> statPetItems() {
+        return Stream.of(
+                Arguments.of(1, 1, 0, 0, 0), Arguments.of(2, 0, 1, 0, 0),
+                Arguments.of(3, 0, 0, 1, 0), Arguments.of(4, 0, 0, 0, 1),
+                Arguments.of(5, 2, 0, 0, 0), Arguments.of(6, 0, 2, 0, 0),
+                Arguments.of(7, 0, 0, 2, 0), Arguments.of(8, 0, 0, 0, 2),
+                Arguments.of(9, 5, 0, 0, 0), Arguments.of(10, 0, 5, 0, 0),
+                Arguments.of(11, 0, 0, 5, 0), Arguments.of(12, 0, 0, 0, 5));
+    }
+
+    private static Stream<Arguments> recoveryPetItems() {
+        return Stream.of(
+                Arguments.of(16, 30, 45), Arguments.of(17, 30, 50),
+                Arguments.of(18, 30, 60), Arguments.of(19, 30, 90),
+                Arguments.of(20, 35, 40), Arguments.of(21, 40, 40),
+                Arguments.of(22, 50, 40), Arguments.of(23, 80, 90));
     }
 }

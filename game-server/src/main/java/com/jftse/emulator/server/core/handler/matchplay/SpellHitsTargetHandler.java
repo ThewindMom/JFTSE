@@ -90,9 +90,12 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             boolean liveAttacker = battleGame.getPlayerBattleStates().stream()
-                    .anyMatch(state -> state.getPosition() == attackerPosition);
+                    .anyMatch(state -> state.getPosition() == attackerPosition &&
+                            state.getCurrentHealth().get() > 0);
             boolean guardianEffect = attackerPosition == 4;
-            if (!gameSession.isGameplayEndpoint(ftClient) || !liveAttacker && !guardianEffect) {
+            boolean ownedAttacker = gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition);
+            if (!gameSession.isGameplayEndpoint(ftClient) ||
+                    !guardianEffect && (!liveAttacker || !ownedAttacker)) {
                 return;
             }
         } else if (enhancedActorSession && game instanceof MatchplayGuardianGame guardianGame) {
@@ -101,9 +104,11 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             boolean livePlayerAttacker = attackerPosition >= 0 && attackerPosition < 4 &&
                     gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition) &&
                     guardianGame.getPlayerBattleStates().stream()
-                            .anyMatch(state -> state.getPosition() == attackerPosition);
+                            .anyMatch(state -> state.getPosition() == attackerPosition &&
+                                    state.getCurrentHealth().get() > 0);
             boolean liveGuardianAttacker = guardianGame.getGuardianBattleStates().stream()
-                    .anyMatch(state -> state.getPosition() == attackerPosition);
+                    .anyMatch(state -> state.getPosition() == attackerPosition &&
+                            state.getCurrentHealth().get() > 0);
             boolean servingGuardian = attackerPosition == 4 && spellHitsTargetExt.getSkillId() == 0;
             if (!livePlayerAttacker && !liveGuardianAttacker && !servingGuardian) {
                 return;
@@ -123,6 +128,11 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         Skill skill = skillService.findSkillById((long) skillId);
         if (skill == null && skillId != 0) {
             log.warn("Skill not found for skillId: {}", skillId);
+            return;
+        }
+        if (enhancedActorSession && skillId != 0 && !gameSession.tryConsumeSkillHit(
+                spellHitsTargetExt.getAttackerPosition(), spellHitsTargetExt.getTargetPosition(),
+                skillId, System.nanoTime())) {
             return;
         }
 
