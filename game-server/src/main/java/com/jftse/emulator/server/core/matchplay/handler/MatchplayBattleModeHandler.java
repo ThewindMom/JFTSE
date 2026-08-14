@@ -16,6 +16,7 @@ import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.PlayerPositionInfo;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
@@ -159,9 +160,8 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         gameLogContent.append(allPlayersTeamRedDead ? "Blue " : "Red ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
-        if (gameSession.isBattlemon()) {
-            matchplayReward.getPlayerRewards().removeIf(reward -> reward.getPlayerPosition() >= 2);
-        }
+        matchplayReward.getPlayerRewards().removeIf(reward ->
+                !gameSession.isHumanSeat(reward.getPlayerPosition()));
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
         List<FTPlayer> playerList = clients.stream()
                 .filter(FTClient::hasPlayer)
@@ -245,15 +245,13 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
 
-                if (gameSession.isBattlemon()) {
-                    GameSession.BattlemonActor actor = gameSession.getBattlemonActorForOwner(player.getId());
-                    if (actor != null) {
-                        Pet pet = petService.awardExperience(actor.pet().id(), player.getId(), playerReward.getExp());
-                        if (pet != null) {
-                            client.setActivePet(pet);
-                            client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
-                                    petService.findAllByPlayerId(player.getId())));
-                        }
+                GameplayActor ownedPet = gameSession.getOwnedPetSeat(player.getId());
+                if (ownedPet != null) {
+                    Pet pet = petService.awardExperience(ownedPet.pet().id(), player.getId(), playerReward.getExp());
+                    if (pet != null) {
+                        client.setActivePet(pet);
+                        client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
+                                petService.findAllByPlayerId(player.getId())));
                     }
                 }
 
@@ -294,10 +292,8 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                 }
             }
 
-            S2CMatchplaySetGameResultData setGameResultData = gameSession.isBattlemon()
-                    ? new S2CMatchplaySetGameResultData(
-                            matchplayReward.getPlayerRewards(), gameSession.getBattlemonActors())
-                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
+            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(
+                    matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
@@ -358,7 +354,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         room.getRoomPlayerList().stream()
                 .filter(roomPlayer -> gameSession.getGameplayActorPositions().contains(roomPlayer.getPosition()))
                 .forEach(roomPlayer -> preparedStates.add(game.createPlayerBattleState(roomPlayer)));
-        gameSession.getBattlemonActors().forEach(actor -> preparedStates.add(game.createBattlemonBattleState(actor)));
+        gameSession.getOwnedPetSeats().forEach(actor -> preparedStates.add(game.createOwnedPetBattleState(actor)));
 
         Set<Short> preparedPositions = preparedStates.stream()
                 .map(state -> (short) state.getPosition())

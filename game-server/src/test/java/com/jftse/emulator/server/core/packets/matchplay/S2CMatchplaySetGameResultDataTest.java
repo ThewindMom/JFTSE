@@ -1,6 +1,6 @@
 package com.jftse.emulator.server.core.packets.matchplay;
 
-import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +15,7 @@ class S2CMatchplaySetGameResultDataTest {
     void battlemonResultsShowEachPetWithItsOwnersExperienceAndNoGold() {
         PlayerReward playerZero = reward(0, 350, 420, 8);
         PlayerReward playerOne = reward(1, 270, 300, 8);
-        List<GameSession.BattlemonActor> actors = List.of(
+        List<GameplayActor> actors = List.of(
                 actor((short) 2, (short) 0, 11L),
                 actor((short) 3, (short) 1, 22L));
 
@@ -39,9 +39,11 @@ class S2CMatchplaySetGameResultDataTest {
         return reward;
     }
 
-    private static GameSession.BattlemonActor actor(short position, short ownerPosition, long ownerPlayerId) {
-        return new GameSession.BattlemonActor(
-                position, ownerPosition, ownerPlayerId, null,
+    private static GameplayActor actor(short position, short ownerPosition, long ownerPlayerId) {
+        return new GameplayActor(
+                position, ownerPosition, ownerPlayerId,
+                new com.jftse.emulator.server.core.client.PetView(
+                        ownerPlayerId, 1, "Pet", 1, 100, 0, 0, 0, 0, 0, 0),
                 0, 0, 0, 0, 0);
     }
 

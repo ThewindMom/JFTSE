@@ -31,15 +31,15 @@ public class GameSession {
         this(false);
     }
 
-    public GameSession(boolean battlemon) {
+    public GameSession(boolean dedicatedBattlemonRoom) {
         clients = new ConcurrentLinkedDeque<>();
         fireables = new ConcurrentLinkedDeque<>();
-        battlemonActors = new ConcurrentHashMap<>();
+        actors = new ConcurrentHashMap<>();
         completionHandled = new AtomicBoolean(false);
         relayAuthorizationRevoked = new AtomicBoolean(false);
         relayAuthorizationRevocationAttempts = new AtomicInteger(0);
         relayAuthorizationGeneration = UUID.randomUUID().toString();
-        this.battlemon = battlemon;
+        this.dedicatedBattlemonRoom = dedicatedBattlemonRoom;
         gameplayActorPositions = List.of();
     }
 
@@ -50,12 +50,12 @@ public class GameSession {
     private int timesCourtChanged = 0;
     private ConcurrentLinkedDeque<FTClient> clients;
     private ConcurrentLinkedDeque<Fireable> fireables;
-    private ConcurrentHashMap<Short, BattlemonActor> battlemonActors;
+    private ConcurrentHashMap<Short, GameplayActor> actors;
     private AtomicBoolean completionHandled;
     private AtomicBoolean relayAuthorizationRevoked;
     private AtomicInteger relayAuthorizationRevocationAttempts;
     private final String relayAuthorizationGeneration;
-    private final boolean battlemon;
+    private final boolean dedicatedBattlemonRoom;
     private volatile List<Short> gameplayActorPositions;
     private volatile RunnableEvent countDownRunnable;
     private int mode;
@@ -88,17 +88,22 @@ public class GameSession {
         return mode == GameMode.GUARDIAN;
     }
 
-    public boolean isBattlemon() {
-        return battlemon;
+    /**
+     * Dedicated Battlemon rooms ({@code roomType=2}) require the full 0–3 seating
+     * policy. Ordinary rooms may still attach optional pet seats; matchplay must
+     * not branch on this flag.
+     */
+    public boolean isDedicatedBattlemonRoom() {
+        return dedicatedBattlemonRoom;
     }
 
-    public void addBattlemonActor(RoomPlayer owner, Pet pet) {
-        Objects.requireNonNull(owner, "Battlemon owner must not be null");
-        Objects.requireNonNull(pet, "Battlemon pet must not be null");
-        PetStatistic statistic = Objects.requireNonNull(pet.getPetStatistic(), "Battlemon pet statistic must not be null");
+    public void addOwnedPetSeat(RoomPlayer owner, Pet pet) {
+        Objects.requireNonNull(owner, "Pet owner must not be null");
+        Objects.requireNonNull(pet, "Pet must not be null");
+        PetStatistic statistic = Objects.requireNonNull(pet.getPetStatistic(), "Pet statistic must not be null");
         short ownerPosition = owner.getPosition();
         if (ownerPosition < 0 || ownerPosition > 1) {
-            throw new IllegalArgumentException("Battlemon owners must occupy position 0 or 1");
+            throw new IllegalArgumentException("Pet owners must occupy position 0 or 1");
         }
         boolean hasOwnerEndpoint = clients.stream()
                 .map(FTClient::getRoomPlayer)
@@ -106,10 +111,10 @@ public class GameSession {
                         roomPlayer.getPlayerId() == owner.getPlayerId() &&
                         roomPlayer.getPosition() == ownerPosition);
         if (!hasOwnerEndpoint) {
-            throw new IllegalArgumentException("Battlemon owner must have a matching client endpoint");
+            throw new IllegalArgumentException("Pet owner must have a matching client endpoint");
         }
-        if (getBattlemonActorForOwner(owner.getPlayerId()) != null) {
-            throw new IllegalStateException("Battlemon owner already has a gameplay actor");
+        if (getOwnedPetSeat(owner.getPlayerId()) != null) {
+            throw new IllegalStateException("Owner already has a pet seat");
         }
 
         short actorPosition = (short) (ownerPosition + 2);
@@ -117,9 +122,9 @@ public class GameSession {
                 .map(FTClient::getRoomPlayer)
                 .anyMatch(roomPlayer -> roomPlayer != null && roomPlayer.getPosition() == actorPosition);
         if (actorPositionHasPlayer) {
-            throw new IllegalStateException("Battlemon gameplay position is occupied by a player");
+            throw new IllegalStateException("Pet gameplay position is occupied by a player");
         }
-        BattlemonActor actor = new BattlemonActor(
+        GameplayActor actor = new GameplayActor(
                 actorPosition,
                 ownerPosition,
                 owner.getPlayerId(),
@@ -130,35 +135,48 @@ public class GameSession {
                 statistic.getBattleRecordLoss(),
                 statistic.getConsecutiveWins()
         );
-        if (battlemonActors.putIfAbsent(actorPosition, actor) != null) {
-            throw new IllegalStateException("Battlemon gameplay position is already occupied");
+        if (actors.putIfAbsent(actorPosition, actor) != null) {
+            throw new IllegalStateException("Pet gameplay position is already occupied");
         }
     }
 
-    public Collection<BattlemonActor> getBattlemonActors() {
-        return battlemonActors.values();
+    public Collection<GameplayActor> getActors() {
+        return actors.values();
     }
 
-    public BattlemonActor getBattlemonActorForOwner(long ownerPlayerId) {
-        return battlemonActors.values().stream()
-                .filter(actor -> actor.ownerPlayerId() == ownerPlayerId)
+    public Collection<GameplayActor> getOwnedPetSeats() {
+        return actors.values().stream().filter(actor -> !actor.isHuman()).toList();
+    }
+
+    public GameplayActor getOwnedPetSeat(long ownerPlayerId) {
+        return actors.values().stream()
+                .filter(actor -> !actor.isHuman() && actor.ownerPlayerId() == ownerPlayerId)
                 .findFirst()
                 .orElse(null);
     }
 
-    public BattlemonActor getBattlemonActor(int actorPosition) {
-        return battlemonActors.get((short) actorPosition);
+    public GameplayActor getActor(int actorPosition) {
+        return actors.get((short) actorPosition);
+    }
+
+    public boolean hasOwnedPetSeats() {
+        return actors.values().stream().anyMatch(actor -> !actor.isHuman());
+    }
+
+    public boolean isHumanSeat(int actorPosition) {
+        GameplayActor actor = actors.get((short) actorPosition);
+        return actor == null || actor.isHuman();
     }
 
     public boolean isActorOwnedBy(RoomPlayer owner, int actorPosition) {
         if (owner == null) {
             return false;
         }
-        if (gameplayActorPositions.contains((short) actorPosition) && owner.getPosition() == actorPosition) {
-            return true;
+        GameplayActor actor = actors.get((short) actorPosition);
+        if (actor != null) {
+            return actor.ownerPlayerId() == owner.getPlayerId();
         }
-        BattlemonActor actor = battlemonActors.get((short) actorPosition);
-        return actor != null && actor.ownerPlayerId() == owner.getPlayerId();
+        return gameplayActorPositions.contains((short) actorPosition) && owner.getPosition() == actorPosition;
     }
 
     public boolean isGameplayEndpoint(FTClient client) {
@@ -172,7 +190,7 @@ public class GameSession {
     }
 
     public int getOwnerPositionForActor(int actorPosition) {
-        BattlemonActor actor = battlemonActors.get((short) actorPosition);
+        GameplayActor actor = actors.get((short) actorPosition);
         return actor == null ? actorPosition : actor.ownerPosition();
     }
 
@@ -187,11 +205,17 @@ public class GameSession {
                 .map(RoomPlayer::getPosition)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
-        positions.addAll(battlemonActors.keySet());
+        for (RoomPlayer roomPlayer : clients.stream()
+                .map(FTClient::getRoomPlayer)
+                .filter(player -> player != null && player.getPosition() >= 0 && player.getPosition() < 4)
+                .toList()) {
+            actors.putIfAbsent(roomPlayer.getPosition(), humanSeat(roomPlayer));
+        }
+        positions.addAll(actors.keySet());
         positions = positions.stream().distinct().sorted(Comparator.naturalOrder()).toList();
 
-        if (battlemon && !positions.equals(List.of((short) 0, (short) 1, (short) 2, (short) 3))) {
-            throw new IllegalStateException("Battlemon gameplay actors must occupy positions 0, 1, 2 and 3");
+        if (dedicatedBattlemonRoom && !positions.equals(List.of((short) 0, (short) 1, (short) 2, (short) 3))) {
+            throw new IllegalStateException("Dedicated Battlemon rooms must occupy seats 0, 1, 2 and 3");
         }
         if (positions.isEmpty()) {
             throw new IllegalStateException("Game session has no gameplay actors");
@@ -222,8 +246,17 @@ public class GameSession {
         }
     }
 
-    public record BattlemonActor(short position, short ownerPosition, long ownerPlayerId, PetView pet,
-                                  int basicWins, int basicLosses, int battleWins, int battleLosses,
-                                  int consecutiveWins) {
+    private static GameplayActor humanSeat(RoomPlayer owner) {
+        return new GameplayActor(
+                owner.getPosition(),
+                owner.getPosition(),
+                owner.getPlayerId(),
+                null,
+                0,
+                0,
+                0,
+                0,
+                0
+        );
     }
 }

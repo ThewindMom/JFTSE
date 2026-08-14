@@ -210,8 +210,8 @@ class RoomStartGamePacketHandlerTest {
         FTClient second = client(200L, (short) 1);
         session.getClients().add(first);
         session.getClients().add(second);
-        session.addBattlemonActor(first.getRoomPlayer(), pet(10L, "First pet"));
-        session.addBattlemonActor(second.getRoomPlayer(), pet(20L, "Second pet"));
+        session.addOwnedPetSeat(first.getRoomPlayer(), pet(10L, "First pet"));
+        session.addOwnedPetSeat(second.getRoomPlayer(), pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
 
         RelaySessionAuthorizationMessage authorization = RoomStartGamePacketHandler.createRelayAuthorization(
@@ -254,8 +254,8 @@ class RoomStartGamePacketHandlerTest {
             GameSession session = new GameSession(true);
             session.getClients().add(first);
             session.getClients().add(second);
-            session.addBattlemonActor(first.getRoomPlayer(), pet(10L, "First pet"));
-            session.addBattlemonActor(second.getRoomPlayer(), pet(20L, "Second pet"));
+            session.addOwnedPetSeat(first.getRoomPlayer(), pet(10L, "First pet"));
+            session.addOwnedPetSeat(second.getRoomPlayer(), pet(20L, "Second pet"));
             session.initializeGameplayActorPositions();
 
             RelaySessionAuthorizationMessage authorization = RoomStartGamePacketHandler.createRelayAuthorization(
@@ -278,8 +278,8 @@ class RoomStartGamePacketHandlerTest {
         FTClient second = client(200L, (short) 1);
         session.getClients().add(first);
         session.getClients().add(second);
-        session.addBattlemonActor(first.getRoomPlayer(), pet(10L, "First pet"));
-        session.addBattlemonActor(second.getRoomPlayer(), pet(20L, "Second pet"));
+        session.addOwnedPetSeat(first.getRoomPlayer(), pet(10L, "First pet"));
+        session.addOwnedPetSeat(second.getRoomPlayer(), pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
 
         RelaySessionAuthorizationMessage authorization = RoomStartGamePacketHandler.createRelayAuthorization(
@@ -371,11 +371,11 @@ class RoomStartGamePacketHandlerTest {
                             ", sessions: " + sessionManager.getGameSessionList().size());
             assertEquals(1, sessionManager.getGameSessionList().size());
             GameSession session = sessionManager.getGameSessionList().values().iterator().next();
-            assertFalse(session.isBattlemon());
+            assertFalse(session.isDedicatedBattlemonRoom());
             assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3),
                     session.getGameplayActorPositions());
-            assertNotNull(session.getBattlemonActorForOwner(100L));
-            assertNotNull(session.getBattlemonActorForOwner(200L));
+            assertNotNull(session.getOwnedPetSeat(100L));
+            assertNotNull(session.getOwnedPetSeat(200L));
             verify(producer).sendNow(
                     any(RelaySessionAuthorizationMessage.class),
                     eq(RelaySessionAuthorizationMessage.ROUTING_KEY),

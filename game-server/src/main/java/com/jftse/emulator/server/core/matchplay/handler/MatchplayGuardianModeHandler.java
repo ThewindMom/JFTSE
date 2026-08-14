@@ -17,6 +17,7 @@ import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -228,7 +229,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
         MatchplayReward matchplayReward = game.getMatchRewards();
         matchplayReward.getPlayerRewards().removeIf(reward ->
-                gameSession.getBattlemonActor(reward.getPlayerPosition()) != null);
+                !gameSession.isHumanSeat(reward.getPlayerPosition()));
         matchplayReward.setEligiblePlayerIdsByPosition(clients.stream()
                 .filter(FTClient::hasPlayer)
                 .map(FTClient::getRoomPlayer)
@@ -308,9 +309,9 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
 
-                GameSession.BattlemonActor actor = gameSession.getBattlemonActorForOwner(player.getId());
-                if (actor != null) {
-                    Pet pet = petService.awardExperience(actor.pet().id(), player.getId(), playerReward.getExp());
+                GameplayActor ownedPet = gameSession.getOwnedPetSeat(player.getId());
+                if (ownedPet != null) {
+                    Pet pet = petService.awardExperience(ownedPet.pet().id(), player.getId(), playerReward.getExp());
                     if (pet != null) {
                         client.setActivePet(pet);
                         client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
@@ -388,10 +389,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                 }
             }
 
-            S2CMatchplaySetGameResultData setGameResultData = gameSession.getBattlemonActors().isEmpty()
-                    ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards())
-                    : new S2CMatchplaySetGameResultData(
-                            matchplayReward.getPlayerRewards(), gameSession.getBattlemonActors());
+            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(
+                    matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
@@ -515,8 +514,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         List<PlayerBattleState> preparedStates = new ArrayList<>();
         activeRoomPlayers.forEach(roomPlayer ->
                 preparedStates.add(game.createPlayerBattleState(roomPlayer, activeRoomPlayers)));
-        gameSession.getBattlemonActors().forEach(actor ->
-                preparedStates.add(game.createBattlemonBattleState(actor)));
+        gameSession.getOwnedPetSeats().forEach(actor ->
+                preparedStates.add(game.createOwnedPetBattleState(actor)));
 
         Set<Short> preparedPositions = preparedStates.stream()
                 .map(state -> (short) state.getPosition())

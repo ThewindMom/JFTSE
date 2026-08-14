@@ -6,6 +6,7 @@ import com.jftse.emulator.server.core.constants.RoomPositionState;
 import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -180,7 +181,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             if (!selectedBattlemonPets.isEmpty()) {
                 activeRoomPlayers.stream()
                         .filter(roomPlayer -> selectedBattlemonPets.containsKey(roomPlayer.getPlayerId()))
-                        .forEach(roomPlayer -> gameSession.addBattlemonActor(
+                        .forEach(roomPlayer -> gameSession.addOwnedPetSeat(
                         roomPlayer,
                         selectedBattlemonPets.get(roomPlayer.getPlayerId())
                 ));
@@ -462,9 +463,9 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             if (playerPosition >= 0 && playerPosition < 4) {
                 actorPositions.add(playerPosition);
             }
-            GameSession.BattlemonActor battlemonActor = gameSession.getBattlemonActorForOwner(client.getPlayer().getId());
-            if (battlemonActor != null) {
-                actorPositions.add(battlemonActor.position());
+            GameplayActor ownedPet = gameSession.getOwnedPetSeat(client.getPlayer().getId());
+            if (ownedPet != null) {
+                actorPositions.add(ownedPet.position());
             }
             actorPositions = actorPositions.stream().distinct().sorted().toList();
             if (actorPositionsByPlayerId.putIfAbsent(playerId, actorPositions) != null) {
@@ -490,7 +491,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
         return RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(gameSessionId)
                 .generation(gameSession.getRelayAuthorizationGeneration())
-                .battlemon(gameSession.isBattlemon())
+                .battlemon(gameSession.isDedicatedBattlemonRoom())
                 .revoked(false)
                 .actorPositionsByPlayerId(actorPositionsByPlayerId)
                 .playerAddresses(playerAddresses)
@@ -583,7 +584,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             game.getScheduledFutures().forEach(future -> future.cancel(false));
             game.getScheduledFutures().clear();
         }
-        gameSession.getBattlemonActors().clear();
+        gameSession.getActors().clear();
         clients.forEach(client -> {
             GameSession activeSession = client.getActiveGameSession();
             if (activeSession == gameSession) {

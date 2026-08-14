@@ -2,6 +2,7 @@ package com.jftse.emulator.server.core.packets.matchplay;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.net.FTClient;
 import org.junit.jupiter.api.Test;
 
@@ -56,13 +57,15 @@ class S2CGameNetworkSettingsPacketTest {
 
     private static GameSession gameSessionWithPetOwners(boolean battlemon, long... playerIds) {
         GameSession gameSession = mock(GameSession.class);
-        when(gameSession.isBattlemon()).thenReturn(battlemon);
+        when(gameSession.isDedicatedBattlemonRoom()).thenReturn(battlemon);
         for (int i = 0; i < playerIds.length; i++) {
             long playerId = playerIds[i];
-            GameSession.BattlemonActor actor = new GameSession.BattlemonActor(
-                    (short) (i + 2), (short) i, playerId, null,
+            GameplayActor actor = new GameplayActor(
+                    (short) (i + 2), (short) i, playerId,
+                    new com.jftse.emulator.server.core.client.PetView(
+                            playerId, 1, "Pet", 1, 100, 0, 0, 0, 0, 0, 0),
                     0, 0, 0, 0, 0);
-            when(gameSession.getBattlemonActorForOwner(playerId)).thenReturn(actor);
+            when(gameSession.getOwnedPetSeat(playerId)).thenReturn(actor);
         }
         return gameSession;
     }

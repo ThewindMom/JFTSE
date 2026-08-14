@@ -7,7 +7,7 @@ import com.jftse.emulator.server.core.life.progression.ExpGoldBonus;
 import com.jftse.emulator.server.core.life.progression.ExpGoldBonusImpl;
 import com.jftse.emulator.server.core.life.progression.SimpleExpGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.*;
-import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
@@ -141,7 +141,7 @@ public class MatchplayBattleGame extends MatchplayGame {
         return pbs;
     }
 
-    public PlayerBattleState createBattlemonBattleState(GameSession.BattlemonActor actor) {
+    public PlayerBattleState createOwnedPetBattleState(GameplayActor actor) {
         return new PlayerBattleState(
                 actor.position(),
                 actor.pet().id(),

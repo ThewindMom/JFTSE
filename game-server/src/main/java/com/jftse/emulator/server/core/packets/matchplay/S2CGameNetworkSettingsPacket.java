@@ -29,10 +29,9 @@ public class S2CGameNetworkSettingsPacket extends Packet {
                 .map(FTClient::getPlayer)
                 .map(player -> Math.toIntExact(player.getId()))
                 .forEach(relayEndpointIds::add);
-        if (gameSession.isBattlemon()) {
+        if (gameSession.isDedicatedBattlemonRoom()) {
             endpointClients.stream()
-                    .filter(client -> gameSession.getBattlemonActorForOwner(
-                            client.getPlayer().getId()) != null)
+                    .filter(client -> gameSession.getOwnedPetSeat(client.getPlayer().getId()) != null)
                     .map(client -> Math.toIntExact(client.getPlayer().getId()))
                     .limit(maxClientsInRoom - relayEndpointIds.size())
                     .forEach(relayEndpointIds::add);

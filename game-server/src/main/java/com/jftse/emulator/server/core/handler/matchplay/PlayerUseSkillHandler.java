@@ -110,7 +110,7 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         } else {
             return;
         }
-        if (gameSession.isBattlemon() && attackerPosition != roomPlayer.getPosition())
+        if (gameSession.isDedicatedBattlemonRoom() && attackerPosition != roomPlayer.getPosition())
             return;
         if (attackerIsPlayer && isQuickSlot && attackerPosition != roomPlayer.getPosition())
             return;

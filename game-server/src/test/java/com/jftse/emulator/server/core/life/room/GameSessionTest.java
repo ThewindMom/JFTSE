@@ -56,6 +56,28 @@ class GameSessionTest {
     }
 
     @Test
+    void ordinaryBasicSessionIsOneHumanSeatPerClient() {
+        GameSession session = new GameSession();
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        session.getClients().add(clientFor(firstPlayer));
+        session.getClients().add(clientFor(secondPlayer));
+
+        session.initializeGameplayActorPositions();
+
+        assertFalse(session.isDedicatedBattlemonRoom());
+        assertFalse(session.hasOwnedPetSeats());
+        assertEquals(List.of((short) 0, (short) 1), session.getGameplayActorPositions());
+        assertTrue(session.isHumanSeat(0));
+        assertTrue(session.isHumanSeat(1));
+        assertTrue(session.isActorOwnedBy(firstPlayer, 0));
+        assertFalse(session.isActorOwnedBy(firstPlayer, 1));
+        assertEquals(0, session.getOwnerPositionForActor(0));
+        assertEquals(1, session.getOwnerPositionForActor(1));
+        assertNull(session.getOwnedPetSeat(100L));
+    }
+
+    @Test
     void battlemonActorsUseOwnerPositionPlusTwoAndOwnerEndpoint() {
         GameSession session = new GameSession(true);
         RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
@@ -63,17 +85,21 @@ class GameSessionTest {
         session.getClients().add(clientFor(firstPlayer));
         session.getClients().add(clientFor(secondPlayer));
 
-        session.addBattlemonActor(firstPlayer, pet(10L, "First pet"));
-        session.addBattlemonActor(secondPlayer, pet(20L, "Second pet"));
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
-        GameSession.BattlemonActor firstPet = session.getBattlemonActor(2);
-        GameSession.BattlemonActor secondPet = session.getBattlemonActor(3);
+        GameplayActor firstPet = session.getActor(2);
+        GameplayActor secondPet = session.getActor(3);
 
         assertEquals((short) 2, firstPet.position());
         assertEquals((short) 3, secondPet.position());
         assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3), session.getGameplayActorPositions());
-        assertSame(firstPet, session.getBattlemonActorForOwner(100L));
-        assertSame(secondPet, session.getBattlemonActorForOwner(200L));
+        assertSame(firstPet, session.getOwnedPetSeat(100L));
+        assertSame(secondPet, session.getOwnedPetSeat(200L));
+        assertTrue(session.isHumanSeat(0));
+        assertTrue(session.isHumanSeat(1));
+        assertFalse(session.isHumanSeat(2));
+        assertFalse(session.isHumanSeat(3));
         assertEquals((short) 0, firstPet.ownerPosition());
         assertEquals((short) 1, secondPet.ownerPosition());
         assertTrue(session.isActorOwnedBy(firstPlayer, 0));
@@ -90,12 +116,12 @@ class GameSessionTest {
         session.getClients().add(clientFor(firstPlayer));
         session.getClients().add(clientFor(secondPlayer));
 
-        session.addBattlemonActor(firstPlayer, pet(10L, "First pet"));
-        assertEquals(1, session.getBattlemonActors().size());
-        session.addBattlemonActor(secondPlayer, pet(20L, "Second pet"));
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        assertEquals(1, session.getOwnedPetSeats().size());
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
 
-        assertFalse(session.isBattlemon());
+        assertFalse(session.isDedicatedBattlemonRoom());
         assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3),
                 session.getGameplayActorPositions());
         assertTrue(session.isActorOwnedBy(firstPlayer, 2));
@@ -107,8 +133,8 @@ class GameSessionTest {
         GameSession session = new GameSession(true);
         RoomPlayer invalidOwner = roomPlayer(100L, (short) 2);
 
-        assertThrows(IllegalArgumentException.class, () -> session.addBattlemonActor(invalidOwner, pet(10L, "Pet")));
-        assertTrue(session.getBattlemonActors().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> session.addOwnedPetSeat(invalidOwner, pet(10L, "Pet")));
+        assertTrue(session.getOwnedPetSeats().isEmpty());
     }
 
     @Test
@@ -118,8 +144,8 @@ class GameSessionTest {
         RoomPlayer differentPlayer = roomPlayer(200L, (short) 0);
         session.getClients().add(clientFor(differentPlayer));
 
-        assertThrows(IllegalArgumentException.class, () -> session.addBattlemonActor(owner, pet(10L, "Pet")));
-        assertTrue(session.getBattlemonActors().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> session.addOwnedPetSeat(owner, pet(10L, "Pet")));
+        assertTrue(session.getOwnedPetSeats().isEmpty());
     }
 
     @Test
@@ -127,11 +153,11 @@ class GameSessionTest {
         GameSession session = new GameSession(true);
         RoomPlayer owner = roomPlayer(100L, (short) 0);
         session.getClients().add(clientFor(owner));
-        session.addBattlemonActor(owner, pet(10L, "First pet"));
+        session.addOwnedPetSeat(owner, pet(10L, "First pet"));
 
-        assertThrows(IllegalStateException.class, () -> session.addBattlemonActor(owner, pet(20L, "Second pet")));
-        assertEquals(1, session.getBattlemonActors().size());
-        assertEquals(10L, session.getBattlemonActor(2).pet().id());
+        assertThrows(IllegalStateException.class, () -> session.addOwnedPetSeat(owner, pet(20L, "Second pet")));
+        assertEquals(1, session.getOwnedPetSeats().size());
+        assertEquals(10L, session.getActor(2).pet().id());
     }
 
     @Test
@@ -143,8 +169,8 @@ class GameSessionTest {
         FTClient secondClient = clientFor(secondPlayer);
         session.getClients().add(firstClient);
         session.getClients().add(secondClient);
-        session.addBattlemonActor(firstPlayer, pet(10L, "First pet"));
-        session.addBattlemonActor(secondPlayer, pet(20L, "Second pet"));
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
 
         session.getClients().remove(secondClient);
@@ -166,8 +192,8 @@ class GameSessionTest {
         session.getClients().add(firstClient);
         session.getClients().add(secondClient);
         session.getClients().add(spectatorClient);
-        session.addBattlemonActor(firstPlayer, pet(10L, "First pet"));
-        session.addBattlemonActor(secondPlayer, pet(20L, "Second pet"));
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
         session.initializeGameplayActorPositions();
 
         assertTrue(session.isGameplayEndpoint(firstClient));

@@ -342,7 +342,7 @@ class BattlemonActorPolicyTest {
 
         GameSession session = mock(GameSession.class);
         when(session.getMatchplayGame()).thenReturn(game);
-        when(session.isBattlemon()).thenReturn(true);
+        when(session.isDedicatedBattlemonRoom()).thenReturn(true);
         when(session.isActorOwnedBy(roomPlayer, actorPosition)).thenReturn(actorOwned);
         when(session.getFireables()).thenReturn(new ConcurrentLinkedDeque<>());
 

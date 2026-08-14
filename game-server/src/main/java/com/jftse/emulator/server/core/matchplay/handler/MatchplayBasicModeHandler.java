@@ -16,6 +16,7 @@ import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.room.ServeInfo;
@@ -146,9 +147,8 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         gameLogContent.append(redTeamWon ? "Red " : "Blue ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
-        if (gameSession.isBattlemon()) {
-            matchplayReward.getPlayerRewards().removeIf(reward -> reward.getPlayerPosition() >= 2);
-        }
+        matchplayReward.getPlayerRewards().removeIf(reward ->
+                !gameSession.isHumanSeat(reward.getPlayerPosition()));
         ConcurrentLinkedDeque<FTClient> clients = gameSession.getClients();
         List<FTPlayer> playerList = clients.stream()
                 .filter(FTClient::hasPlayer)
@@ -231,15 +231,13 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                 levelService.setNewLevelStatusPoints((byte) level, player.getPlayer());
                 player.syncLevel(level);
 
-                if (gameSession.isBattlemon()) {
-                    GameSession.BattlemonActor actor = gameSession.getBattlemonActorForOwner(player.getId());
-                    if (actor != null) {
-                        Pet pet = petService.awardExperience(actor.pet().id(), player.getId(), playerReward.getExp());
-                        if (pet != null) {
-                            client.setActivePet(pet);
-                            client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
-                                    petService.findAllByPlayerId(player.getId())));
-                        }
+                GameplayActor ownedPet = gameSession.getOwnedPetSeat(player.getId());
+                if (ownedPet != null) {
+                    Pet pet = petService.awardExperience(ownedPet.pet().id(), player.getId(), playerReward.getExp());
+                    if (pet != null) {
+                        client.setActivePet(pet);
+                        client.getConnection().sendTCP(new S2CPetDataAnswerPacket(
+                                petService.findAllByPlayerId(player.getId())));
                     }
                 }
 
@@ -283,10 +281,8 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     playerDtoList.add(new MatchFinishedMessage.PlayerDto(rp.getName(), "spectator"));
                 }
             }
-            S2CMatchplaySetGameResultData setGameResultData = gameSession.isBattlemon()
-                    ? new S2CMatchplaySetGameResultData(
-                            matchplayReward.getPlayerRewards(), gameSession.getBattlemonActors())
-                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
+            S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(
+                    matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();

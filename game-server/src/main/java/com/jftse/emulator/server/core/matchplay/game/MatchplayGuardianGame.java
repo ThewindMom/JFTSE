@@ -14,7 +14,7 @@ import com.jftse.emulator.server.core.life.progression.bonuses.BattleHouseBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfExpBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfWisemanBonus;
-import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.script.ScriptContextHelper;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -326,7 +326,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return maxHealth;
     }
 
-    public PlayerBattleState createBattlemonBattleState(GameSession.BattlemonActor actor) {
+    public PlayerBattleState createOwnedPetBattleState(GameplayActor actor) {
         return new PlayerBattleState(
                 actor.position(),
                 actor.pet().id(),

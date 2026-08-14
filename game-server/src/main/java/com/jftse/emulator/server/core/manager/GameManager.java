@@ -146,7 +146,7 @@ public class GameManager implements ServerLoopHandler {
                 RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
                         .gameSessionId(gameSessionId)
                         .generation(gameSession.getRelayAuthorizationGeneration())
-                        .battlemon(gameSession.isBattlemon())
+                        .battlemon(gameSession.isDedicatedBattlemonRoom())
                         .revoked(true)
                         .expiresAt(Instant.now().plus(2, ChronoUnit.HOURS))
                         .build();
@@ -211,7 +211,7 @@ public class GameManager implements ServerLoopHandler {
                 }
             }
         } finally {
-            gameSession.getBattlemonActors().clear();
+            gameSession.getActors().clear();
             revokeRelaySession(gameSessionId, gameSession);
         }
     }
