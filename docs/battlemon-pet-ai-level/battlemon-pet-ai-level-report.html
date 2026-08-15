@@ -201,15 +201,16 @@ figcaption {
 <p>The validated native client, not JFTSE Java code, owns Battlemon tennis AI.
 JFTSE persisted level 11 for <code>PotekoTest</code>, serialized <code>0B</code> in the native
 <code>0x151B</code> pet-data response, and the unmodified client displayed <code>Level : 11</code>.
-Static disassembly then establishes the remainder of the deterministic path:
-the native pet-AI initializer forwards its level argument unchanged to
-<code>TennisAIMgr</code>; <code>TennisAIMgr</code> walks the selected species vector in 88-byte
-steps and accepts only a record whose first integer exactly equals that level.</p>
-<div class="callout"><p><strong>Proven scope:</strong> a native pet initialized with level 11 requests and copies
-the exact level-11 record loaded from the selected <code>AI_PetA</code>…<code>AI_PetK</code>
-resource. No level clamp exists in this path.</p>
-</div><div class="warning"><p><strong>Not claimed:</strong> Java TennisAI, stat growth from level, visual evolution, or
-any owned-pet mapping/fallback for levels 14–250.</p>
+The original static analysis then appeared to connect that displayed level to
+<code>TennisAIMgr</code>. A later constructor-level trace corrected that interpretation:
+the twelve pet actor constructors around <code>0x534e00–0x535300</code> pass constant AI
+profile level <code>1</code>. The displayed/persisted EXP level and native AI profile level
+are independent inputs.</p>
+<div class="callout"><p><strong>Superseding finding:</strong> a pet displayed at level 11 still initializes its
+client-owned AI with profile level 1. <code>AI_PetA</code>…<code>AI_PetK</code> levels 1–13 are not
+the 1–250 pet progression.</p>
+</div><div class="warning"><p><strong>Not claimed:</strong> Java TennisAI, stat growth from level, visual evolution, or a
+server-selected AI difficulty progression.</p>
 </div><h2>Evidence classification</h2>
 <table>
 <thead>
@@ -231,21 +232,22 @@ any owned-pet mapping/fallback for levels 14–250.</p>
 <td><code>Pet.level</code> is an independent unsigned byte and is serialized separately from <code>type</code> and STR/STA/DEX/WIL.</td>
 </tr>
 <tr>
-<td>Compatibility interpretation</td>
-<td>Because owned profiles are established only for levels 1–13, JFTSE uses level 13 as a fail-safe gameplay boundary without rewriting persisted higher levels.</td>
+<td>Corrected compatibility interpretation</td>
+<td>AI profile levels 1–13 are separate from displayed/persisted levels 1–250; no progression cap is warranted.</td>
 </tr>
 <tr>
-<td>Implementation in this work</td>
-<td>Reproducible binary/wire verifier, conditioned GDB capture script, curated evidence, participation guard, EXP cap, and this report. No Java AI.</td>
+<td>Current implementation</td>
+<td>Reproducible binary/wire evidence, full 1–250 progression, and client-owned AI. No Java AI.</td>
 </tr>
 </tbody></table>
 <h1>First-principles proof</h1>
 <pre><code class="language-text">Pet.level = 11
   → JFTSE S2C 0x151B contains 0B after PotekoTest\0
   → native client displays Level : 11
-  → TennisAIPetBasic/Double forwards initializer level
-  → TennisAIMgr(model, level) compares exact integer level
-  → matching 88-byte [Level11] record is copied into the native AI object
+
+pet actor construction
+  → supplies AI profile level 1 independently
+  → TennisAIMgr(model, 1) selects [Level1]
 </code></pre>
 <p>The controlled fixture kept pet type and STR/STA/DEX/WIL unchanged. This
 separates level-driven profile selection from item-grown statistics.</p>
@@ -256,14 +258,14 @@ separates level-driven profile selection from item-grown statistics.</p>
 temporary 88-byte buffer, and compares its first dword with the requested
 level. On equality it copies the record&#39;s behavior flags, probabilities,
 timings, and movement values into the destination and returns true.</p>
-<p>The Basic caller at <code>0x004F4289</code> and Double caller at <code>0x004F4CDC</code> both pass
-the initializer level directly to this lookup. The missing-record branch logs:</p>
+<p>The Basic caller at <code>0x004F4289</code> and Double caller at <code>0x004F4CDC</code> pass an
+initializer argument to this lookup. The missing-record branch logs:</p>
 <pre><code class="language-text">AI Level(%d) requested not found for nPetModel(%d)
 </code></pre>
-<p>There is no instruction clamping level to 13. Runtime memory extraction found
-13 records for every owned-pet model 0–10, keyed 1–13; their hashes differ at
-the discriminating levels. The separate model <code>-1</code> default table is not an
-owned-pet fallback.</p>
+<p>There is no instruction clamping the persisted pet level because that value is
+not the constructor&#39;s AI-profile argument. Runtime memory extraction found 13
+records for every owned-pet model 0–10, keyed 1–13; these remain available
+client AI profiles rather than pet-progression rows.</p>
 <h1>Controlled native observation</h1>
 <p>The database changed only pet ID 2&#39;s <code>level</code> from 3 to 11. JFTSE emitted:</p>
 <pre><code class="language-text">... 50 00 6F 00 74 00 65 00 6B 00 6F 00 54 00 65 00 73 00 74 00 00 00
@@ -324,18 +326,17 @@ prints requested level, matched level, owned-pet model, record address, and all
 </tr>
 </tbody></table>
 <h1>Boundary and non-claims</h1>
-<p>The executable&#39;s owned-pet resources contain records 1–13, while JFTSE&#39;s
-displayed progression supports 1–250. This report does not bridge that gap by
-invention. A level above 13 reaches the native exact lookup but has no proven
-owned record; therefore the server preserves the real level, does not silently
-clamp it, blocks that pet from gameplay, and caps new awards immediately below
-the level-14 threshold. The attempted two-client level-14 runtime experiment
-left both clients unhealthy and did not isolate level 14 as the cause. A future
-claim about native behavior above 13 requires a clean surviving control.</p>
+<p>The executable&#39;s AI resources contain profile records 1–13 while JFTSE&#39;s pet
+progression supports 1–250. Constructor tracing resolves the apparent gap: the
+actor supplies AI profile level 1 independently. A displayed level above 13
+does not request a missing AI profile. The earlier two-client level-14 runtime
+experiment left both clients unhealthy and could not isolate level 14 as the
+cause; it must not be used as evidence for a server cap.</p>
 <h1>Conclusion</h1>
 <p>No Java decision tree is warranted. The server persists and serializes the
-independent pet <code>type</code>, <code>level</code>, and stats, while enforcing the established
-1–13 owned-profile boundary for participation and new EXP. Within that boundary
-the validated client selects the exact native <code>[LevelN]</code> record and executes
-<code>TennisAIMgr</code> behavior itself.</p>
+independent pet <code>type</code>, displayed level, and stats. It permits the complete
+1–250 progression. The validated client independently selects its AI profile
+and executes <code>TennisAIMgr</code> behavior itself.</p>
+
+
 </body></html>

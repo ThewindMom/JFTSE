@@ -3,27 +3,26 @@
 ## Result
 
 The validated native Fantasy Tennis client selects a pet AI profile by exact
-pet level. JFTSE must not run TennisAI in Java or silently rewrite persisted
-levels. Runtime validation now establishes a separate safety boundary:
-Battlemon participation and newly awarded pet EXP must not cross level 13.
+AI-profile level. JFTSE must not run TennisAI in Java or silently rewrite
+persisted levels. A later constructor-level trace proved that the actor passes
+constant AI profile level 1 independently from the displayed/persisted pet
+level. Battlemon participation and newly awarded pet EXP therefore use the
+complete 1–250 progression rather than stopping at level 13.
 
 This conclusion combines two evidence classes:
 
 1. **Observed native runtime:** JFTSE sent `PotekoTest` with level byte `0x0B`
    in `0x151B`; the unmodified client rendered `Level : 11`.
-2. **Static client reverse engineering:** both `TennisAIPetBasic` and
-   `TennisAIPetDouble` pass their level argument directly to the shared
-   `TennisAIMgr` lookup. That lookup searches the selected `AI_PetA`…`K`
-   vector for an 88-byte record whose first integer equals the requested level.
+2. **Static client reverse engineering:** `TennisAIPetBasic` and
+   `TennisAIPetDouble` pass an AI-profile argument to the shared `TennisAIMgr`
+   lookup, which searches the selected `AI_PetA`…`K` vector for an exact key.
+   Pet actor construction supplies that argument as constant 1 independently.
 
-The executable does not clamp the requested level. A missing record follows the
-native `AI Level(%d) requested not found for nPetModel(%d)` path and returns
-failure. JFTSE therefore adopts level 13 as a fail-safe compatibility boundary:
-existing levels above 13 are retained for data compatibility but cannot enter
-owned-pet gameplay, and awards stop at 4,807 cumulative EXP (one point before
-the client table's level-14 threshold of 4,808). This is a policy chosen from
-the proven missing-profile risk, not a claim that the attempted runtime test
-isolated a level-14 crash.
+The executable does not clamp its requested AI-profile level. A missing profile
+follows the native `AI Level(%d) requested not found for nPetModel(%d)` path.
+Twelve actor constructors around `0x534e00–0x535300`, however, request profile
+level 1 rather than the displayed pet level. The former level-13 policy and
+4,807 EXP cap were based on conflating these domains and have been removed.
 
 ## Inconclusive level-14 runtime experiment
 
@@ -50,7 +49,7 @@ the decisive start and therefore are not presented as crash evidence. The
 available runtime evidence is the synchronized server packet/disconnect
 timeline and the post-failure native screenshots.
 
-## Level-13 policy validation
+## Historical level-13 policy experiment
 
 After implementing the compatibility boundary, a second run swapped the
 fixture: player 2 was the level-1 control and player 3 owned the level-14 pet.
@@ -60,10 +59,24 @@ level-14 owner then received `Could not enter the room`, while the server sent
 `SMSGRoomJoin result=65526`. The control owner remained healthy in the room.
 
 Both desktops were captured at 1280×800, 60/1 FPS for 300 seconds (18,000
-frames each). This validates the implemented fail-safe admission behavior and
-removes the crash from the supported path. It still does not prove that level
-14 itself caused the earlier two-client initialization failure, because the
-new policy deliberately prevents level-14 gameplay before native AI lookup.
+frames each). This only validates the now-removed server rejection. It does not
+prove that level 14 caused the earlier two-client initialization failure and is
+not a reason to reject level-14 pets.
+
+## Final progression-boundary run
+
+A fresh emulator image built from `battlemon` was exercised with independent
+level-14/4,808-EXP and level-250/1,408,515-EXP fixtures. The unmodified client
+rendered both levels and allowed both pets to be selected without disconnecting.
+This final run is retained as native screenshots and packet regressions. The
+associated 60 FPS capture stopped at login before UI automation and is not used
+to claim the pet dialogs. The earlier level-14 policy experiment did capture
+the level-14/4,808-EXP dialog at 1280×800, 60/1 FPS for 300 seconds and 18,000
+frames (SHA-256
+`c1732bf5c175e612df322606764741bc7971847b818a37e56391a999f37fb2cb`).
+Together these establish native parsing and UI selection at both progression
+boundaries. They do not claim a completed level-250 match or that displayed
+progression changes the constructor's constant AI profile.
 
 ## Exact native contract
 
@@ -140,9 +153,8 @@ both pet-AI call sites, and the named pet's level byte in `0x151B`.
 
 - This proves native selection of an exact loaded `[LevelN]` profile; it does
   not reimplement or fully describe lob, smash, prediction, or delay decisions.
-- It proves that levels above 13 have no established owned-pet AI profile. The
-  level-14 runtime experiment was inconclusive and does not establish the cause
-  of the observed two-client failure.
+- AI profile levels above 13 remain unestablished, but displayed pet levels do
+  not select those profiles. The level-14 runtime experiment was inconclusive.
 - `AI_Default` records beyond 13 are not evidence of an owned `AI_PetA`…`K`
   fallback.
 - No pet stat growth, evolution, HP growth, or Java AI is inferred or added.
