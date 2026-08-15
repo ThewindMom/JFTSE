@@ -32,7 +32,6 @@ import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -97,30 +96,6 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
         });
 
         SMSGUnsetHost unsetHostPacket = SMSGUnsetHost.builder().result((byte) 0).build();
-
-        if (game instanceof MatchplayGuardianGame guardianGame) {
-            List<RoomPlayer> activeRoomPlayers = room.getRoomPlayerList().stream()
-                    .filter(roomPlayer -> roomPlayer.getPosition() < 4)
-                    .toList();
-            Map<RoomPlayer, Integer> playerMaxHealth = activeRoomPlayers.stream()
-                    .collect(Collectors.toMap(roomPlayer -> roomPlayer,
-                            roomPlayer -> MatchplayGuardianGame.calculatePlayerMaxHealth(roomPlayer, activeRoomPlayers)));
-            guardianGame.setInitialPlayerMaxHealth(Map.copyOf(playerMaxHealth));
-
-            clientsInRoom.forEach(client -> {
-                boolean isInvisibleGm = room.getRoomPlayerList().stream()
-                        .anyMatch(roomPlayer -> roomPlayer.getPosition() == MiscConstants.InvisibleGmSlot
-                                && client.hasPlayer() && roomPlayer.getPlayerId() == client.getPlayer().getId());
-                List<RoomPlayer> visibleRoomPlayers = isInvisibleGm
-                        ? room.getRoomPlayerList().stream().toList()
-                        : room.getRoomPlayerList().stream()
-                                .filter(roomPlayer -> roomPlayer.getPosition() != MiscConstants.InvisibleGmSlot)
-                                .toList();
-                client.getConnection().sendTCP(
-                        new S2CRoomPlayerListInformationPacket(visibleRoomPlayers, playerMaxHealth));
-            });
-        }
-
         List<FTClient> clientInRoomLeftShiftList = new ArrayList<>(clientsInRoom);
         clientsInRoom.forEach(c -> {
             c.getConnection().sendTCP(unsetHostPacket);

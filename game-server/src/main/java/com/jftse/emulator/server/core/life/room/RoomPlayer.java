@@ -45,6 +45,17 @@ public class RoomPlayer {
     private float baitX;
     private float baitY;
 
+    @Setter(lombok.AccessLevel.NONE)
+    private int bonusHp = 0;
+    @Setter(lombok.AccessLevel.NONE)
+    private int bonusStr = 0;
+    @Setter(lombok.AccessLevel.NONE)
+    private int bonusSta = 0;
+    @Setter(lombok.AccessLevel.NONE)
+    private int bonusDex = 0;
+    @Setter(lombok.AccessLevel.NONE)
+    private int bonusWil = 0;
+
     public RoomPlayer(FTPlayer player) {
         this.player = player;
     }
@@ -209,5 +220,33 @@ public class RoomPlayer {
 
     public String getCoupleName() {
         return player.getCoupleName();
+    }
+
+    public void resetBonusStats() {
+        this.bonusHp = 0;
+        this.bonusStr = 0;
+        this.bonusSta = 0;
+        this.bonusDex = 0;
+        this.bonusWil = 0;
+    }
+
+    public void addBonusHp(int amount) {
+        bonusHp += amount;
+    }
+
+    public void addBonusStr(int amount) {
+        bonusStr += amount;
+    }
+
+    public void addBonusSta(int amount) {
+        bonusSta += amount;
+    }
+
+    public void addBonusDex(int amount) {
+        bonusDex += amount;
+    }
+
+    public void addBonusWil(int amount) {
+        bonusWil += amount;
     }
 }

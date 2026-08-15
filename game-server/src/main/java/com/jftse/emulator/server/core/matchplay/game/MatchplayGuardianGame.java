@@ -35,6 +35,7 @@ import com.jftse.entities.database.model.battle.*;
 import com.jftse.entities.database.model.item.ItemEnchantLevel;
 import com.jftse.entities.database.model.item.Product;
 import com.jftse.entities.database.model.map.SMaps;
+import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.entities.database.model.scenario.MScenarios;
@@ -73,7 +74,6 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private List<Point> playerLocationsOnMap;
     private ConcurrentLinkedDeque<PlayerBattleState> playerBattleStates;
     private ConcurrentLinkedDeque<GuardianBattleState> guardianBattleStates;
-    private Map<RoomPlayer, Integer> initialPlayerMaxHealth;
     private ConcurrentLinkedDeque<SkillCrystal> skillCrystals;
     private AtomicInteger lastCrystalId;
     private AtomicBoolean bossBattleActive;
@@ -113,7 +113,6 @@ public class MatchplayGuardianGame extends MatchplayGame {
 
         this.playerBattleStates = new ConcurrentLinkedDeque<>();
         this.guardianBattleStates = new ConcurrentLinkedDeque<>();
-        this.initialPlayerMaxHealth = Map.of();
         this.skillCrystals = new ConcurrentLinkedDeque<>();
         this.lastCrystalId = new AtomicInteger(0);
         this.lastGuardianServeSide = new AtomicInteger(GameFieldSide.Guardian);
@@ -270,24 +269,19 @@ public class MatchplayGuardianGame extends MatchplayGame {
     }
 
     public PlayerBattleState createPlayerBattleState(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
+        int baseHp = BattleUtils.calculatePlayerHp(roomPlayer.getLevel());
         int baseStr = roomPlayer.getStrength();
         int baseSta = roomPlayer.getStamina();
         int baseDex = roomPlayer.getDexterity();
         int baseWill = roomPlayer.getWillpower();
-        int totalHp = initialPlayerMaxHealth.getOrDefault(roomPlayer,
-                calculatePlayerMaxHealth(roomPlayer, activeRoomPlayers));
-        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr();
-        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta();
-        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex();
-        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil();
 
-        boolean coupleIsActive = hasActiveCoupleInParty(roomPlayer, activeRoomPlayers);
-        if (coupleIsActive) {
-            totalStr += totalStr / 20;
-            totalSta += totalSta / 20;
-            totalDex += totalDex / 20;
-            totalWill += totalWill / 20;
-        }
+        calculateBonusStats(roomPlayer, activeRoomPlayers);
+
+        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getBonusHp();
+        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getBonusStr();
+        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getBonusSta();
+        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getBonusDex();
+        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getBonusWil();
 
         PlayerBattleState pbs = new PlayerBattleState(roomPlayer.getPosition(), roomPlayer.getPlayerId(), totalHp, totalStr, totalSta, totalDex, totalWill);
 
@@ -314,16 +308,27 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return pbs;
     }
 
-    public static int calculatePlayerMaxHealth(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
-        int maxHealth = BattleUtils.calculatePlayerHp(roomPlayer.getLevel())
-                + roomPlayer.getEquippedItemStats().getAddHp();
+    private void calculateBonusStats(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
+        roomPlayer.resetBonusStats();
+
+        EquippedItemStats equipment = roomPlayer.getEquippedItemStats();
+
+        int hpBeforeBonuses = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equipment.getAddHp();
+        int strBeforeBonuses = roomPlayer.getStrength() + equipment.getStrength() + equipment.getEnchantStr();
+        int staBeforeBonuses = roomPlayer.getStamina() + equipment.getStamina() + equipment.getEnchantSta();
+        int dexBeforeBonuses = roomPlayer.getDexterity() + equipment.getDexterity() + equipment.getEnchantDex();
+        int wilBeforeBonuses = roomPlayer.getWillpower() + equipment.getWillpower() + equipment.getEnchantWil();
+
         if (hasActiveCoupleInParty(roomPlayer, activeRoomPlayers)) {
-            maxHealth += maxHealth / 20;
+            roomPlayer.addBonusHp(hpBeforeBonuses / 20);
+            roomPlayer.addBonusStr(strBeforeBonuses / 20);
+            roomPlayer.addBonusSta(staBeforeBonuses / 20);
+            roomPlayer.addBonusDex(dexBeforeBonuses / 20);
+            roomPlayer.addBonusWil(wilBeforeBonuses / 20);
         }
-        return maxHealth;
     }
 
-    static boolean hasActiveCoupleInParty(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
+    public static boolean hasActiveCoupleInParty(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
         Long coupleId = roomPlayer.getCoupleId();
         return coupleId != null && activeRoomPlayers.stream()
                 .anyMatch(player -> player.getPlayerId() == coupleId);

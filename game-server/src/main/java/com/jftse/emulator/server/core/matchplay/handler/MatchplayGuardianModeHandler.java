@@ -28,6 +28,7 @@ import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardianStats;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardians;
 import com.jftse.emulator.server.core.packets.matchplay.*;
@@ -511,6 +512,22 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
             GuardianBattleState guardianBattleState = game.createGuardianBattleState(game.getIsHardMode().get(), guardianBase, guardianPosition, activePlayingPlayersCount);
             game.getGuardianBattleStates().add(guardianBattleState);
+        }
+
+        List<FTClient> clientList = GameManager.getInstance().getClientsInRoom(room.getRoomId());
+        for (FTClient client : clientList) {
+            final FTConnection connection = client.getConnection();
+            if (!client.hasPlayer() || connection == null)
+                continue;
+
+            boolean isInvisibleGm = roomPlayers.stream().anyMatch(rp -> rp.getPosition() == MiscConstants.InvisibleGmSlot && rp.getAccountId() == client.getAccountId());
+            List<RoomPlayer> visibleRoomPlayers = isInvisibleGm
+                    ? roomPlayers.stream().toList()
+                    : roomPlayers.stream()
+                        .filter(rp -> rp.getPosition() != MiscConstants.InvisibleGmSlot)
+                        .toList();
+
+            connection.sendTCP(new S2CRoomPlayerListInformationPacket(visibleRoomPlayers));
         }
 
         S2CRoomSetGuardians roomSetGuardians = new S2CRoomSetGuardians(guardians.get(0), guardians.get(1), guardians.get(2));
