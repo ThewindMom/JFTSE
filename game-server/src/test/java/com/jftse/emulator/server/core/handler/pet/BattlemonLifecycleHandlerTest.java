@@ -213,7 +213,7 @@ class BattlemonLifecycleHandlerTest {
         pet.setId(id);
         pet.setType(type);
         pet.setName(name);
-        pet.setLevel((byte) 1);
+        pet.setLevel(1);
         pet.setHp(200);
         pet.setStrength((byte) 1);
         pet.setStamina((byte) 1);

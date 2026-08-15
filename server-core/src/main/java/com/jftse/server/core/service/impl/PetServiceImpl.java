@@ -73,14 +73,11 @@ public class PetServiceImpl implements PetService {
         Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
         Instant now = Instant.now();
         PetLifecyclePolicy.refresh(pet, now);
-        if (!PetLifecyclePolicy.canParticipate(pet, now) ||
-                !BattlemonPetCompatibilityPolicy.canParticipate(pet)) return null;
+        if (!PetLifecyclePolicy.canParticipate(pet, now)) return null;
         int currentExperience = pet.getExpPoints() == null ? 0 : Math.max(0, pet.getExpPoints());
-        int newExperience = BattlemonPetCompatibilityPolicy.capExperience(
-                (int) Math.min(Integer.MAX_VALUE, (long) currentExperience + experience));
+        int newExperience = (int) Math.min(Integer.MAX_VALUE,
+                (long) currentExperience + experience);
         pet.setExpPoints(newExperience);
-        // LevelExp_Pet.xml is a cumulative EXP table only. Item_PetChar.xml has
-        // no STR/STA/DEX/WIL columns, so a level change does not allocate stats.
         pet.setLevel(PetLevelTable.toStoredLevel(levelForExperience(newExperience)));
         return petRepository.save(pet);
     }
@@ -98,7 +95,7 @@ public class PetServiceImpl implements PetService {
         pet.setPlayer(player);
         pet.setName(nameLabel);
         pet.setType((byte) model);
-        pet.setLevel((byte) level);
+        pet.setLevel(level);
         pet.setExpPoints(0);
         pet.setHp(hp);
         pet.setStrength((byte) strength);

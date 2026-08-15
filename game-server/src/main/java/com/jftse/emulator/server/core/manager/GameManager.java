@@ -44,7 +44,6 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.ServerLoopMetricsService;
 import com.jftse.server.core.service.impl.PetLifecyclePolicy;
-import com.jftse.server.core.service.impl.BattlemonPetCompatibilityPolicy;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.ServerMetricsContext;
 import com.jftse.server.core.shared.packets.SMSGInitHandshake;
@@ -695,9 +694,7 @@ public class GameManager implements ServerLoopHandler {
         }
         Pet pet = serviceManager.getPetService().findByIdAndPlayerId(
                 selectedPet.id(), client.getPlayer().getId());
-        boolean compatibleBattlemonPet = PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now()) &&
-                BattlemonPetCompatibilityPolicy.canParticipate(pet);
-        if (!compatibleBattlemonPet) {
+        if (!PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now())) {
             return null;
         }
         PetView currentPet = client.getActivePet();

@@ -16,7 +16,6 @@ import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.PetService;
-import com.jftse.server.core.service.impl.BattlemonPetCompatibilityPolicy;
 import com.jftse.server.core.shared.packets.pet.CMSGRequestPet;
 import lombok.extern.log4j.Log4j2;
 
@@ -149,8 +148,7 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
 
             Pet selectedPet = petService.findByIdAndPlayerId(selectedPetView.id(), ftClient.getPlayer().getId());
             if (selectedPet == null || !Boolean.TRUE.equals(selectedPet.getAlive()) ||
-                    selectedPet.getValidUntil() == null || selectedPet.getValidUntil().before(new Date()) ||
-                    !BattlemonPetCompatibilityPolicy.canParticipate(selectedPet)) {
+                    selectedPet.getValidUntil() == null || selectedPet.getValidUntil().before(new Date())) {
                 S2CPetRequestRoomAnswerPacket petRequestRoomAnswerPacket = new S2CPetRequestRoomAnswerPacket(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null);
                 connection.sendTCP(petRequestRoomAnswerPacket);
                 return;

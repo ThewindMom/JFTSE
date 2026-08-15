@@ -33,7 +33,6 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.AuthenticationService;
 import com.jftse.server.core.service.PetService;
-import com.jftse.server.core.service.impl.BattlemonPetCompatibilityPolicy;
 import com.jftse.server.core.service.impl.PetLifecyclePolicy;
 import com.jftse.server.core.service.PlayerPocketService;
 import com.jftse.server.core.shared.ServerConfService;
@@ -140,8 +139,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                 return;
             }
             Pet pet = petService.findByIdAndPlayerId(petView.id(), roomPlayer.getPlayerId());
-            if (!PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now()) ||
-                    !BattlemonPetCompatibilityPolicy.canParticipate(pet)) {
+            if (!PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now())) {
                 connection.sendTCP(roomStartGameAck);
                 return;
             }

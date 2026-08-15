@@ -16,7 +16,7 @@ class S2CPetAddPacketTest {
         Pet pet = new Pet();
         pet.setType((byte) 0);
         pet.setName("Pikaro");
-        pet.setLevel((byte) 250);
+        pet.setLevel(250);
         pet.setExpPoints(1_408_515);
         pet.setHp(180);
         pet.setStrength((byte) 0);

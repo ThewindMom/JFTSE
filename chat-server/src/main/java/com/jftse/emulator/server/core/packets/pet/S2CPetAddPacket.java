@@ -10,7 +10,7 @@ public class S2CPetAddPacket extends Packet {
 
         this.write(pet.getType(),
                 pet.getName(),
-                pet.getLevel(),
+                pet.getLevel().byteValue(),
                 pet.getExpPoints(),
                 pet.getHp(),
                 pet.getStrength(),

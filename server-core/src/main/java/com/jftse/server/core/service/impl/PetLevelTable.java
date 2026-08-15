@@ -43,8 +43,8 @@ final class PetLevelTable {
         return Math.min(level, MAX_LEVEL);
     }
 
-    static byte toStoredLevel(int displayedLevel) {
-        return (byte) Math.min(Math.max(displayedLevel, 1), MAX_LEVEL);
+    static int toStoredLevel(int displayedLevel) {
+        return Math.min(Math.max(displayedLevel, 1), MAX_LEVEL);
     }
 
     static int experienceBeforeLevel(int displayedLevel) {

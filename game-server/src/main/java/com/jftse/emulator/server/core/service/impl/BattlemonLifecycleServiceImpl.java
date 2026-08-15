@@ -9,17 +9,17 @@ import com.jftse.entities.database.repository.pocket.PlayerPocketRepository;
 import com.jftse.entities.database.repository.pocket.PocketRepository;
 import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.service.impl.PetLifecyclePolicy;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService {
     private static final int MAX_LIFE = 300;
     private static final int MAX_STAT = Byte.MAX_VALUE;
@@ -28,14 +28,33 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     private final PetRepository petRepository;
     private final PlayerPocketRepository playerPocketRepository;
     private final PocketRepository pocketRepository;
+    private final Clock clock;
+
+    @Autowired
+    public BattlemonLifecycleServiceImpl(PetRepository petRepository,
+                                         PlayerPocketRepository playerPocketRepository,
+                                         PocketRepository pocketRepository) {
+        this(petRepository, playerPocketRepository, pocketRepository, Clock.systemUTC());
+    }
+
+    BattlemonLifecycleServiceImpl(PetRepository petRepository,
+                                  PlayerPocketRepository playerPocketRepository,
+                                  PocketRepository pocketRepository,
+                                  Clock clock) {
+        this.petRepository = petRepository;
+        this.playerPocketRepository = playerPocketRepository;
+        this.pocketRepository = pocketRepository;
+        this.clock = clock;
+    }
 
     @Override
     @Transactional
     public MutationResult usePetItem(long playerId, long pocketId, long petId, long itemPocketId) {
         Pet pet = petRepository.findByIdAndPlayerIdForUpdate(petId, playerId).orElse(null);
-        PetLifecyclePolicy.refresh(pet, Instant.now());
+        Instant now = clock.instant();
+        PetLifecyclePolicy.refresh(pet, now);
         PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.PET_ITEM.getName());
-        if (!isUsablePet(pet) || item == null || !applyPetItem(pet, item.getItemIndex())) {
+        if (!isUsablePet(pet, now) || item == null || !applyPetItem(pet, item.getItemIndex(), now)) {
             return MutationResult.failed(itemPocketId);
         }
 
@@ -48,9 +67,10 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     public MutationResult renamePet(long playerId, long pocketId, long itemPocketId,
                                     byte petType, String newName) {
         Pet pet = findUniquePetByType(playerId, petType);
-        PetLifecyclePolicy.refresh(pet, Instant.now());
+        Instant now = clock.instant();
+        PetLifecyclePolicy.refresh(pet, now);
         PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.SPECIAL.getName());
-        if (!isUsablePet(pet) || item == null || item.getItemIndex() != 10 ||
+        if (!isUsablePet(pet, now) || item == null || item.getItemIndex() != 10 ||
                 newName == null || newName.isBlank() || newName.length() < 2 || newName.length() > 12) {
             return MutationResult.failed(itemPocketId);
         }
@@ -64,7 +84,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
     @Transactional
     public MutationResult revivePet(long playerId, long pocketId, long itemPocketId, byte petType) {
         Pet pet = findUniquePetByType(playerId, petType);
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         PetLifecyclePolicy.refresh(pet, now);
         PlayerPocket item = ownedItem(itemPocketId, pocketId, EItemCategory.SPECIAL.getName());
         PetLimits limits = pet == null ? null : PetLimits.forType(pet.getType());
@@ -107,9 +127,9 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
         return item;
     }
 
-    private boolean isUsablePet(Pet pet) {
+    private boolean isUsablePet(Pet pet, Instant now) {
         return pet != null && PetLimits.forType(pet.getType()) != null &&
-                PetLifecyclePolicy.isAlive(pet, Instant.now());
+                PetLifecyclePolicy.isAlive(pet, now);
     }
 
     private Pet findUniquePetByType(long playerId, byte petType) {
@@ -118,7 +138,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
         return pets.size() == 1 ? pets.getFirst() : null;
     }
 
-    private boolean applyPetItem(Pet pet, int itemIndex) {
+    private boolean applyPetItem(Pet pet, int itemIndex, Instant now) {
         return switch (itemIndex) {
             case 1 -> addStrength(pet, 1);
             case 2 -> addStamina(pet, 1);
@@ -132,7 +152,7 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
             case 10 -> addStamina(pet, 5);
             case 11 -> addDexterity(pet, 5);
             case 12 -> addWillpower(pet, 5);
-            case 13 -> extendLife(pet);
+            case 13 -> extendLife(pet, now);
             case 14 -> increaseMaximumLife(pet);
             case 16 -> addHunger(pet, 5);
             case 17 -> addHunger(pet, 10);
@@ -174,12 +194,12 @@ public class BattlemonLifecycleServiceImpl implements BattlemonLifecycleService 
         return true;
     }
 
-    private boolean extendLife(Pet pet) {
+    private boolean extendLife(Pet pet, Instant now) {
         if (pet.getLifeMax() == null || pet.getLifeMax() <= 0 || pet.getValidUntil() == null) {
             return false;
         }
         Instant current = pet.getValidUntil().toInstant();
-        Instant maximum = Instant.now().plus(Math.min(pet.getLifeMax(), MAX_LIFE), ChronoUnit.DAYS);
+        Instant maximum = now.plus(Math.min(pet.getLifeMax(), MAX_LIFE), ChronoUnit.DAYS);
         Instant extended = current.plus(1, ChronoUnit.DAYS);
         if (extended.isAfter(maximum)) extended = maximum;
         if (!extended.isAfter(current)) return false;

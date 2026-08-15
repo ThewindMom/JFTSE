@@ -136,7 +136,10 @@ class RoomStartGamePacketHandlerTest {
         assertEquals(selectedPetView, gameManager.getValidatedActiveBattlemonPet(client));
         verify(client).setActivePet(selectedPet);
 
-        selectedPet.setLevel((byte) 14);
+        selectedPet.setLevel(250);
+        assertEquals(selectedPetView, gameManager.getValidatedActiveBattlemonPet(client));
+
+        selectedPet.setEnergy(0);
         assertNull(gameManager.getValidatedActiveBattlemonPet(client));
     }
 
@@ -343,7 +346,7 @@ class RoomStartGamePacketHandlerTest {
 
             first.getRoomPlayer().setPet(PetView.of(firstPet));
             second.getRoomPlayer().setPet(PetView.of(secondPet));
-            secondPet.setLevel((byte) 14);
+            secondPet.setEnergy(0);
             handler.handle(first.getConnection(), CMSGStartGame.builder().build());
 
             assertEquals(RoomStatus.NotRunning, room.getStatus());
@@ -352,7 +355,7 @@ class RoomStartGamePacketHandlerTest {
                     any(RelaySessionAuthorizationMessage.class),
                     eq("MatchplaySystem(GameServer)"));
 
-            secondPet.setLevel((byte) 13);
+            secondPet.setEnergy(50);
             GameServer relayServer = new GameServer();
             relayServer.setHost("127.0.0.1");
             relayServer.setPort(5896);
@@ -956,7 +959,7 @@ class RoomStartGamePacketHandlerTest {
         pet.setId(id);
         pet.setType((byte) 1);
         pet.setName(name);
-        pet.setLevel((byte) 1);
+        pet.setLevel(1);
         pet.setHp(100);
         pet.setStrength((byte) 1);
         pet.setStamina((byte) 1);

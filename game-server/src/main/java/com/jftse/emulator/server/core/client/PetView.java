@@ -8,7 +8,7 @@ public record PetView(long id, int type, String name, int level, int hp, int str
                  pet.getId(),
                  Byte.toUnsignedInt(pet.getType()),
                  pet.getName(),
-                 Byte.toUnsignedInt(pet.getLevel()),
+                 pet.getLevel(),
                  pet.getHp(),
                  Byte.toUnsignedInt(pet.getStrength()),
                  Byte.toUnsignedInt(pet.getStamina()),

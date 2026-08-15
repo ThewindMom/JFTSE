@@ -24,7 +24,7 @@ public class Pet extends AbstractBaseModel {
     private Byte type;
     private String name;
     @Column(columnDefinition = "TINYINT UNSIGNED")
-    private Byte level;
+    private Integer level;
     private Integer expPoints;
     private Integer hp;
     private Byte strength;

@@ -15,8 +15,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +34,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BattlemonLifecycleServiceImplTest {
+    private static final Instant NOW = Instant.parse("2026-08-15T12:00:00Z");
+
     private PetRepository petRepository;
     private PlayerPocketRepository playerPocketRepository;
     private PocketRepository pocketRepository;
@@ -43,7 +47,8 @@ class BattlemonLifecycleServiceImplTest {
         playerPocketRepository = mock(PlayerPocketRepository.class);
         pocketRepository = mock(PocketRepository.class);
         service = new BattlemonLifecycleServiceImpl(
-                petRepository, playerPocketRepository, pocketRepository);
+                petRepository, playerPocketRepository, pocketRepository,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -138,7 +143,7 @@ class BattlemonLifecycleServiceImplTest {
     void extendsCurrentLifeByOneDayWithoutExceedingLifeMaximum() {
         Pet pet = pet(2L, (byte) 1);
         pet.setLifeMax(120);
-        pet.setValidUntil(Date.from(Instant.now().plus(Duration.ofDays(119))));
+        pet.setValidUntil(Date.from(NOW.plus(Duration.ofDays(119))));
         PlayerPocket life = item(25L, "PET_ITEM", 13, 3);
         when(petRepository.findByIdAndPlayerIdForUpdate(2L, 5L)).thenReturn(Optional.of(pet));
         when(playerPocketRepository.findByIdAndPocketIdForUpdate(25L, 5L)).thenReturn(Optional.of(life));
@@ -148,8 +153,8 @@ class BattlemonLifecycleServiceImplTest {
 
         assertTrue(result.successful());
         long extensionHours = Duration.between(before, pet.getValidUntil().toInstant()).toHours();
-        assertTrue(extensionHours >= 23 && extensionHours <= 24);
-        assertTrue(pet.getValidUntil().toInstant().isBefore(Instant.now().plus(Duration.ofDays(121))));
+        assertEquals(24, extensionHours);
+        assertEquals(NOW.plus(Duration.ofDays(120)), pet.getValidUntil().toInstant());
     }
 
     @Test
@@ -161,7 +166,7 @@ class BattlemonLifecycleServiceImplTest {
 
         assertFalse(service.usePetItem(5L, 5L, 2L, 24L).successful());
 
-        pet.setValidUntil(Date.from(Instant.now().minusSeconds(1)));
+        pet.setValidUntil(Date.from(NOW.minusSeconds(1)));
         PlayerPocket validItem = item(25L, "PET_ITEM", 13, 3);
         when(playerPocketRepository.findByIdAndPocketIdForUpdate(25L, 5L)).thenReturn(Optional.of(validItem));
         assertFalse(service.usePetItem(5L, 5L, 2L, 25L).successful());
@@ -213,20 +218,18 @@ class BattlemonLifecycleServiceImplTest {
         pet.setEnergy(2);
         pet.setHunger(3);
         pet.setLifeMax(120);
-        pet.setValidUntil(Date.from(Instant.now().minus(Duration.ofDays(2))));
+        pet.setValidUntil(Date.from(NOW.minus(Duration.ofDays(2))));
         PlayerPocket root = item(21L, "SPECIAL", 9, 3);
         when(petRepository.findAllByPlayerIdAndTypeForUpdate(5L, (byte) 1)).thenReturn(List.of(pet));
         when(playerPocketRepository.findByIdAndPocketIdForUpdate(21L, 5L)).thenReturn(Optional.of(root));
 
-        Instant before = Instant.now();
         BattlemonLifecycleService.MutationResult result = service.revivePet(5L, 5L, 21L, (byte) 1);
 
         assertTrue(result.successful());
         assertTrue(pet.getAlive());
         assertEquals(100, pet.getEnergy());
         assertEquals(150, pet.getHunger());
-        long restoredDays = Duration.between(before, pet.getValidUntil().toInstant()).toDays();
-        assertTrue(restoredDays >= 119 && restoredDays <= 120);
+        assertEquals(NOW.plus(Duration.ofDays(120)), pet.getValidUntil().toInstant());
         assertEquals(2, root.getItemCount());
 
         assertFalse(service.revivePet(5L, 5L, 21L, (byte) 1).successful());
@@ -236,7 +239,7 @@ class BattlemonLifecycleServiceImplTest {
     @Test
     void expiryTransitionsPetToDeadAndAllowsRevival() {
         Pet pet = pet(2L, (byte) 1);
-        pet.setValidUntil(Date.from(Instant.now().minusSeconds(1)));
+        pet.setValidUntil(Date.from(NOW.minusSeconds(1)));
         PlayerPocket root = item(21L, "SPECIAL", 9, 3);
         when(petRepository.findAllByPlayerIdAndTypeForUpdate(5L, (byte) 1)).thenReturn(List.of(pet));
         when(playerPocketRepository.findByIdAndPocketIdForUpdate(21L, 5L)).thenReturn(Optional.of(root));
@@ -244,7 +247,7 @@ class BattlemonLifecycleServiceImplTest {
         assertTrue(service.revivePet(5L, 5L, 21L, (byte) 1).successful());
         assertTrue(pet.getAlive());
         assertEquals(2, root.getItemCount());
-        assertTrue(pet.getValidUntil().after(new Date()));
+        assertEquals(NOW.plus(Duration.ofDays(120)), pet.getValidUntil().toInstant());
     }
 
     @Test
@@ -302,7 +305,7 @@ class BattlemonLifecycleServiceImplTest {
         pet.setPetStatistic(new PetStatistic());
         pet.setType(type);
         pet.setName("Pet");
-        pet.setLevel((byte) 1);
+        pet.setLevel(1);
         pet.setExpPoints(0);
         pet.setHp(200);
         pet.setStrength((byte) 0);
@@ -312,7 +315,7 @@ class BattlemonLifecycleServiceImplTest {
         pet.setHunger(40);
         pet.setEnergy(30);
         pet.setLifeMax(120);
-        pet.setValidUntil(Date.from(Instant.now().plus(Duration.ofDays(30))));
+        pet.setValidUntil(Date.from(NOW.plus(Duration.ofDays(30))));
         pet.setAlive(true);
         return pet;
     }
