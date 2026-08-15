@@ -62,6 +62,7 @@ public class ClientBackInRoomPacketHandler implements PacketHandler<FTConnection
         roomPlayer.setGameAnimationSkipReady(false);
         roomPlayer.getConnectedToRelay().set(false);
         roomPlayer.getPickedUpSkillCrystals().clear();
+        roomPlayer.resetBonusStats();
 
         synchronized (currentClientRoom) {
             currentClientRoom.setStatus(RoomStatus.NotRunning);
