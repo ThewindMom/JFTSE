@@ -598,6 +598,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
     @Override
     public void onPoint(FTClient ftClient, CMSGPoint pointPacket) {
+        GameSession gameSession = ftClient.getActiveGameSession();
+        if (gameSession != null && gameSession.hasOwnedPetSeats() &&
+                !gameSession.tryHandleRallyPoint()) {
+            return;
+        }
         boolean lastGuardianServeWasOnGuardianSide = game.getLastGuardianServeSide().get() == GameFieldSide.Guardian;
 
         // winner doesn't matter as service or return ace doesn't exist in guardian mode, so we can just pass false

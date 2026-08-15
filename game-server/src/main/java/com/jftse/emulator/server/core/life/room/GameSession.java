@@ -35,6 +35,7 @@ public class GameSession {
         fireables = new ConcurrentLinkedDeque<>();
         actors = new ConcurrentHashMap<>();
         completionHandled = new AtomicBoolean(false);
+        rallyPointHandled = new AtomicBoolean(true);
         resultId = UUID.randomUUID().toString();
         this.dedicatedBattlemonRoom = dedicatedBattlemonRoom;
         gameplayActorPositions = List.of();
@@ -51,6 +52,7 @@ public class GameSession {
     private final ConcurrentHashMap<SkillHitKey, SkillHitAuthorization> skillHitAuthorizations =
             new ConcurrentHashMap<>();
     private AtomicBoolean completionHandled;
+    private final AtomicBoolean rallyPointHandled;
     private final String resultId;
     private final boolean dedicatedBattlemonRoom;
     private volatile List<Short> gameplayActorPositions;
@@ -179,9 +181,15 @@ public class GameSession {
             return false;
         }
         RoomPlayer roomPlayer = client.getRoomPlayer();
-        return roomPlayer != null
-                ? gameplayActorPositions.contains(roomPlayer.getPosition())
-                : !client.isSpectator() && clients.contains(client);
+        return roomPlayer != null && gameplayActorPositions.contains(roomPlayer.getPosition());
+    }
+
+    public void beginRally() {
+        rallyPointHandled.set(false);
+    }
+
+    public boolean tryHandleRallyPoint() {
+        return rallyPointHandled.compareAndSet(false, true);
     }
 
     public void authorizeSkillHits(int attackerPosition, int targetPosition, int skillId, long nowNanos) {

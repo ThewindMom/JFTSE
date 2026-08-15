@@ -85,7 +85,7 @@ class BattlemonMatchplayGameTest {
     }
 
     @Test
-    void battlemonBasicAcceptsNativePointSentinelOutsideActorPositions() {
+    void battlemonBasicAcceptsOneNativePointSentinelPerObservedRally() {
         GameManager gameManager = GameManager.getInstance();
         when(gameManager.getEventHandler()).thenReturn(mock(EventHandler.class));
         when(gameManager.getMatchRallyStatsConsumer()).thenReturn(mock(MatchRallyStatsConsumer.class));
@@ -96,12 +96,15 @@ class BattlemonMatchplayGameTest {
         CMSGPoint point = mock(CMSGPoint.class);
         when(client.getActiveGameSession()).thenReturn(session);
         when(client.getActiveRoom()).thenReturn(mock(Room.class));
+        when(session.isDedicatedBattlemonRoom()).thenReturn(true);
         when(session.getGameplayActorPositions()).thenReturn(List.of((short) 0, (short) 1, (short) 2, (short) 3));
         when(session.getCompletionHandled()).thenReturn(new AtomicBoolean(false));
         when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>());
+        when(session.tryHandleRallyPoint()).thenReturn(true, false);
         when(point.getPlayerPosition()).thenReturn((byte) 4);
         when(point.getPointsTeam()).thenReturn((byte) 1);
 
+        game.getHandleable().onPoint(client, point);
         game.getHandleable().onPoint(client, point);
 
         assertEquals(1, game.getPointsBlueTeam().get());

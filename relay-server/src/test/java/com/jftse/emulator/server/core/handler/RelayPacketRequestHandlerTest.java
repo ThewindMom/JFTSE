@@ -46,4 +46,16 @@ class RelayPacketRequestHandlerTest {
 
         verify(connection, never()).queuePacket(any());
     }
+
+    @Test
+    void ownedPetSessionDropsWellFormedUnknownInnerPacket() {
+        byte[] innerPacket = new byte[8];
+        innerPacket[4] = 0x32;
+        innerPacket[5] = 0x33;
+
+        new RelayPacketRequestHandler().handle(
+                connection, CMSGRelay.builder().packet(innerPacket).build());
+
+        verify(connection, never()).queuePacket(any());
+    }
 }

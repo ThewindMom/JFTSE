@@ -411,6 +411,8 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         short scoringTeam = pointPacket.getPointsTeam();
         if (scoringTeam < 0 || scoringTeam > 3)
             return;
+        if (!gameSession.tryHandleRallyPoint())
+            return;
 
         synchronized (game) {
             if (game.getFinished().get() || gameSession.getCompletionHandled().get())

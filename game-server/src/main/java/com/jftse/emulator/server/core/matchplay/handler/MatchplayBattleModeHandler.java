@@ -426,6 +426,12 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
 
     @Override
     public void onPoint(FTClient ftClient, CMSGPoint pointPacket) {
+        GameSession gameSession = ftClient.getActiveGameSession();
+        if (gameSession != null &&
+                (gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats()) &&
+                !gameSession.tryHandleRallyPoint()) {
+            return;
+        }
         boolean lastGuardianServeWasOnBlueTeamsSide = game.getLastGuardianServeSide().get() == GameFieldSide.BlueTeam;
 
         // winner doesn't matter as service or return ace doesn't exist in battle mode, so we can just pass false

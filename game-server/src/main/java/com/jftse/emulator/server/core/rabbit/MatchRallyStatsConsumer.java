@@ -64,6 +64,7 @@ public class MatchRallyStatsConsumer {
         BallHitAction hitAct = message.getHitAct();
 
         if (hitAct == BallHitAction.SERVE || hitAct == BallHitAction.GUARDIAN_SERVE) {
+            session.beginRally();
             state.setServerPosition(playerPos);
             state.setLastHitterPosition(playerPos);
             state.setRallyCount(0);

@@ -159,6 +159,10 @@ class GameSessionTest {
         assertTrue(session.isGameplayEndpoint(secondClient));
         assertFalse(session.isGameplayEndpoint(spectatorClient));
 
+        FTClient detachedParticipant = mock(FTClient.class);
+        session.getClients().add(detachedParticipant);
+        assertFalse(session.isGameplayEndpoint(detachedParticipant));
+
         FTClient detachedSpectator = mock(FTClient.class);
         when(detachedSpectator.isSpectator()).thenReturn(true);
         session.getClients().add(detachedSpectator);
@@ -183,6 +187,18 @@ class GameSessionTest {
         session.authorizeSkillHits(2, 0, 7, 1_000L);
 
         assertFalse(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+    }
+
+    @Test
+    void acceptsExactlyOnePointForEachRelayObservedRally() {
+        GameSession session = new GameSession(true);
+
+        assertFalse(session.tryHandleRallyPoint());
+        session.beginRally();
+        assertTrue(session.tryHandleRallyPoint());
+        assertFalse(session.tryHandleRallyPoint());
+        session.beginRally();
+        assertTrue(session.tryHandleRallyPoint());
     }
 
     private static FTClient clientFor(RoomPlayer roomPlayer) {
