@@ -18,12 +18,14 @@ inventing a pet shield system:
   index)` cast for 15 seconds;
 * only the room master may submit the corresponding `0x18E9` for a live enemy
   Guardian, and the grant is atomically consumed;
-* player and pet actors retain the existing endpoint ownership and liveness
-  checks;
+* player and pet skill casts retain the existing endpoint ownership and
+  liveness checks;
 * a valid cast creates a 15-second hit allowance keyed by actor and database
   skill ID; each valid target can consume it at most once;
-* a Guardian hit may be reported only by the endpoint that owns the hit target
-  (or by the master when the target is a Guardian);
+* Guardian hit reporting is host-authoritative: the room master may report any
+  live player or Guardian actor while it remains a gameplay endpoint;
+  non-master endpoints may report only their owned player actors, or a
+  Guardian actor hitting their owned target;
 * unknown actors, targets, skills, expired grants, duplicate casts, duplicate
   hits, and ungranted casts fail closed;
 * damage and effect values continue to come from server `Skill` data. Client

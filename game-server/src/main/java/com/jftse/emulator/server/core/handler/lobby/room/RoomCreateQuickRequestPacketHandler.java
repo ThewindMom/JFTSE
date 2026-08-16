@@ -54,10 +54,9 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         room.setMode(packet.getMode());
         room.setRule((byte) 0);
 
-        room.setPlayers(playerSize == 0 ? 2 : playerSize);
-
-        if (isBattlemon)
-            room.setPlayers((byte) 4);
+        room.setPlayers(isBattlemon || packet.getMode() == GameMode.GUARDIAN
+                ? (byte) 4
+                : playerSize == 0 ? (byte) 2 : playerSize);
 
         room.setPrivate(false);
         room.setSkillFree(false);

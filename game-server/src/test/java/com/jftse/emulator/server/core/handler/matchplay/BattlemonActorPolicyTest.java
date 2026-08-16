@@ -6,6 +6,7 @@ import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.emulator.server.core.matchplay.combat.GuardianCombatSystem;
 import com.jftse.emulator.server.core.matchplay.combat.PlayerCombatSystem;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
@@ -14,6 +15,7 @@ import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.battle.Skill;
+import com.jftse.entities.database.model.map.SMaps;
 import com.jftse.server.core.matchplay.battle.GuardianBattleState;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.matchplay.battle.SkillCrystal;
@@ -29,6 +31,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -358,7 +361,68 @@ class BattlemonActorPolicyTest {
     }
 
     @Test
-    void guardianHitMustBeReportedByItsPlayerTarget() {
+    void guardianHostCanReportSecondPlayerBallDamage() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        GuardianCombatSystem combatSystem = mock(GuardianCombatSystem.class);
+        PlayerCombatSystem playerCombatSystem = mock(PlayerCombatSystem.class);
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.game().getGuardianCombatSystem()).thenReturn(combatSystem);
+        when(context.game().getPlayerCombatSystem()).thenReturn(playerCombatSystem);
+        when(combatSystem.dealDamageOnBallLoss(1, 10, false)).thenReturn((short) 99);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 10)
+                .skillId((byte) 0)
+                .damageType((byte) 0)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem).dealDamageOnBallLoss(1, 10, false);
+    }
+
+    @Test
+    void nonHostGuardianEndpointCannotReportAnotherPlayersBallDamage() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        GuardianCombatSystem combatSystem = mock(GuardianCombatSystem.class);
+        when(context.game().getGuardianCombatSystem()).thenReturn(combatSystem);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 10)
+                .skillId((byte) 0)
+                .damageType((byte) 0)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem, never()).dealDamageOnBallLoss(1, 10, false);
+    }
+
+    @Test
+    void guardianHostOutsideGameplayEndpointCannotReportSecondPlayerBallDamage() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        GuardianCombatSystem combatSystem = mock(GuardianCombatSystem.class);
+        FTClient client = context.connection().getClient();
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.session().isGameplayEndpoint(client)).thenReturn(false);
+        when(context.game().getGuardianCombatSystem()).thenReturn(combatSystem);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 10)
+                .skillId((byte) 0)
+                .damageType((byte) 0)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem, never()).dealDamageOnBallLoss(1, 10, false);
+    }
+
+    @Test
+    void nonHostGuardianEndpointCannotReportGuardianHitAgainstAnotherPlayer() {
         GuardianContext context = guardianContext((short) 0, true);
         when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
@@ -367,6 +431,137 @@ class BattlemonActorPolicyTest {
                 .attackerPosition((short) 10)
                 .targetPosition((short) 1)
                 .skillId((byte) 9)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(skillService, never()).findSkillById(9L);
+    }
+
+    @Test
+    void guardianHostCanReportGuardianHitAgainstSecondPlayer() {
+        GuardianContext context = guardianContext((short) 0, true);
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 10)
+                .targetPosition((short) 1)
+                .skillId((byte) 9)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(skillService).findSkillById(9L);
+    }
+
+    @Test
+    void guardianHostAuthorizedSpellDamagesGuardianForSecondPlayer() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        GuardianCombatSystem combatSystem = mock(GuardianCombatSystem.class);
+        Skill skill = new Skill();
+        skill.setId(9L);
+        skill.setDamage(-5);
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.game().getGuardianCombatSystem()).thenReturn(combatSystem);
+        when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.eq(1),
+                org.mockito.ArgumentMatchers.eq(10), org.mockito.ArgumentMatchers.eq(9),
+                org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(true);
+        when(skillService.findSkillById(9L)).thenReturn(skill);
+        when(combatSystem.dealDamage(1, 10, (short) -5, true, false, skill)).thenReturn((short) 95);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 10)
+                .skillId((byte) 9)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem).dealDamage(1, 10, (short) -5, true, false, skill);
+    }
+
+    @Test
+    void guardianHostAuthorizedHealAndShieldReachSecondPlayer() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        GuardianCombatSystem guardianCombatSystem = mock(GuardianCombatSystem.class);
+        Skill heal = new Skill();
+        heal.setId(9L);
+        heal.setDamage(10);
+        Skill shield = new Skill();
+        shield.setId(10L);
+        shield.setDamage(1);
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        when(context.game().getGuardianCombatSystem()).thenReturn(guardianCombatSystem);
+        when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.eq(1),
+                org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.eq(9),
+                org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(true);
+        when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.eq(1),
+                org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.eq(10),
+                org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(true);
+        when(skillService.findSkillById(9L)).thenReturn(heal);
+        when(skillService.findSkillById(10L)).thenReturn(shield);
+        when(combatSystem.heal(1, (short) 10)).thenReturn((short) 100);
+        when(guardianCombatSystem.dealDamageToPlayer(
+                1, 1, (short) 1, true, false, shield)).thenReturn((short) 100);
+        CMSGSpellHitsTarget healPacket = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 1)
+                .skillId((byte) 9)
+                .applySkillEffect((byte) 0)
+                .build();
+        CMSGSpellHitsTarget shieldPacket = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 1)
+                .skillId((byte) 10)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        SpellHitsTargetHandler handler = new SpellHitsTargetHandler();
+        handler.handle(context.connection(), healPacket);
+        handler.handle(context.connection(), shieldPacket);
+
+        verify(combatSystem).heal(1, (short) 10);
+        verify(guardianCombatSystem).dealDamageToPlayer(
+                1, 1, (short) 1, true, false, shield);
+    }
+
+    @Test
+    void guardianHostNonzeroHitWithoutGrantIsRejected() throws Exception {
+        GuardianContext context = guardianContext((short) 1, false);
+        PlayerCombatSystem combatSystem = mock(PlayerCombatSystem.class);
+        Skill heal = new Skill();
+        heal.setId(9L);
+        heal.setDamage(10);
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        when(context.game().getPlayerCombatSystem()).thenReturn(combatSystem);
+        when(skillService.findSkillById(9L)).thenReturn(heal);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 1)
+                .skillId((byte) 9)
+                .applySkillEffect((byte) 0)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(combatSystem, never()).heal(1, (short) 10);
+    }
+
+    @Test
+    void nonHostGuardianEndpointCannotReportAnotherPlayersSpell() {
+        GuardianContext context = guardianContext((short) 1, false);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 1)
+                .targetPosition((short) 10)
+                .skillId((byte) 9)
+                .applySkillEffect((byte) 0)
                 .build();
 
         new SpellHitsTargetHandler().handle(context.connection(), packet);
@@ -420,14 +615,20 @@ class BattlemonActorPolicyTest {
         when(roomPlayer.getPosition()).thenReturn((short) 0);
 
         MatchplayGuardianGame game = mock(MatchplayGuardianGame.class);
+        SMaps map = mock(SMaps.class);
         ConcurrentLinkedDeque<PlayerBattleState> playerStates = new ConcurrentLinkedDeque<>();
         playerStates.add(new PlayerBattleState((short) 0, 100L, 100, 10, 10, 10, 10));
         playerStates.add(new PlayerBattleState((short) 1, 200L, 100, 10, 10, 10, 10));
         GuardianBattleState guardianState = mock(GuardianBattleState.class);
         when(guardianState.getPosition()).thenReturn(10);
         when(guardianState.getCurrentHealth()).thenReturn(new AtomicInteger(100));
+        when(guardianState.getLooted()).thenReturn(new AtomicBoolean(true));
         when(game.getPlayerBattleStates()).thenReturn(playerStates);
         when(game.getGuardianBattleStates()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(guardianState)));
+        when(game.getMap()).thenReturn(map);
+        when(game.getIsHardMode()).thenReturn(new AtomicBoolean(false));
+        when(game.getStageChangingToBoss()).thenReturn(new AtomicBoolean(false));
+        when(game.getBossBattleActive()).thenReturn(new AtomicBoolean(false));
 
         GameSession session = mock(GameSession.class);
         when(session.getMatchplayGame()).thenReturn(game);
@@ -446,12 +647,13 @@ class BattlemonActorPolicyTest {
         when(connection.getClient()).thenReturn(client);
         when(client.getConnection()).thenReturn(connection);
         when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(client)));
-        return new GuardianContext(connection, roomPlayer, session);
+        return new GuardianContext(connection, roomPlayer, session, game);
     }
 
     private record BattleContext(FTConnection connection, RoomPlayer roomPlayer, MatchplayBattleGame game) {
     }
 
-    private record GuardianContext(FTConnection connection, RoomPlayer roomPlayer, GameSession session) {
+    private record GuardianContext(FTConnection connection, RoomPlayer roomPlayer, GameSession session,
+                                   MatchplayGuardianGame game) {
     }
 }

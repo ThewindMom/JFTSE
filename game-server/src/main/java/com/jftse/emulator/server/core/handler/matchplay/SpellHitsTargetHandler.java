@@ -100,10 +100,14 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 return;
             }
         } else if (enhancedActorSession && game instanceof MatchplayGuardianGame guardianGame) {
+            if (!gameSession.isGameplayEndpoint(ftClient)) {
+                return;
+            }
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             short targetPosition = spellHitsTargetExt.getTargetPosition();
+            boolean hostReport = ftClient.getRoomPlayer().isMaster();
             boolean livePlayerAttacker = attackerPosition >= 0 && attackerPosition < 4 &&
-                    gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition) &&
+                    (hostReport || gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition)) &&
                     guardianGame.getPlayerBattleStates().stream()
                             .anyMatch(state -> state.getPosition() == attackerPosition &&
                                     state.getCurrentHealth().get() > 0);
@@ -112,12 +116,10 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                             state.getCurrentHealth().get() > 0);
             boolean servingGuardian = attackerPosition == 4 && spellHitsTargetExt.getSkillId() == 0;
             boolean targetOwnedByReporter = gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), targetPosition);
-            boolean guardianTarget = guardianGame.getGuardianBattleStates().stream()
-                    .anyMatch(state -> state.getPosition() == targetPosition);
             boolean authorizedGuardianReport = liveGuardianAttacker &&
-                    (targetOwnedByReporter || guardianTarget && ftClient.getRoomPlayer().isMaster());
+                    (hostReport || targetOwnedByReporter);
             if (!livePlayerAttacker && !authorizedGuardianReport &&
-                    !(servingGuardian && ftClient.getRoomPlayer().isMaster())) {
+                    !(servingGuardian && hostReport)) {
                 return;
             }
             if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
