@@ -3,7 +3,6 @@ package com.jftse.emulator.server.core.handler;
 import com.jftse.emulator.common.utilities.BitKit;
 import com.jftse.emulator.server.core.manager.RelayManager;
 import com.jftse.emulator.server.core.manager.RelaySessionAuthorizationStore;
-import com.jftse.emulator.server.core.relay.OwnedPetRelay3332Layout;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -25,25 +24,12 @@ public class RelayPacketRequestHandler implements PacketHandler<FTConnection, CM
                 return;
             }
             byte[] innerPacket = relay.getPacket();
-            boolean ownedPetSession = RelaySessionAuthorizationStore.getInstance()
-                    .isOwnedPetSession(client.getGameSessionId().get());
-            if (ownedPetSession && (innerPacket == null || innerPacket.length < 8)) {
+            if (innerPacket == null || innerPacket.length < 8) {
                 return;
             }
             int packetId = BitKit.bytesToShort(innerPacket, 4);
-            if (ownedPetSession && OwnedPetRelay3332Layout.isPacket(innerPacket)) {
-                // Identity and widths are proven. Meanings are not. Never queue or forward.
-                OwnedPetRelay3332Layout.parse(innerPacket).ifPresentOrElse(
-                        widths -> log.warn("Dropping owned-pet relay 0x3332 (widths only): {}", widths.toLogString()),
-                        () -> log.warn("Dropping owned-pet relay 0x3332 with unparseable length {}", innerPacket.length));
-                return;
-            }
             IPacket relayPacket = PacketRegistry.decode(packetId, innerPacket);
             if (relayPacket instanceof CMSGDefault defaultPacket) {
-                if (ownedPetSession) {
-                    log.warn("Dropping unknown owned-pet relay packet id: 0x{}", Integer.toHexString(packetId));
-                    return;
-                }
                 // not found so its wrapped in CMSGDefault and prob not reversed yet
                 // we must still relay it because the client expects the packet to function properly
                 RelayManager.getInstance().getClientsInSession(client.getGameSessionId().get()).forEach(c -> {

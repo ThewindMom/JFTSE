@@ -21,22 +21,33 @@ public class BallAnimationHandler implements PacketHandler<FTConnection, CMSGBal
     @Override
     public void handle(FTConnection connection, CMSGBallAnimation packet) {
         FTClient client = connection.getClient();
-        if (!RelaySessionAuthorizationStore.getInstance().canAct(client, packet.getPlayerPosition())) {
+        RelaySessionAuthorizationStore authorizationStore = RelaySessionAuthorizationStore.getInstance();
+        if (!authorizationStore.canParticipate(client)) {
+            return;
+        }
+        boolean dedicatedBattlemon = client.getGameSessionId()
+                .map(authorizationStore::isBattlemon)
+                .orElse(false);
+        if (dedicatedBattlemon &&
+                !authorizationStore.canAct(client, packet.getPlayerPosition())) {
             return;
         }
 
-        MatchBallSyncMessage mbsm = MatchBallSyncMessage.builder()
-                .gameSessionId(client.getGameSessionId().orElse(null))
-                .playerId(client.getPlayerId())
-                .playerPos((int) packet.getPlayerPosition())
-                .hitAct(BallHitAction.valueOf(packet.getHitAct()))
-                .powerLevel((int) packet.getPowerLevel())
-                .speed(packet.getSpeed() / 100.0f)
-                .curveControl(packet.getCurveControl() / 100.0f)
-                .shotCode((int) packet.getShotCode())
-                .specialShotId((int) packet.getSpecialShotId())
-                .build();
-        RProducerService.getInstance().send(mbsm, "game.stats.match.rally", "MatchplaySystem(RelayServer)");
+        if (authorizationStore.canReportMatchActor(client, packet.getPlayerPosition())) {
+            MatchBallSyncMessage mbsm = MatchBallSyncMessage.builder()
+                    .gameSessionId(client.getGameSessionId().orElse(null))
+                    .playerId(client.getPlayerId())
+                    .playerPos((int) packet.getPlayerPosition())
+                    .hitAct(BallHitAction.valueOf(packet.getHitAct()))
+                    .powerLevel((int) packet.getPowerLevel())
+                    .speed(packet.getSpeed() / 100.0f)
+                    .curveControl(packet.getCurveControl() / 100.0f)
+                    .shotCode((int) packet.getShotCode())
+                    .specialShotId((int) packet.getSpecialShotId())
+                    .build();
+            RProducerService.getInstance().send(
+                    mbsm, "game.stats.match.rally", "MatchplaySystem(RelayServer)");
+        }
 
         SMSGBallAnimation relayPacket = packet.translate(translator);
         client.getGameSessionId().ifPresent(sessionId -> RelayManager.getInstance()

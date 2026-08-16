@@ -44,9 +44,12 @@ type 5. Parser VA `0x5319de` compares `cx` to `0x3332`. Layout remains
 25-byte inner (8-byte header + 17-byte body widths 1,1,1,1,4,2,1,2,2,2).
 
 Field meanings, sender authority, and actor ownership are unresolved.
-`OwnedPetRelay3332Layout` parses those widths for structured logging only.
-`RelayPacketRequestHandler` drops 0x3332 in owned-pet sessions **before**
-`PacketRegistry.decode` / `queuePacket`. It is not forwarded.
+`OwnedPetRelay3332Layout` records those widths only. A later live two-client
+Guardian reproduction proved that the owned-pet-only drop breaks normal
+Guardian synchronization. `RelayPacketRequestHandler` now forwards exact
+well-framed `0x3332` unchanged to authenticated, non-spectating members of the
+same relay session, matching `origin/development`; it remains unregistered and
+is never queued as a server-authoritative handler.
 
 ## Spectators and other dedicated layouts
 
@@ -63,5 +66,5 @@ or 1p/3p/4-human dedicated topologies without a client-proven flow.
 
 - PET_ITEM 15: independently dumped from retail Item_PetItem.set; index absent; server continues to reject unused.
 - MaxUse: values recorded (1–12:10, 13:300, 14:50, 16–23:50); meaning unproven; no counter implemented.
-- 0x3332: identity+widths reconfirmed at 0x52be79 / 0x5319de; no capture; structured parse+log then drop; not forwarded.
+- 0x3332: identity+widths reconfirmed at 0x52be79 / 0x5319de; field semantics remain unresolved; opaque same-session forwarding restored after live Guardian regression evidence; not decoded or queued.
 - Spectators/other layouts: client join has no spectator flag; dedicated Battlemon remains 2 owners + pets 2/3; rejected cases now have named tests.

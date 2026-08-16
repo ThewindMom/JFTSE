@@ -89,6 +89,29 @@ class GameSessionTest {
     }
 
     @Test
+    void guardianSessionSupportsZeroOneAndTwoOptionalPets() {
+        for (int petCount = 0; petCount <= 2; petCount++) {
+            GameSession session = new GameSession();
+            RoomPlayer firstOwner = roomPlayer(100L, (short) 0);
+            RoomPlayer secondOwner = roomPlayer(200L, (short) 1);
+            session.getClients().add(clientFor(firstOwner));
+            session.getClients().add(clientFor(secondOwner));
+            if (petCount >= 1) {
+                session.addOwnedPetSeat(firstOwner, pet(10L, "First pet"));
+            }
+            if (petCount == 2) {
+                session.addOwnedPetSeat(secondOwner, pet(20L, "Second pet"));
+            }
+
+            session.initializeGameplayActorPositions();
+
+            assertEquals(2 + petCount, session.getGameplayActorPositions().size());
+            assertEquals(petCount >= 1, session.getGameplayActorPositions().contains((short) 2));
+            assertEquals(petCount == 2, session.getGameplayActorPositions().contains((short) 3));
+        }
+    }
+
+    @Test
     void battlemonActorsRejectPositionsWithoutAHumanOwner() {
         GameSession session = new GameSession(true);
         RoomPlayer invalidOwner = roomPlayer(100L, (short) 2);

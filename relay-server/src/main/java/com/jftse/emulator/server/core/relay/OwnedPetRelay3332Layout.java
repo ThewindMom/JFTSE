@@ -9,8 +9,9 @@ import java.util.Optional;
  *
  * Native builder 0x52be79 / parser 0x5319de prove packet identity and the
  * 8-byte header plus 17-byte body widths. Field meanings, sender authority,
- * and actor ownership are unresolved. This type must never be queued or
- * forwarded as a combat/auth handler.
+ * and actor ownership are unresolved. This type must never be queued as a
+ * server-authoritative combat handler; opaque same-session relay remains
+ * development-compatible transport.
  */
 public final class OwnedPetRelay3332Layout {
     public static final int PACKET_ID = 0x3332;

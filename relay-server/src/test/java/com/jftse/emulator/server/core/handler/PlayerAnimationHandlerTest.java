@@ -105,6 +105,40 @@ class PlayerAnimationHandlerTest {
         verify(peerConnection).sendTCP(any(SMSGPlayerAnimation.class));
     }
 
+    @Test
+    void guardianActorAnimationFromHostReachesSecondEndpoint() {
+        RelaySessionAuthorizationStore.getInstance().put(policy(false, true));
+
+        new PlayerAnimationHandler().handle(ownerConnection, packet(10, 1));
+
+        verify(peerConnection).sendTCP(any(SMSGPlayerAnimation.class));
+    }
+
+    @Test
+    void ordinaryCrossActorAnimationRemainsDevelopmentCompatible() {
+        RelaySessionAuthorizationStore.getInstance().put(policy(false, true));
+
+        new PlayerAnimationHandler().handle(ownerConnection, packet(1, 1));
+
+        verify(peerConnection).sendTCP(any(SMSGPlayerAnimation.class));
+    }
+
+    @Test
+    void dedicatedBattlemonRejectsCrossActorAnimation() {
+        new PlayerAnimationHandler().handle(ownerConnection, packet(1, 1));
+
+        verify(peerConnection, never()).sendTCP(any(SMSGPlayerAnimation.class));
+    }
+
+    @Test
+    void spectatorCannotBroadcastOrdinaryGuardianAnimation() {
+        owner.setSpectator(true);
+
+        new PlayerAnimationHandler().handle(ownerConnection, packet(10, 1));
+
+        verify(peerConnection, never()).sendTCP(any(SMSGPlayerAnimation.class));
+    }
+
     private static RelaySessionAuthorizationMessage policy(boolean battlemon, boolean ownerHasController) {
         return RelaySessionAuthorizationMessage.builder()
                 .gameSessionId(150)

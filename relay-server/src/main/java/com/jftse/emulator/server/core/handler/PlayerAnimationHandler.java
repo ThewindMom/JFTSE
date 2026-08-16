@@ -20,8 +20,15 @@ public class PlayerAnimationHandler implements PacketHandler<FTConnection, CMSGP
     public void handle(FTConnection connection, CMSGPlayerAnimation packet) {
         boolean controllerCommand = BattlemonController.isPetActor(packet.getPlayerPosition()) &&
                 BattlemonController.coverageArea(packet.getAnimationType()).isPresent();
-        if (!RelaySessionAuthorizationStore.getInstance()
-                .canAct(connection.getClient(), packet.getPlayerPosition(), controllerCommand)) {
+        RelaySessionAuthorizationStore authorizationStore = RelaySessionAuthorizationStore.getInstance();
+        boolean dedicatedBattlemon = connection.getClient().getGameSessionId()
+                .map(authorizationStore::isBattlemon)
+                .orElse(false);
+        boolean authorized = controllerCommand || dedicatedBattlemon
+                ? authorizationStore.canAct(
+                        connection.getClient(), packet.getPlayerPosition(), controllerCommand)
+                : authorizationStore.canParticipate(connection.getClient());
+        if (!authorized) {
             return;
         }
         SMSGPlayerAnimation relayPacket = packet.translate(translator);

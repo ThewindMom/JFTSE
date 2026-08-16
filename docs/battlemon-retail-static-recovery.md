@@ -51,9 +51,13 @@ The builder is selected for internal relay-object type 5. `0x32C9` is selected
 for type 1 and `0x32CA` for type 6 in the same routine. This proves packet
 identity and serialization only. Field meanings, sender authority, actor
 ownership, replay behavior, and the semantic source of body byte 0 remain
-unresolved. Registering or forwarding `0x3332` now would turn
-an unknown packet into an authorization bypass, so all owned-pet sessions must
-continue to drop it fail-closed.
+unresolved. Registering `0x3332` as a decoded handler would turn an unknown
+packet into a server-authoritative mutation path without proof. It remains
+unregistered and is never queued for server mutation. Live two-client Guardian
+testing later proved that dropping opaque relay traffic only for owned-pet
+sessions breaks development-compatible synchronization. The relay therefore
+forwards well-framed `0x3332` unchanged only within the authenticated,
+non-spectating relay session, matching `origin/development`.
 
 ## PET_ITEM table
 

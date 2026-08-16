@@ -95,6 +95,20 @@ public class RelaySessionAuthorizationStore {
                 Boolean.TRUE.equals(policy.battlemonControllerByPlayerId().get(client.getPlayerId()));
     }
 
+    public boolean canReportMatchActor(FTClient client, int actorPosition) {
+        if (client == null || client.getGameSessionId().isEmpty()) return false;
+        int gameSessionId = client.getGameSessionId().get();
+        SessionAuthorization policy = sessions.get(gameSessionId);
+        if (policy == null) return !requiresActorPolicy(gameSessionId);
+        Set<Short> ownedActors = policy.actorPositionsByPlayerId()
+                .getOrDefault(client.getPlayerId(), Set.of());
+        if (client.isSpectator() || ownedActors.isEmpty()) return false;
+        if (ownedActors.contains((short) actorPosition)) return true;
+        if (policy.battlemon() || !policy.ownedPetSession()) return false;
+        boolean roomHost = ownedActors.contains((short) 0);
+        return roomHost && !isAuthorizedActor(gameSessionId, actorPosition);
+    }
+
     public boolean canParticipate(FTClient client) {
         if (client == null || client.getGameSessionId().isEmpty()) return false;
         int gameSessionId = client.getGameSessionId().get();
