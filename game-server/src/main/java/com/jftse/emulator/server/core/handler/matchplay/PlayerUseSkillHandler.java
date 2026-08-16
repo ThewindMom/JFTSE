@@ -84,7 +84,8 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         boolean attackerIsGuardian = attackerPosition > 9;
         boolean attackerIsPlayer = attackerPosition < 4;
 
-        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() ||
+                game instanceof MatchplayGuardianGame || gameSession.hasOwnedPetSeats();
         if (enhancedActorSession && !gameSession.isGameplayEndpoint(ftClient))
             return;
         if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
@@ -106,7 +107,7 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
                     guardianGame.getGuardianBattleStates().stream()
                             .anyMatch(state -> state.getPosition() == attackerPosition &&
                                     state.getCurrentHealth().get() > 0);
-            if (!livePlayerAttacker && !liveGuardianAttacker)
+            if (!livePlayerAttacker && !(liveGuardianAttacker && roomPlayer.isMaster()))
                 return;
             if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
                     .noneMatch(state -> state.getPosition() == targetPosition) &&
@@ -137,6 +138,11 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         }
 
         Skill skill = skillService.findSkillByIndex(anyoneUsesSkill.getSkillIndex());
+        if (enhancedActorSession && attackerIsGuardian &&
+                (skill == null || !gameSession.tryConsumeSkillCast(attackerPosition,
+                        anyoneUsesSkill.getSkillIndex(), Time.getNSTime()))) {
+            return;
+        }
         SkillUse skillUse = null;
         if (skill != null)
             skillUse = new SkillUse(skill, attackerPosition, targetPosition, isQuickSlot, skillUseTimestamp, false);
@@ -164,7 +170,7 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         }
 
         if (enhancedActorSession && skill != null) {
-            gameSession.authorizeSkillHits(attackerPosition, targetPosition,
+            gameSession.authorizeSkillHits(attackerPosition, attackerIsGuardian ? -1 : targetPosition,
                     skill.getId().byteValue(), Time.getNSTime());
         }
 

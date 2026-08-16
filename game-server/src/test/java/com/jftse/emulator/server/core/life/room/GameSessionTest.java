@@ -187,6 +187,26 @@ class GameSessionTest {
         session.authorizeSkillHits(2, 0, 7, 1_000L);
 
         assertFalse(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 3_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 4_000L));
+    }
+
+    @Test
+    void serverGrantedSkillCastCanBeConsumedExactlyOnce() {
+        GameSession session = new GameSession();
+        session.authorizeSkillCast(10, 8, 1_000L);
+
+        assertTrue(session.tryConsumeSkillCast(10, 8, 2_000L));
+        assertFalse(session.tryConsumeSkillCast(10, 8, 3_000L));
+        assertFalse(session.tryConsumeSkillCast(10, 9, 3_000L));
+    }
+
+    @Test
+    void serverGrantedSkillCastExpires() {
+        GameSession session = new GameSession();
+        session.authorizeSkillCast(10, 8, 1_000L);
+
+        assertFalse(session.tryConsumeSkillCast(10, 8, 15_000_001_001L));
     }
 
     @Test

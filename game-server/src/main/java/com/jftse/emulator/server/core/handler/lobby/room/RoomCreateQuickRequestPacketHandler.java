@@ -37,7 +37,8 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         room.setRoomId(GameManager.getInstance().getRoomId());
         room.setRoomName(String.format("%s's room", player.getName()));
         room.setRoomType(packet.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+        room.setAllowBattlemon(room.getRoomType() == 2 || packet.getMode() == GameMode.GUARDIAN
+                ? (byte) 1 : (byte) 0);
 
         if (packet.getMode() == -1) {
             final Random random = new Random();
@@ -53,10 +54,7 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         room.setMode(packet.getMode());
         room.setRule((byte) 0);
 
-        if (packet.getMode() == GameMode.GUARDIAN)
-            room.setPlayers((byte) 4);
-        else
-            room.setPlayers(playerSize == 0 ? 2 : playerSize);
+        room.setPlayers(playerSize == 0 ? 2 : playerSize);
 
         if (isBattlemon)
             room.setPlayers((byte) 4);

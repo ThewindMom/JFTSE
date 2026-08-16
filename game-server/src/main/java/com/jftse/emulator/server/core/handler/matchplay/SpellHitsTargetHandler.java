@@ -86,7 +86,8 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return;
 
         CMSGSpellHitsTargetExtended spellHitsTargetExt = new CMSGSpellHitsTargetExtended(spellHitsTarget);
-        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() ||
+                game instanceof MatchplayGuardianGame || gameSession.hasOwnedPetSeats();
         if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             boolean liveAttacker = battleGame.getPlayerBattleStates().stream()
@@ -110,7 +111,13 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                     .anyMatch(state -> state.getPosition() == attackerPosition &&
                             state.getCurrentHealth().get() > 0);
             boolean servingGuardian = attackerPosition == 4 && spellHitsTargetExt.getSkillId() == 0;
-            if (!livePlayerAttacker && !liveGuardianAttacker && !servingGuardian) {
+            boolean targetOwnedByReporter = gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), targetPosition);
+            boolean guardianTarget = guardianGame.getGuardianBattleStates().stream()
+                    .anyMatch(state -> state.getPosition() == targetPosition);
+            boolean authorizedGuardianReport = liveGuardianAttacker &&
+                    (targetOwnedByReporter || guardianTarget && ftClient.getRoomPlayer().isMaster());
+            if (!livePlayerAttacker && !authorizedGuardianReport &&
+                    !(servingGuardian && ftClient.getRoomPlayer().isMaster())) {
                 return;
             }
             if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()

@@ -292,6 +292,7 @@ class BattlemonActorPolicyTest {
     @Test
     void guardianModeRejectsAPlayerActorNotOwnedByTheReportingEndpoint() {
         GuardianContext context = guardianContext((short) 1, false);
+        when(context.session().hasOwnedPetSeats()).thenReturn(false);
         CMSGPlayerUseSkill packet = CMSGPlayerUseSkill.builder()
                 .attackerPosition((byte) 1)
                 .targetPosition((byte) 10)
@@ -323,6 +324,54 @@ class BattlemonActorPolicyTest {
 
         verify(skillService, never()).findSkillByIndex(org.mockito.ArgumentMatchers.anyInt());
         verify(skillService, never()).findSkillById(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void guardianCastRequiresTheMasterAndAServerGrant() {
+        GuardianContext context = guardianContext((short) 0, true);
+        Skill skill = new Skill();
+        skill.setId(9L);
+        skill.setDamage(-1);
+        when(skillService.findSkillByIndex(8)).thenReturn(skill);
+        CMSGPlayerUseSkill packet = CMSGPlayerUseSkill.builder()
+                .attackerPosition((byte) 10)
+                .targetPosition((byte) 0)
+                .skillIndex((byte) 8)
+                .build();
+
+        new PlayerUseSkillHandler().handle(context.connection(), packet);
+        verify(skillService, never()).findSkillByIndex(8);
+
+        when(context.roomPlayer().isMaster()).thenReturn(true);
+        new PlayerUseSkillHandler().handle(context.connection(), packet);
+        verify(context.session(), never()).authorizeSkillHits(
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyLong());
+
+        when(context.session().tryConsumeSkillCast(org.mockito.ArgumentMatchers.eq(10),
+                org.mockito.ArgumentMatchers.eq(8),
+                org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+        new PlayerUseSkillHandler().handle(context.connection(), packet);
+        verify(context.session()).authorizeSkillHits(
+                org.mockito.ArgumentMatchers.eq(10), org.mockito.ArgumentMatchers.eq(-1),
+                org.mockito.ArgumentMatchers.eq(9), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void guardianHitMustBeReportedByItsPlayerTarget() {
+        GuardianContext context = guardianContext((short) 0, true);
+        when(context.session().tryConsumeSkillHit(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+        CMSGSpellHitsTarget packet = CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 10)
+                .targetPosition((short) 1)
+                .skillId((byte) 9)
+                .build();
+
+        new SpellHitsTargetHandler().handle(context.connection(), packet);
+
+        verify(skillService, never()).findSkillById(9L);
     }
 
     private static BattleContext battleContext(short actorPosition, boolean actorOwned) {
@@ -391,17 +440,18 @@ class BattlemonActorPolicyTest {
         when(client.getActiveRoom()).thenReturn(room);
         when(client.getRoomPlayer()).thenReturn(roomPlayer);
         when(client.getActiveGameSession()).thenReturn(session);
+        when(session.isGameplayEndpoint(client)).thenReturn(true);
 
         FTConnection connection = mock(FTConnection.class);
         when(connection.getClient()).thenReturn(client);
         when(client.getConnection()).thenReturn(connection);
         when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>(java.util.List.of(client)));
-        return new GuardianContext(connection);
+        return new GuardianContext(connection, roomPlayer, session);
     }
 
     private record BattleContext(FTConnection connection, RoomPlayer roomPlayer, MatchplayBattleGame game) {
     }
 
-    private record GuardianContext(FTConnection connection) {
+    private record GuardianContext(FTConnection connection, RoomPlayer roomPlayer, GameSession session) {
     }
 }

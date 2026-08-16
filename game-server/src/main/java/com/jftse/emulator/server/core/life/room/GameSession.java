@@ -49,6 +49,8 @@ public class GameSession {
     private ConcurrentLinkedDeque<FTClient> clients;
     private ConcurrentLinkedDeque<Fireable> fireables;
     private ConcurrentHashMap<Short, GameplayActor> actors;
+    private final ConcurrentHashMap<SkillCastKey, Long> skillCastAuthorizations =
+            new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SkillHitKey, SkillHitAuthorization> skillHitAuthorizations =
             new ConcurrentHashMap<>();
     private AtomicBoolean completionHandled;
@@ -192,6 +194,24 @@ public class GameSession {
         return rallyPointHandled.compareAndSet(false, true);
     }
 
+    public void authorizeSkillCast(int attackerPosition, int skillIndex, long nowNanos) {
+        skillCastAuthorizations.put(new SkillCastKey((short) attackerPosition, (byte) skillIndex),
+                nowNanos + 15_000_000_000L);
+    }
+
+    public boolean tryConsumeSkillCast(int attackerPosition, int skillIndex, long nowNanos) {
+        SkillCastKey key = new SkillCastKey((short) attackerPosition, (byte) skillIndex);
+        Long expiresAtNanos = skillCastAuthorizations.get(key);
+        if (expiresAtNanos == null) {
+            return false;
+        }
+        if (nowNanos > expiresAtNanos) {
+            skillCastAuthorizations.remove(key, expiresAtNanos);
+            return false;
+        }
+        return skillCastAuthorizations.remove(key, expiresAtNanos);
+    }
+
     public void authorizeSkillHits(int attackerPosition, int targetPosition, int skillId, long nowNanos) {
         SkillHitKey key = new SkillHitKey((short) attackerPosition, (byte) skillId);
         skillHitAuthorizations.put(key,
@@ -201,9 +221,14 @@ public class GameSession {
     public boolean tryConsumeSkillHit(int attackerPosition, int targetPosition, int skillId, long nowNanos) {
         SkillHitKey key = new SkillHitKey((short) attackerPosition, (byte) skillId);
         SkillHitAuthorization authorization = skillHitAuthorizations.get(key);
-        if (authorization == null || nowNanos > authorization.expiresAtNanos ||
-                authorization.targetPosition >= 0 && authorization.targetPosition != targetPosition) {
+        if (authorization == null) {
+            return false;
+        }
+        if (nowNanos > authorization.expiresAtNanos) {
             skillHitAuthorizations.remove(key, authorization);
+            return false;
+        }
+        if (authorization.targetPosition >= 0 && authorization.targetPosition != targetPosition) {
             return false;
         }
         return authorization.consumedTargets.add((short) targetPosition);
@@ -215,6 +240,9 @@ public class GameSession {
     }
 
     private record SkillHitKey(short attackerPosition, byte skillId) {
+    }
+
+    private record SkillCastKey(short attackerPosition, byte skillIndex) {
     }
 
     private static final class SkillHitAuthorization {

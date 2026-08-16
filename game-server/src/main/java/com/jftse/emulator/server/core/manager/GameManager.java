@@ -677,7 +677,8 @@ public class GameManager implements ServerLoopHandler {
         byte players = room.getPlayers();
         if (room.getRoomType() == RoomType.BATTLEMON) {
             IntStream.range(4, 9).forEach(position -> room.getPositions().set(position, RoomPositionState.Locked));
-        } else if (players == 2) {
+        } else if (players == 2 &&
+                !(room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0)) {
             room.getPositions().set(0, RoomPositionState.InUse);
             room.getPositions().set(2, RoomPositionState.Locked);
             room.getPositions().set(3, RoomPositionState.Locked);
