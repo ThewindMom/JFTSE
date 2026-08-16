@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.handler;
 import com.jftse.emulator.common.utilities.BitKit;
 import com.jftse.emulator.server.core.manager.RelayManager;
 import com.jftse.emulator.server.core.manager.RelaySessionAuthorizationStore;
+import com.jftse.emulator.server.core.relay.OwnedPetRelay3332Layout;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -30,6 +31,13 @@ public class RelayPacketRequestHandler implements PacketHandler<FTConnection, CM
                 return;
             }
             int packetId = BitKit.bytesToShort(innerPacket, 4);
+            if (ownedPetSession && OwnedPetRelay3332Layout.isPacket(innerPacket)) {
+                // Identity and widths are proven. Meanings are not. Never queue or forward.
+                OwnedPetRelay3332Layout.parse(innerPacket).ifPresentOrElse(
+                        widths -> log.warn("Dropping owned-pet relay 0x3332 (widths only): {}", widths.toLogString()),
+                        () -> log.warn("Dropping owned-pet relay 0x3332 with unparseable length {}", innerPacket.length));
+                return;
+            }
             IPacket relayPacket = PacketRegistry.decode(packetId, innerPacket);
             if (relayPacket instanceof CMSGDefault defaultPacket) {
                 if (ownedPetSession) {
