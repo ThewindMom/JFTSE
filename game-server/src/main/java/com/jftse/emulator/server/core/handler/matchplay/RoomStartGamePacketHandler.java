@@ -388,9 +388,10 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
         List<FTClient> clientsInRoom = new ArrayList<>(
                 GameManager.getInstance().getClientsInRoom(room.getRoomId()));
         GameSession gameSession = new GameSession();
-        Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
 
         gameSession.setPlayers(room.getPlayers());
+        gameSession.getClients().addAll(clientsInRoom);
+        gameSession.initializeGameplayActorPositions();
         MatchplayGame game;
         switch (room.getMode()) {
             case GameMode.BASIC -> game = new MatchplayBasicGame(room.getPlayers());
@@ -399,10 +400,10 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             default -> throw new IllegalStateException("room mode not supported: " + room.getMode());
         }
         gameSession.setMatchplayGame(game);
+        Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
 
         clientsInRoom.forEach(client -> {
             client.setActiveGameSession(gameSessionId);
-            gameSession.getClients().add(client);
         });
 
         SMSGUnsetHost unsetHostPacket = SMSGUnsetHost.builder().result((byte) 0).build();

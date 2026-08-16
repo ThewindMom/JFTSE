@@ -284,6 +284,62 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @Test
+    void plainGuardianStartInitializesHumanActorsForRelayConnections() {
+        Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
+        Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
+        Object previousSessionManager = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
+        Object previousThreadManager = ReflectionTestUtils.getField(ThreadManager.class, "instance");
+        try {
+            AuthenticationService authenticationService = mock(AuthenticationService.class);
+            ServiceManager serviceManager = mock(ServiceManager.class);
+            when(serviceManager.getAuthenticationService()).thenReturn(authenticationService);
+            ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
+
+            ServerConfService serverConfService = mock(ServerConfService.class);
+            when(serverConfService.get("RelayPort", Integer.class)).thenReturn(5896);
+            GameManager gameManager = mock(GameManager.class);
+            when(gameManager.getServerConfService()).thenReturn(serverConfService);
+            ReflectionTestUtils.setField(GameManager.class, "instance", gameManager);
+
+            GameSessionManager sessionManager = new GameSessionManager();
+            sessionManager.init();
+            ThreadManager threadManager = mock(ThreadManager.class);
+            ReflectionTestUtils.setField(ThreadManager.class, "instance", threadManager);
+
+            Room room = new Room();
+            room.setRoomType((byte) RoomType.MATCH);
+            room.setMode((byte) com.jftse.server.core.constants.GameMode.GUARDIAN);
+            room.setAllowBattlemon((byte) 0);
+            room.setPlayers((byte) 2);
+            FTClient first = guardianClientInRoom(room, 100L, (short) 0, pet(10L, "First pet"));
+            FTClient second = guardianClientInRoom(room, 200L, (short) 1, pet(20L, "Second pet"));
+            first.getRoomPlayer().setMaster(true);
+            second.getRoomPlayer().setReady(true);
+            when(gameManager.getClientsInRoom(room.getRoomId())).thenReturn(List.of(first, second));
+
+            GameServer relayServer = new GameServer();
+            relayServer.setHost("127.0.0.1");
+            relayServer.setPort(5896);
+            when(authenticationService.getGameServerByPort(5896)).thenReturn(relayServer);
+
+            new RoomStartGamePacketHandler().handle(first.getConnection(), CMSGStartGame.builder().build());
+
+            assertEquals(RoomStatus.StartingGame, room.getStatus());
+            assertEquals(1, sessionManager.getGameSessionList().size());
+            GameSession session = sessionManager.getGameSessionList().values().iterator().next();
+            assertEquals(List.of((short) 0, (short) 1), session.getGameplayActorPositions());
+            assertTrue(session.isGameplayEndpoint(first));
+            assertTrue(session.isGameplayEndpoint(second));
+            verify(threadManager).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.SECONDS));
+        } finally {
+            ReflectionTestUtils.setField(GameManager.class, "instance", previousGameManager);
+            ReflectionTestUtils.setField(ServiceManager.class, "instance", previousServiceManager);
+            ReflectionTestUtils.setField(GameSessionManager.class, "instance", previousSessionManager);
+            ReflectionTestUtils.setField(ThreadManager.class, "instance", previousThreadManager);
+        }
+    }
+
+    @Test
     void guardianBattlemonStartRequiresBothPetsAndAcceptsBothOwners() {
         Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
