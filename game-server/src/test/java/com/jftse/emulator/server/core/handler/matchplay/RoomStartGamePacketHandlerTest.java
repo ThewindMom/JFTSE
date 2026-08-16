@@ -88,13 +88,19 @@ class RoomStartGamePacketHandlerTest {
         GameManager gameManager = new GameManager();
         ServiceManager serviceManager = mock(ServiceManager.class);
         SocialService socialService = mock(SocialService.class);
+        PetService petService = mock(PetService.class);
         when(serviceManager.getSocialService()).thenReturn(socialService);
+        when(serviceManager.getPetService()).thenReturn(petService);
         ReflectionTestUtils.setField(gameManager, "serviceManager", serviceManager);
         ReflectionTestUtils.setField(gameManager, "clients", new ConcurrentLinkedDeque<FTClient>());
         ReflectionTestUtils.setField(gameManager, "rooms", new ConcurrentLinkedDeque<Room>());
 
         FTPlayer player = mock(FTPlayer.class);
+        when(player.getId()).thenReturn(100L);
         when(player.getName()).thenReturn("Player");
+        when(player.getItemStats()).thenReturn(new EquippedItemStats());
+        when(player.getItemPartsItemIndex()).thenReturn(
+                new EquippedItemParts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
         FTClient client = mock(FTClient.class);
         when(client.hasPlayer()).thenReturn(true);
         when(client.getPlayer()).thenReturn(player);
@@ -109,6 +115,30 @@ class RoomStartGamePacketHandlerTest {
         assertTrue(room.getRoomPlayerList().isEmpty());
         assertTrue(gameManager.getRooms().isEmpty());
         assertEquals(List.of(0x138A), sentPacketIds(connection));
+
+        Pet selectedPet = pet(10L, "Selected pet");
+        PetView selectedPetView = PetView.of(selectedPet);
+        when(client.getActivePet()).thenReturn(selectedPetView);
+        when(petService.findByIdAndPlayerId(10L, 100L)).thenReturn(selectedPet);
+
+        gameManager.internalHandleRoomCreate(connection, room);
+
+        assertEquals(List.of(
+                        RoomPositionState.InUse,
+                        RoomPositionState.Free,
+                        RoomPositionState.InUse,
+                        RoomPositionState.Free),
+                room.getPositions().subList(0, 4));
+        assertEquals(List.of(
+                        RoomPositionState.Locked,
+                        RoomPositionState.Locked,
+                        RoomPositionState.Locked,
+                        RoomPositionState.Locked,
+                        RoomPositionState.Locked,
+                        RoomPositionState.Locked),
+                room.getPositions().subList(4, 10));
+        assertEquals(1, room.getRoomPlayerList().size());
+        assertEquals(selectedPetView, room.getRoomPlayerList().getFirst().getPet());
     }
 
     @Test

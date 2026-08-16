@@ -134,7 +134,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             anyPositionAvailable = roomPlayerList.size() < room.getPlayers();
         } else if (isBattlemon) {
             anyPositionAvailable = IntStream.range(0, 2)
-                    .anyMatch(position -> room.getPositions().get(position) == RoomPositionState.Free);
+                    .anyMatch(position -> GameManager.isBattlemonOwnerPositionFree(room, position));
         } else {
             anyPositionAvailable = room.getPositions().stream().anyMatch(x -> x == RoomPositionState.Free);
         }
@@ -245,7 +245,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         if (!isTownSquare) {
             if (isBattlemon) {
                 newPosition = IntStream.range(0, 2)
-                        .filter(position -> room.getPositions().get(position) == RoomPositionState.Free)
+                        .filter(position -> GameManager.isBattlemonOwnerPositionFree(room, position))
                         .findFirst()
                         .orElse(-1);
             } else {
@@ -263,18 +263,12 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
 
         if (newPosition != -1 && isBattlemon) {
             int positionToClaim = newPosition;
-            synchronized (room) {
-                PetView currentActivePet = ftClient.getActivePet();
-                boolean battlemonPetUnchanged = currentActivePet != null &&
-                        currentActivePet.id() == selectedBattlemonPet.id();
-                boolean canClaimPosition = room.getStatus() == RoomStatus.NotRunning &&
-                        battlemonPetUnchanged &&
-                        room.getPositions().get(positionToClaim) == RoomPositionState.Free;
-                if (canClaimPosition) {
-                    room.getPositions().set(positionToClaim, RoomPositionState.InUse);
-                } else {
-                    newPosition = -1;
-                }
+            PetView currentActivePet = ftClient.getActivePet();
+            boolean battlemonPetUnchanged = currentActivePet != null &&
+                    currentActivePet.id() == selectedBattlemonPet.id();
+            if (!battlemonPetUnchanged ||
+                    !GameManager.tryClaimBattlemonOwnerPosition(room, positionToClaim)) {
+                newPosition = -1;
             }
         }
 

@@ -42,12 +42,21 @@ public class RoomSlotCloseRequestPacketHandler implements PacketHandler<FTConnec
                     return;
                 }
             }
-            room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            if (room.getRoomType() == RoomType.BATTLEMON) {
+                GameManager.setBattlemonOwnerPositionState(room, slot,
+                        close ? RoomPositionState.Locked : RoomPositionState.Free);
+            } else {
+                room.getPositions().set(slot, close ? RoomPositionState.Locked : RoomPositionState.Free);
+            }
 
             SMSGRoomCloseSlot closeSlot = SMSGRoomCloseSlot.builder().slot(slot).close(close).build();
             GameManager.getInstance().getClientsInRoom(room.getRoomId()).forEach(c -> {
                 if (c.getConnection() != null) {
                     c.getConnection().sendTCP(closeSlot);
+                    if (room.getRoomType() == RoomType.BATTLEMON) {
+                        c.getConnection().sendTCP(SMSGRoomCloseSlot.builder()
+                                .slot((byte) (slot + 2)).close(close).build());
+                    }
                 }
             });
         }

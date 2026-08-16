@@ -485,6 +485,43 @@ public class GameManager implements ServerLoopHandler {
         return List.of(playerPosition);
     }
 
+    public static boolean isBattlemonOwnerPositionFree(Room room, int ownerPosition) {
+        synchronized (room) {
+            return ownerPosition >= 0 && ownerPosition <= 1 &&
+                    room.getPositions().get(ownerPosition) == RoomPositionState.Free &&
+                    room.getPositions().get(ownerPosition + 2) == RoomPositionState.Free;
+        }
+    }
+
+    public static boolean tryClaimBattlemonOwnerPosition(Room room, int ownerPosition) {
+        synchronized (room) {
+            if (room.getStatus() != RoomStatus.NotRunning ||
+                    !isBattlemonOwnerPositionFree(room, ownerPosition)) {
+                return false;
+            }
+            setBattlemonOwnerPositionState(room, ownerPosition, RoomPositionState.InUse);
+            return true;
+        }
+    }
+
+    public static void setBattlemonOwnerPositionState(Room room, int ownerPosition, short state) {
+        synchronized (room) {
+            room.getPositions().set(ownerPosition, state);
+            room.getPositions().set(ownerPosition + 2, state);
+        }
+    }
+
+    static void releaseRoomPositions(Room room, List<Short> positions) {
+        synchronized (room) {
+            for (short position : positions) {
+                room.getPositions().set(position,
+                        position == MiscConstants.InvisibleGmSlot
+                                ? RoomPositionState.Locked
+                                : RoomPositionState.Free);
+            }
+        }
+    }
+
     public synchronized void handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
         FTClient client = connection.getClient();
         if (!client.hasPlayer())
@@ -531,23 +568,11 @@ public class GameManager implements ServerLoopHandler {
         }
 
         if (!isTownSquare) {
-            if (playerPosition == 9) {
-                room.getPositions().set(playerPosition, RoomPositionState.Locked);
-            } else if (playerPosition != -1) {
-                room.getPositions().set(playerPosition, RoomPositionState.Free);
-            }
+            releaseRoomPositions(room, roomPositionsToClear);
         }
 
         boolean hasEnhancedPetSeat = room.getRoomType() == RoomType.BATTLEMON ||
                 room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
-        if (!isTownSquare && hasEnhancedPetSeat && roomPlayer.map(RoomPlayer::getPet).orElse(null) != null &&
-                playerPosition >= 0 && playerPosition <= 1) {
-            int petPosition = playerPosition + 2;
-            if (room.getPositions().get(petPosition) == RoomPositionState.InUse &&
-                    roomPlayerList.stream().noneMatch(player -> player.getPosition() == petPosition)) {
-                room.getPositions().set(petPosition, RoomPositionState.Free);
-            }
-        }
         if (hasEnhancedPetSeat) {
             roomPlayer.ifPresent(value -> value.setPet(null));
         }
@@ -649,14 +674,15 @@ public class GameManager implements ServerLoopHandler {
     }
 
     public synchronized void internalHandleRoomCreate(final FTConnection connection, Room room) {
-        room.getPositions().set(0, RoomPositionState.InUse);
-
         byte players = room.getPlayers();
         if (room.getRoomType() == RoomType.BATTLEMON) {
-            IntStream.range(2, 9).forEach(position -> room.getPositions().set(position, RoomPositionState.Locked));
+            IntStream.range(4, 9).forEach(position -> room.getPositions().set(position, RoomPositionState.Locked));
         } else if (players == 2) {
+            room.getPositions().set(0, RoomPositionState.InUse);
             room.getPositions().set(2, RoomPositionState.Locked);
             room.getPositions().set(3, RoomPositionState.Locked);
+        } else {
+            room.getPositions().set(0, RoomPositionState.InUse);
         }
 
         FTClient client = connection.getClient();
@@ -681,6 +707,11 @@ public class GameManager implements ServerLoopHandler {
                 return;
             }
             roomPlayer.setPet(selectedPet);
+            if (!tryClaimBattlemonOwnerPosition(room, 0)) {
+                connection.sendTCP(new S2CRoomCreateAnswerPacket(
+                        (char) 1, room.getRoomType(), room.getMode(), room.getMap()));
+                return;
+            }
         }
 
         client.setActiveRoom(room);
