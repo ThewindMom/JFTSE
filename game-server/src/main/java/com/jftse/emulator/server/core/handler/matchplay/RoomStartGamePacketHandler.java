@@ -145,8 +145,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             }
             selectedBattlemonPets.put(roomPlayer.getPlayerId(), pet);
         }
-        if ((isBattlemon || allowsGuardianBattlemon) &&
-                selectedBattlemonPets.size() != activeRoomPlayers.size()) {
+        if (isBattlemon && selectedBattlemonPets.size() != activeRoomPlayers.size()) {
             connection.sendTCP(roomStartGameAck);
             return;
         }

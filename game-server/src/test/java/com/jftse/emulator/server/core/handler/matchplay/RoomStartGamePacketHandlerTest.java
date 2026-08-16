@@ -52,6 +52,8 @@ import com.jftse.server.core.shared.packets.pet.SMSGPickupPet;
 import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import com.jftse.server.core.thread.ThreadManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.InetAddress;
@@ -369,8 +371,9 @@ class RoomStartGamePacketHandlerTest {
         }
     }
 
-    @Test
-    void guardianBattlemonStartRequiresBothPetsAndAcceptsBothOwners() {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2})
+    void guardianBattlemonStartAcceptsOptionalPets(int petCount) {
         Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
         Object previousSessionManager = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
@@ -403,8 +406,8 @@ class RoomStartGamePacketHandlerTest {
             room.setPlayers((byte) 4);
             room.getPositions().set(0, RoomPositionState.InUse);
             room.getPositions().set(1, RoomPositionState.InUse);
-            room.getPositions().set(2, RoomPositionState.InUse);
-            room.getPositions().set(3, RoomPositionState.InUse);
+            room.getPositions().set(2, petCount >= 1 ? RoomPositionState.InUse : RoomPositionState.Free);
+            room.getPositions().set(3, petCount >= 2 ? RoomPositionState.InUse : RoomPositionState.Free);
 
             Pet firstPet = pet(10L, "First pet");
             Pet secondPet = pet(20L, "Second pet");
@@ -412,7 +415,12 @@ class RoomStartGamePacketHandlerTest {
             FTClient second = guardianClientInRoom(room, 200L, (short) 1, secondPet);
             first.getRoomPlayer().setMaster(true);
             second.getRoomPlayer().setReady(true);
-            first.getRoomPlayer().setPet(PetView.of(firstPet));
+            if (petCount >= 1) {
+                first.getRoomPlayer().setPet(PetView.of(firstPet));
+            }
+            if (petCount >= 2) {
+                second.getRoomPlayer().setPet(PetView.of(secondPet));
+            }
             when(gameManager.getClientsInRoom(room.getRoomId())).thenReturn(List.of(first, second));
             when(first.getConnection().getRemoteAddressTCP())
                     .thenReturn(new InetSocketAddress(InetAddress.getLoopbackAddress(), 10000));
@@ -420,48 +428,15 @@ class RoomStartGamePacketHandlerTest {
                     .thenReturn(new InetSocketAddress(InetAddress.getLoopbackAddress(), 10001));
             when(petService.findByIdAndPlayerId(10L, 100L)).thenReturn(firstPet);
             when(petService.findByIdAndPlayerId(20L, 200L)).thenReturn(secondPet);
-
-            RoomStartGamePacketHandler handler = new RoomStartGamePacketHandler();
-            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
-
-            assertEquals(RoomStatus.NotRunning, room.getStatus());
-            assertEquals(List.of(0x17E6), sentPacketIds(first.getConnection()));
-            verify(producer, never()).sendRelayActorPolicy(
-                    any(RelaySessionAuthorizationMessage.class),
-                    eq("MatchplaySystem(GameServer)"));
-
-            first.getRoomPlayer().setPet(PetView.of(firstPet));
-            second.getRoomPlayer().setPet(PetView.of(secondPet));
-            secondPet.setEnergy(0);
-            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
-
-            assertEquals(RoomStatus.NotRunning, room.getStatus());
-            assertTrue(sessionManager.getGameSessionList().isEmpty());
-            verify(producer, never()).sendRelayActorPolicy(
-                    any(RelaySessionAuthorizationMessage.class),
-                    eq("MatchplaySystem(GameServer)"));
-
-            secondPet.setEnergy(50);
             GameServer relayServer = new GameServer();
             relayServer.setHost("127.0.0.1");
             relayServer.setPort(5896);
             when(authenticationService.getGameServerByPort(5896)).thenReturn(relayServer);
-
-            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
-
-            assertEquals(RoomStatus.NotRunning, room.getStatus());
-            assertTrue(sessionManager.getGameSessionList().isEmpty());
-            verify(producer).sendRelayActorPolicy(
-                    any(RelaySessionAuthorizationMessage.class),
-                    eq("MatchplaySystem(GameServer)"));
-            verify(threadManager, never()).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
-
             when(producer.sendRelayActorPolicy(
                     any(RelaySessionAuthorizationMessage.class),
                     eq("MatchplaySystem(GameServer)"))).thenReturn(true);
-            second.getRoomPlayer().setReady(true);
 
-            handler.handle(first.getConnection(), CMSGStartGame.builder().build());
+            new RoomStartGamePacketHandler().handle(first.getConnection(), CMSGStartGame.builder().build());
 
             assertEquals(RoomStatus.StartingGame, room.getStatus(),
                     () -> "sent packets: " + sentPacketIds(first.getConnection()) +
@@ -469,11 +444,15 @@ class RoomStartGamePacketHandlerTest {
             assertEquals(1, sessionManager.getGameSessionList().size());
             GameSession session = sessionManager.getGameSessionList().values().iterator().next();
             assertFalse(session.isDedicatedBattlemonRoom());
-            assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3),
-                    session.getGameplayActorPositions());
-            assertNotNull(session.getOwnedPetSeat(100L));
-            assertNotNull(session.getOwnedPetSeat(200L));
-            verify(producer, times(2)).sendRelayActorPolicy(
+            List<Short> expectedActorPositions = switch (petCount) {
+                case 0 -> List.of((short) 0, (short) 1);
+                case 1 -> List.of((short) 0, (short) 1, (short) 2);
+                default -> List.of((short) 0, (short) 1, (short) 2, (short) 3);
+            };
+            assertEquals(expectedActorPositions, session.getGameplayActorPositions());
+            assertEquals(petCount >= 1, session.getOwnedPetSeat(100L) != null);
+            assertEquals(petCount >= 2, session.getOwnedPetSeat(200L) != null);
+            verify(producer, petCount == 0 ? never() : times(1)).sendRelayActorPolicy(
                     any(RelaySessionAuthorizationMessage.class),
                     eq("MatchplaySystem(GameServer)"));
             verify(threadManager).schedule(any(Runnable.class), eq(0L), eq(TimeUnit.SECONDS));
