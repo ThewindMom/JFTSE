@@ -1,0 +1,23 @@
+Index	Kind	Type	UseType	MaxUse	_Name_	STR	STA	DEX	WIL	LifeUp	MaxLifeUp	Energy	Stomach	Name_uk
+1	ETC_ITEM	STAT	Count	10	힘의 과실	1	0	0	0	0	0	0	0	Power fruit
+2	ETC_ITEM	STAT	Count	10	체력의 과실	0	1	0	0	0	0	0	0	Stamina fruit
+3	ETC_ITEM	STAT	Count	10	민첩의 과실	0	0	1	0	0	0	0	0	Dexterity fruit
+4	ETC_ITEM	STAT	Count	10	마력의 과실	0	0	0	1	0	0	0	0	Wisdom fruit
+5	ETC_ITEM	STAT	Count	10	힘의 잎사귀	2	0	0	0	0	0	0	0	Power leaf
+6	ETC_ITEM	STAT	Count	10	체력의 잎사귀	0	2	0	0	0	0	0	0	Stamina leaf
+7	ETC_ITEM	STAT	Count	10	민첩의 잎사귀	0	0	2	0	0	0	0	0	Dexterity leaf
+8	ETC_ITEM	STAT	Count	10	마력의 잎사귀	0	0	0	2	0	0	0	0	Wisdom leaf
+9	ETC_ITEM	STAT	Count	10	힘의 나뭇가지	5	0	0	0	0	0	0	0	Power of branch
+10	ETC_ITEM	STAT	Count	10	체력의 나뭇가지	0	5	0	0	0	0	0	0	Stamina of branch
+11	ETC_ITEM	STAT	Count	10	민첩의 나뭇가지	0	0	5	0	0	0	0	0	Dexterity of branch
+12	ETC_ITEM	STAT	Count	10	마력의 나뭇가지	0	0	0	5	0	0	0	0	Wisdom  of branch
+13	ETC_ITEM	LIFE	Count	300	생명수의 잎압	0	0	0	0	1	0	0	0	Leaf of life juice
+14	ETC_ITEM	LIFE	Count	50	생명수의 열매압	0	0	0	0	0	5	0	0	Fruit of life juice
+16	SLOT_ITEM	STOMACH	Count	50	도토리 파이	0	0	0	0	0	0	0	5	Acorn pie
+17	SLOT_ITEM	STOMACH	Count	50	스타베리 쿠키	0	0	0	0	0	0	0	10	Starberry cookie
+18	SLOT_ITEM	STOMACH	Count	50	호두 케익	0	0	0	0	0	0	0	20	Walnut cake
+19	SLOT_ITEM	STOMACH	Count	50	매론 빙수	0	0	0	0	0	0	0	50	Melon ice water
+20	SLOT_ITEM	ENERGY	Count	50	체리 주스	0	0	0	0	0	0	5	0	Cherry juice
+21	SLOT_ITEM	ENERGY	Count	50	복숭아 주스	0	0	0	0	0	0	10	0	Peach juice
+22	SLOT_ITEM	ENERGY	Count	50	포도 주스	0	0	0	0	0	0	20	0	Grapes juice
+23	ETC_ITEM	POTION	Count	50	판타500	0	0	0	0	0	0	50	50	Fanta500
