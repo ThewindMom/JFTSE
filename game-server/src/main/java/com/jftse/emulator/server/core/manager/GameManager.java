@@ -470,6 +470,21 @@ public class GameManager implements ServerLoopHandler {
         });
     }
 
+    static List<Short> getRoomPositionsToClear(Room room, RoomPlayer roomPlayer) {
+        if (roomPlayer == null) {
+            return List.of();
+        }
+
+        short playerPosition = roomPlayer.getPosition();
+        boolean hasOwnedPetCard = roomPlayer.getPet() != null && playerPosition >= 0 && playerPosition <= 1 &&
+                (room.getRoomType() == RoomType.BATTLEMON ||
+                        room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0);
+        if (hasOwnedPetCard) {
+            return List.of(playerPosition, (short) (playerPosition + 2));
+        }
+        return List.of(playerPosition);
+    }
+
     public synchronized void handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
         FTClient client = connection.getClient();
         if (!client.hasPlayer())
@@ -486,6 +501,7 @@ public class GameManager implements ServerLoopHandler {
         final Optional<RoomPlayer> roomPlayer = Optional.ofNullable(client.getRoomPlayer());
 
         final short playerPosition = roomPlayer.isPresent() ? roomPlayer.get().getPosition() : -1;
+        final List<Short> roomPositionsToClear = getRoomPositionsToClear(room, roomPlayer.orElse(null));
 
         final boolean isMaster = roomPlayer.isPresent() && roomPlayer.get().isMaster();
         if (isMaster) {
@@ -543,8 +559,9 @@ public class GameManager implements ServerLoopHandler {
         if (!isTownSquare) {
             final GameSession activeGameSession = client.getActiveGameSession();
             if (activeGameSession == null) {
-                S2CLeaveRoomWithPositionPacket leaveRoomWithPositionPacket = new S2CLeaveRoomWithPositionPacket(playerPosition);
-                GameManager.getInstance().sendPacketToAllClientsInSameRoom(leaveRoomWithPositionPacket, connection);
+                roomPositionsToClear.forEach(position ->
+                        GameManager.getInstance().sendPacketToAllClientsInSameRoom(
+                                new S2CLeaveRoomWithPositionPacket(position), connection));
             } else {
                 GameSession gameSession = gameSessionManager.getGameSessionBySessionId(client.getGameSessionId());
                 if (gameSession != null) {
@@ -556,10 +573,10 @@ public class GameManager implements ServerLoopHandler {
 
         if (playerPosition != -1) {
             if (notifyClients) {
-                S2CLeaveRoomWithPositionPacket leaveRoomWithPositionPacket = new S2CLeaveRoomWithPositionPacket(playerPosition);
                 getClientsInRoom(room.getRoomId()).forEach(c -> {
                     if (c.hasPlayer() && c.getConnection() != null) {
-                        c.getConnection().sendTCP(leaveRoomWithPositionPacket);
+                        roomPositionsToClear.forEach(position ->
+                                c.getConnection().sendTCP(new S2CLeaveRoomWithPositionPacket(position)));
                     }
                 });
                 updateRoomForAllClientsInMultiplayer(connection, room);
