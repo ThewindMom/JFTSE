@@ -146,6 +146,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         }
         S2CMatchplayTriggerServe matchplayTriggerServe = new S2CMatchplayTriggerServe(serveInfo);
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(matchplayTriggerServe, ftClient.getConnection());
+        gameSession.beginRally();
     }
 
     @Override
@@ -503,8 +504,10 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                             .ifPresent(receiver -> game.getReceiverPlayerPosition().set(receiver.getPlayerPosition()));
                 }
                 S2CMatchplayTriggerServe matchplayTriggerServe = new S2CMatchplayTriggerServe(serveInfo);
+                long serveDelay = TimeUnit.SECONDS.toMillis(6);
+                eventHandler.offer(eventHandler.createRunnableEvent(gameSession::beginRally, serveDelay));
                 for (FTClient client : clients)
-                    eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTriggerServe, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(6)));
+                    eventHandler.offer(eventHandler.createPacketEvent(client, matchplayTriggerServe, PacketEventType.FIRE_DELAYED, serveDelay));
             }
         }
     }

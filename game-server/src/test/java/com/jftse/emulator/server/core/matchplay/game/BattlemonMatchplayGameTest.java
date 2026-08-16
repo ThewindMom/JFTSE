@@ -14,18 +14,19 @@ import com.jftse.server.core.shared.packets.matchplay.CMSGPoint;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BattlemonMatchplayGameTest {
@@ -85,29 +86,34 @@ class BattlemonMatchplayGameTest {
     }
 
     @Test
-    void battlemonBasicAcceptsOneNativePointSentinelPerObservedRally() {
+    void battlemonBasicReopensPointAcceptanceWhenTheServerTriggersTheNextRally() {
         GameManager gameManager = GameManager.getInstance();
-        when(gameManager.getEventHandler()).thenReturn(mock(EventHandler.class));
+        EventHandler eventHandler = mock(EventHandler.class);
+        when(gameManager.getEventHandler()).thenReturn(eventHandler);
         when(gameManager.getMatchRallyStatsConsumer()).thenReturn(mock(MatchRallyStatsConsumer.class));
 
         MatchplayBasicGame game = new MatchplayBasicGame((byte) 4, (byte) 2);
         FTClient client = mock(FTClient.class);
-        GameSession session = mock(GameSession.class);
+        GameSession session = new GameSession(true);
         CMSGPoint point = mock(CMSGPoint.class);
         when(client.getActiveGameSession()).thenReturn(session);
         when(client.getActiveRoom()).thenReturn(mock(Room.class));
-        when(session.isDedicatedBattlemonRoom()).thenReturn(true);
-        when(session.getGameplayActorPositions()).thenReturn(List.of((short) 0, (short) 1, (short) 2, (short) 3));
-        when(session.getCompletionHandled()).thenReturn(new AtomicBoolean(false));
-        when(session.getClients()).thenReturn(new ConcurrentLinkedDeque<>());
-        when(session.tryHandleRallyPoint()).thenReturn(true, false);
         when(point.getPlayerPosition()).thenReturn((byte) 4);
         when(point.getPointsTeam()).thenReturn((byte) 1);
 
+        session.setGameplayActorPositions(List.of((short) 0, (short) 1, (short) 2, (short) 3));
+        session.beginRally();
         game.getHandleable().onPoint(client, point);
         game.getHandleable().onPoint(client, point);
 
         assertEquals(1, game.getPointsBlueTeam().get());
+
+        ArgumentCaptor<Runnable> nextRally = ArgumentCaptor.forClass(Runnable.class);
+        verify(eventHandler).createRunnableEvent(nextRally.capture(), eq(6_000L));
+        nextRally.getValue().run();
+
+        game.getHandleable().onPoint(client, point);
+        assertEquals(2, game.getPointsBlueTeam().get());
     }
 
     @Test
