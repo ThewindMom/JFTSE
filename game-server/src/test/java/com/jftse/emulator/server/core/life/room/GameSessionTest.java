@@ -221,6 +221,30 @@ class GameSessionTest {
         assertTrue(session.tryHandleRallyPoint());
     }
 
+    @Test
+    void replacementSessionStartsWithoutPreviousActorsReplayOrCompletionState() {
+        GameSession previous = new GameSession(true);
+        RoomPlayer firstOwner = roomPlayer(100L, (short) 0);
+        RoomPlayer secondOwner = roomPlayer(200L, (short) 1);
+        previous.getClients().add(clientFor(firstOwner));
+        previous.getClients().add(clientFor(secondOwner));
+        previous.addOwnedPetSeat(firstOwner, pet(10L, "First pet"));
+        previous.addOwnedPetSeat(secondOwner, pet(20L, "Second pet"));
+        previous.initializeGameplayActorPositions();
+        previous.authorizeSkillHits(2, -1, 7, 1_000L);
+        previous.beginRally();
+        assertTrue(previous.tryHandleRallyPoint());
+        assertTrue(previous.getCompletionHandled().compareAndSet(false, true));
+
+        GameSession replacement = new GameSession(true);
+
+        assertTrue(replacement.getGameplayActorPositions().isEmpty());
+        assertTrue(replacement.getOwnedPetSeats().isEmpty());
+        assertFalse(replacement.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        assertFalse(replacement.tryHandleRallyPoint());
+        assertFalse(replacement.getCompletionHandled().get());
+    }
+
     private static FTClient clientFor(RoomPlayer roomPlayer) {
         FTClient client = mock(FTClient.class);
         when(client.getRoomPlayer()).thenReturn(roomPlayer);

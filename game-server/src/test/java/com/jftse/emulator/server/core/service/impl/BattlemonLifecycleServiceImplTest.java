@@ -139,6 +139,47 @@ class BattlemonLifecycleServiceImplTest {
         assertEquals(2, fanta500.getItemCount());
     }
 
+    @ParameterizedTest
+    @MethodSource("nearCapRecoveryPetItems")
+    void recoveryItemsCapAtSpeciesMaximumAndConsumeExactlyOnce(
+            int itemIndex, int initialEnergy, int initialHunger, int expectedEnergy, int expectedHunger) {
+        Pet pet = pet(2L, (byte) 1);
+        pet.setEnergy(initialEnergy);
+        pet.setHunger(initialHunger);
+        PlayerPocket item = item(24L, "PET_ITEM", itemIndex, 2);
+        when(petRepository.findByIdAndPlayerIdForUpdate(2L, 5L)).thenReturn(Optional.of(pet));
+        when(playerPocketRepository.findByIdAndPocketIdForUpdate(24L, 5L)).thenReturn(Optional.of(item));
+
+        BattlemonLifecycleService.MutationResult result = service.usePetItem(5L, 5L, 2L, 24L);
+
+        assertTrue(result.successful());
+        assertEquals(expectedEnergy, pet.getEnergy());
+        assertEquals(expectedHunger, pet.getHunger());
+        assertEquals(1, item.getItemCount());
+        assertEquals(1, result.remainingItemCount());
+    }
+
+    @ParameterizedTest
+    @MethodSource("fullCapRecoveryPetItems")
+    void fullRecoveryItemsDoNotMutateOrConsume(
+            int itemIndex, int initialEnergy, int initialHunger) {
+        Pet pet = pet(2L, (byte) 1);
+        pet.setEnergy(initialEnergy);
+        pet.setHunger(initialHunger);
+        PlayerPocket item = item(24L, "PET_ITEM", itemIndex, 2);
+        when(petRepository.findByIdAndPlayerIdForUpdate(2L, 5L)).thenReturn(Optional.of(pet));
+        when(playerPocketRepository.findByIdAndPocketIdForUpdate(24L, 5L)).thenReturn(Optional.of(item));
+
+        BattlemonLifecycleService.MutationResult result = service.usePetItem(5L, 5L, 2L, 24L);
+
+        assertFalse(result.successful());
+        assertEquals(initialEnergy, pet.getEnergy());
+        assertEquals(initialHunger, pet.getHunger());
+        assertEquals(2, item.getItemCount());
+        verify(petRepository, never()).save(pet);
+        verify(playerPocketRepository, never()).save(item);
+    }
+
     @Test
     void extendsCurrentLifeByOneDayWithoutExceedingLifeMaximum() {
         Pet pet = pet(2L, (byte) 1);
@@ -350,5 +391,17 @@ class BattlemonLifecycleServiceImplTest {
                 Arguments.of(18, 30, 60), Arguments.of(19, 30, 90),
                 Arguments.of(20, 35, 40), Arguments.of(21, 40, 40),
                 Arguments.of(22, 50, 40), Arguments.of(23, 80, 90));
+    }
+
+    private static Stream<Arguments> nearCapRecoveryPetItems() {
+        return Stream.of(
+                Arguments.of(19, 100, 149, 100, 150),
+                Arguments.of(22, 96, 150, 100, 150));
+    }
+
+    private static Stream<Arguments> fullCapRecoveryPetItems() {
+        return Stream.of(
+                Arguments.of(19, 100, 150),
+                Arguments.of(22, 100, 150));
     }
 }
