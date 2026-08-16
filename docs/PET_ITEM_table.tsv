@@ -11,12 +11,12 @@ Index	Kind	Type	UseType	MaxUse	_Name_	STR	STA	DEX	WIL	LifeUp	MaxLifeUp	Energy	St
 10	ETC_ITEM	STAT	Count	10	체력의 나뭇가지	0	5	0	0	0	0	0	0	Stamina of branch
 11	ETC_ITEM	STAT	Count	10	민첩의 나뭇가지	0	0	5	0	0	0	0	0	Dexterity of branch
 12	ETC_ITEM	STAT	Count	10	마력의 나뭇가지	0	0	0	5	0	0	0	0	Wisdom  of branch
-13	ETC_ITEM	LIFE	Count	300	생명수의 잎압	0	0	0	0	1	0	0	0	Leaf of life juice
-14	ETC_ITEM	LIFE	Count	50	생명수의 열매압	0	0	0	0	0	5	0	0	Fruit of life juice
+13	ETC_ITEM	LIFE	Count	300	생명수의 잎즙	0	0	0	0	1	0	0	0	Leaf of life juice
+14	ETC_ITEM	LIFE	Count	50	생명수의 열매즙	0	0	0	0	0	5	0	0	Fruit of life juice
 16	SLOT_ITEM	STOMACH	Count	50	도토리 파이	0	0	0	0	0	0	0	5	Acorn pie
 17	SLOT_ITEM	STOMACH	Count	50	스타베리 쿠키	0	0	0	0	0	0	0	10	Starberry cookie
 18	SLOT_ITEM	STOMACH	Count	50	호두 케익	0	0	0	0	0	0	0	20	Walnut cake
-19	SLOT_ITEM	STOMACH	Count	50	매론 빙수	0	0	0	0	0	0	0	50	Melon ice water
+19	SLOT_ITEM	STOMACH	Count	50	맬론 빙수	0	0	0	0	0	0	0	50	Melon ice water
 20	SLOT_ITEM	ENERGY	Count	50	체리 주스	0	0	0	0	0	0	5	0	Cherry juice
 21	SLOT_ITEM	ENERGY	Count	50	복숭아 주스	0	0	0	0	0	0	10	0	Peach juice
 22	SLOT_ITEM	ENERGY	Count	50	포도 주스	0	0	0	0	0	0	20	0	Grapes juice
