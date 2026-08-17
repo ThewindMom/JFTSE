@@ -2,6 +2,7 @@ package com.jftse.emulator.server.core.packets.matchplay;
 
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
@@ -26,6 +27,22 @@ public class S2CGameSetNameColorAndRemoveBlackBar extends Packet {
                 this.write(roomPlayer.getPosition());
                 this.write(roomPlayer.getPosition());
             }
+        }
+    }
+
+    public S2CGameSetNameColorAndRemoveBlackBar(List<PlayerBattleState> livingPlayers) {
+        super(PacketOperations.S2CGameSetNameColorAndRemoveBlackBar);
+
+        if (livingPlayers == null || livingPlayers.isEmpty()) {
+            this.write((char) 0);
+            return;
+        }
+
+        this.write((char) livingPlayers.size());
+        for (PlayerBattleState playerBattleState : livingPlayers) {
+            short position = (short) playerBattleState.getPosition();
+            this.write(position);
+            this.write(position);
         }
     }
 }

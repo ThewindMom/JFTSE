@@ -15,6 +15,7 @@ import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
 import com.jftse.emulator.server.core.packets.matchplay.CMSGSpellHitsTargetExtended;
+import com.jftse.emulator.server.core.packets.matchplay.S2CGameSetNameColorAndRemoveBlackBar;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayIncreaseBreathTimerBy60Seconds;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplaySpawnBossBattle;
@@ -58,6 +59,8 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
 
     private static final long SKILL_MOAICO_ID = 15L;
     private static final long SKILL_BLESSES_OF_MEDUSA_ID = 63L;
+    private static final long SKILL_REBIRTH_ID = 5L;
+    private static final long SKILL_REBIRTH_ONE_ID = 29L;
 
     public SpellHitsTargetHandler() {
         random = new Random();
@@ -119,6 +122,13 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         }
     }
 
+    private boolean isReviveSkill(Skill skill) {
+        if (skill == null || skill.getId() == null)
+            return false;
+        long skillId = skill.getId();
+        return skillId == SKILL_REBIRTH_ID || skillId == SKILL_REBIRTH_ONE_ID;
+    }
+
     private boolean isUniqueSkill(Skill skill) {
         int skillId = skill.getId().intValue();
         return skillId == 5 || skillId == 38;
@@ -148,10 +158,20 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         PlayerBattleState playerBattleState = null;
 
         RoomPlayer roomPlayer = connection.getClient().getRoomPlayer();
+        short revivePercentage = skill.getDamage().shortValue();
+        short targetPosition = spellHitsTargetExt.getTargetPosition();
         try {
-            playerBattleState = isBattleGame ?
-                    ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(skill.getDamage().shortValue(), roomPlayer) :
-                    ((MatchplayGuardianGame) game).getPlayerCombatSystem().reviveAnyPlayer(skill.getDamage().shortValue());
+            if (isBattleGame) {
+                playerBattleState = ((MatchplayBattleGame) game).getPlayerCombatSystem().revivePlayer(targetPosition, revivePercentage);
+                if (playerBattleState == null) {
+                    playerBattleState = ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(revivePercentage, roomPlayer);
+                }
+            } else {
+                playerBattleState = ((MatchplayGuardianGame) game).getPlayerCombatSystem().revivePlayer(targetPosition, revivePercentage);
+                if (playerBattleState == null) {
+                    playerBattleState = ((MatchplayGuardianGame) game).getPlayerCombatSystem().reviveAnyPlayer(revivePercentage);
+                }
+            }
         } catch (ValidationException ve) {
             log.warn(ve.getMessage());
             return;
@@ -161,6 +181,12 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             S2CMatchplayDealDamage damageToPlayerPacket =
                     new S2CMatchplayDealDamage((short) playerBattleState.getPosition(), (short) playerBattleState.getCurrentHealth().get(), spellHitsTargetExt.getAttackerPosition(), skill.getId().byteValue(), spellHitsTargetExt.getHitDirX(), spellHitsTargetExt.getHitDirY());
             GameManager.getInstance().sendPacketToAllClientsInSameGameSession(damageToPlayerPacket, connection);
+
+            if (game instanceof MatchplayGuardianGame guardianGame) {
+                S2CGameSetNameColorAndRemoveBlackBar setNameColorAndRemoveBlackBarPacket =
+                        new S2CGameSetNameColorAndRemoveBlackBar(guardianGame.livingPlayers());
+                GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setNameColorAndRemoveBlackBarPacket, connection);
+            }
         }
     }
 
@@ -195,7 +221,13 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                     }
                 } else {
                     if (!spellHitsTargetExt.getApplySkillEffect()) {
-                        newHealth = guardianGame.getPlayerCombatSystem().getPlayerCurrentHealth(receiverPosition);
+                        GuardianBattleState guardianBattleState = guardianGame.getGuardianBattleStates().stream()
+                                .filter(state -> state.getPosition() == receiverPosition)
+                                .findFirst()
+                                .orElse(null);
+                        if (guardianBattleState == null)
+                            throw new ValidationException("guardianBattleState is null");
+                        newHealth = (short) guardianBattleState.getCurrentHealth().get();
                     } else {
                         if (isAdvancedBossGuardianModeActive) {
                             newHealth = (short) guardianGame.getPhaseManager().onDealDamageOnBallLoss(attackerPosition, receiverPosition, attackerHasWillBuff);
@@ -236,7 +268,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                         .filter(state -> state.getPosition() == targetPosition)
                         .findFirst()
                         .orElse(null);
-                if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1)
+                if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1 && !isReviveSkill(skill))
                     return false;
 
                 if (skillDamage > 1) {
@@ -268,7 +300,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                             .filter(state -> state.getPosition() == targetPosition)
                             .findFirst()
                             .orElse(null);
-                    if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1)
+                    if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1 && !isReviveSkill(skill))
                         return false;
 
                     if (skillDamage > 1) {

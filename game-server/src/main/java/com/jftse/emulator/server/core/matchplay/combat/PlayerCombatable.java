@@ -8,5 +8,6 @@ public interface PlayerCombatable extends Combat {
     short updateHealthByDamage(PlayerBattleState targetPlayer, int dmg);
     PlayerBattleState reviveAnyPlayer(short revivePercentage, RoomPlayer roomPlayer) throws ValidationException;
     PlayerBattleState reviveAnyPlayer(short revivePercentage) throws ValidationException;
+    PlayerBattleState revivePlayer(short position, short percentage) throws ValidationException;
     short getPlayerCurrentHealth(short playerPos) throws ValidationException;
 }

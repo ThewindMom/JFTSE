@@ -142,9 +142,12 @@ public class PlayerCombatSystem implements PlayerCombatable {
             newPlayerHealth = (short) targetPlayer.getMaxHealth();
         }
 
-        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth))
+        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth)) {
+            if (currentHealth < 1 && newPlayerHealth > 0) {
+                targetPlayer.setDead(false);
+            }
             return newPlayerHealth;
-        else
+        } else
             return (short) currentHealth;
     }
 
@@ -208,6 +211,27 @@ public class PlayerCombatSystem implements PlayerCombatable {
         }
 
         return playerBattleState;
+    }
+
+    @Override
+    public PlayerBattleState revivePlayer(short position, short percentage) throws ValidationException {
+        PlayerBattleState playerBattleState = isBattleGame ?
+                ((MatchplayBattleGame) game).getPlayerBattleStates().stream()
+                        .filter(x -> x.getPosition() == position)
+                        .findFirst()
+                        .orElse(null) :
+                ((MatchplayGuardianGame) game).getPlayerBattleStates().stream()
+                        .filter(x -> x.getPosition() == position)
+                        .findFirst()
+                        .orElse(null);
+
+        if (playerBattleState != null && playerBattleState.isDead()) {
+            heal(playerBattleState.getPosition(), percentage);
+            playerBattleState.setDead(false);
+            return playerBattleState;
+        }
+
+        return null;
     }
 
     @Override

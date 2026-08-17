@@ -845,6 +845,12 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return success;
     }
 
+    public List<PlayerBattleState> livingPlayers() {
+        return getPlayerBattleStates().stream()
+                .filter(x -> x.getPosition() < 4 && !x.isDead() && x.getCurrentHealth().get() > 0)
+                .collect(Collectors.toList());
+    }
+
     public GuardianBattleState getGuardianBattleStateByPosition(int position) {
         return this.guardianBattleStates.stream()
                 .filter(x -> x.getPosition() == position)
