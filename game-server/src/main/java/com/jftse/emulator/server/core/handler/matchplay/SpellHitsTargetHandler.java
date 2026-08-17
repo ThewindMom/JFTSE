@@ -11,6 +11,7 @@ import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
+import com.jftse.emulator.server.core.matchplay.combat.PlayerCombatable;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
@@ -122,11 +123,37 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         }
     }
 
-    private boolean isReviveSkill(Skill skill) {
+    static boolean isReviveSkill(Skill skill) {
         if (skill == null || skill.getId() == null)
             return false;
         long skillId = skill.getId();
         return skillId == SKILL_REBIRTH_ID || skillId == SKILL_REBIRTH_ONE_ID;
+    }
+
+    static boolean rejectSkillOnDeadPlayer(PlayerBattleState playerBattleState, Skill skill) {
+        return playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1 && !isReviveSkill(skill);
+    }
+
+    static PlayerBattleState resolveGuardianRevive(PlayerCombatable combat, short targetPosition, short percentage) throws ValidationException {
+        PlayerBattleState targeted = combat.revivePlayer(targetPosition, percentage);
+        if (targeted != null) {
+            return targeted;
+        }
+        return combat.reviveAnyPlayer(percentage);
+    }
+
+    static PlayerBattleState resolveBattleRevive(PlayerCombatable combat, short targetPosition, short percentage, RoomPlayer caster) throws ValidationException {
+        PlayerBattleState targeted = combat.revivePlayer(targetPosition, percentage);
+        if (targeted != null) {
+            return targeted;
+        }
+        return combat.reviveAnyPlayer(percentage, caster);
+    }
+
+    static short guardianReceiverHealthWithoutSkill(GuardianBattleState guardianBattleState) throws ValidationException {
+        if (guardianBattleState == null)
+            throw new ValidationException("guardianBattleState is null");
+        return (short) guardianBattleState.getCurrentHealth().get();
     }
 
     private boolean isUniqueSkill(Skill skill) {
@@ -162,15 +189,9 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         short targetPosition = spellHitsTargetExt.getTargetPosition();
         try {
             if (isBattleGame) {
-                playerBattleState = ((MatchplayBattleGame) game).getPlayerCombatSystem().revivePlayer(targetPosition, revivePercentage);
-                if (playerBattleState == null) {
-                    playerBattleState = ((MatchplayBattleGame) game).getPlayerCombatSystem().reviveAnyPlayer(revivePercentage, roomPlayer);
-                }
+                playerBattleState = resolveBattleRevive(((MatchplayBattleGame) game).getPlayerCombatSystem(), targetPosition, revivePercentage, roomPlayer);
             } else {
-                playerBattleState = ((MatchplayGuardianGame) game).getPlayerCombatSystem().revivePlayer(targetPosition, revivePercentage);
-                if (playerBattleState == null) {
-                    playerBattleState = ((MatchplayGuardianGame) game).getPlayerCombatSystem().reviveAnyPlayer(revivePercentage);
-                }
+                playerBattleState = resolveGuardianRevive(((MatchplayGuardianGame) game).getPlayerCombatSystem(), targetPosition, revivePercentage);
             }
         } catch (ValidationException ve) {
             log.warn(ve.getMessage());
@@ -225,9 +246,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                                 .filter(state -> state.getPosition() == receiverPosition)
                                 .findFirst()
                                 .orElse(null);
-                        if (guardianBattleState == null)
-                            throw new ValidationException("guardianBattleState is null");
-                        newHealth = (short) guardianBattleState.getCurrentHealth().get();
+                        newHealth = guardianReceiverHealthWithoutSkill(guardianBattleState);
                     } else {
                         if (isAdvancedBossGuardianModeActive) {
                             newHealth = (short) guardianGame.getPhaseManager().onDealDamageOnBallLoss(attackerPosition, receiverPosition, attackerHasWillBuff);
@@ -268,7 +287,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                         .filter(state -> state.getPosition() == targetPosition)
                         .findFirst()
                         .orElse(null);
-                if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1 && !isReviveSkill(skill))
+                if (rejectSkillOnDeadPlayer(playerBattleState, skill))
                     return false;
 
                 if (skillDamage > 1) {
@@ -300,7 +319,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                             .filter(state -> state.getPosition() == targetPosition)
                             .findFirst()
                             .orElse(null);
-                    if (playerBattleState != null && playerBattleState.getCurrentHealth().get() < 1 && !isReviveSkill(skill))
+                    if (rejectSkillOnDeadPlayer(playerBattleState, skill))
                         return false;
 
                     if (skillDamage > 1) {
