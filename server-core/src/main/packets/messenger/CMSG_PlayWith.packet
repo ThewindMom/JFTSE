@@ -1,0 +1,4 @@
+message CMSG_PlayWith (0x234A) {
+    string playerName = 1;
+    short roomId = 2;
+}

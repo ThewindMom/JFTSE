@@ -1,0 +1,4 @@
+message CMSG_InviteFriend (0x2347) {
+    string playerName = 1;
+    short roomId = 2;
+}
