@@ -51,7 +51,7 @@ public class GuardianCombatSystem implements GuardianCombatable {
                 double efficiency = ElementalEfficiencyCalculator.calculate(
                         offensiveElement.getEfficiency(),
                         offensiveElement,
-                        targetGuardian.getDefensiveElements(),
+                        targetGuardian.getElements(),
                         ElementalEfficiencyCalculator.GUARDIAN_PROFILE);
 
                 final double efficiencyMultiplier = 1 + (efficiency / 100.0);
