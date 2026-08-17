@@ -30,6 +30,12 @@ public class RelayPacketRequestHandler implements PacketHandler<FTConnection, CM
             int packetId = BitKit.bytesToShort(innerPacket, 4);
             IPacket relayPacket = PacketRegistry.decode(packetId, innerPacket);
             if (relayPacket instanceof CMSGDefault defaultPacket) {
+                if (RelaySessionAuthorizationStore.getInstance()
+                        .isBattlemon(client.getGameSessionId().get())) {
+                    log.warn("Dropping unknown Battlemon relay packet id: 0x{}",
+                            Integer.toHexString(packetId));
+                    return;
+                }
                 // not found so its wrapped in CMSGDefault and prob not reversed yet
                 // we must still relay it because the client expects the packet to function properly
                 RelayManager.getInstance().getClientsInSession(client.getGameSessionId().get()).forEach(c -> {

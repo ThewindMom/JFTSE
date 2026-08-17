@@ -131,6 +131,44 @@ class RelayPacketRequestHandlerTest {
     }
 
     @Test
+    void dedicatedBattlemonDropsWellFormedUnknownInnerPacket() {
+        putDedicatedBattlemonPolicy();
+
+        new RelayPacketRequestHandler().handle(
+                connection, CMSGRelay.builder().packet(unknownInnerPacket()).build());
+
+        verify(connection, never()).sendTCP(any(CMSGDefault.class));
+        verify(peerConnection, never()).sendTCP(any(CMSGDefault.class));
+        verify(connection, never()).queuePacket(any());
+    }
+
+    @Test
+    void dedicatedBattlemonDropsExactTwentyFiveByte3332() {
+        putDedicatedBattlemonPolicy();
+        byte[] innerPacket = new byte[25];
+        innerPacket[4] = 0x32;
+        innerPacket[5] = 0x33;
+
+        new RelayPacketRequestHandler().handle(
+                connection, CMSGRelay.builder().packet(innerPacket).build());
+
+        verify(connection, never()).sendTCP(any(CMSGDefault.class));
+        verify(peerConnection, never()).sendTCP(any(CMSGDefault.class));
+        verify(connection, never()).queuePacket(any());
+    }
+
+    private void putDedicatedBattlemonPolicy() {
+        authorizationStore.put(RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(150)
+                .battlemon(true)
+                .ownedPetSession(true)
+                .actorPositionsByPlayerId(Map.of(
+                        1000, List.of((short) 0, (short) 2),
+                        2000, List.of((short) 1, (short) 3)))
+                .build());
+    }
+
+    @Test
     void spectatorCannotForwardOpaqueOwnedPetRelayPacket() {
         client.setSpectator(true);
 
