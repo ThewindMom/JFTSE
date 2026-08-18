@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.matchplay;
 
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.matchplay.guardian.GuardianShieldPadService;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -39,7 +40,14 @@ public class GameSessionManager {
         return id;
     }
     public boolean removeGameSession(Integer gameSessionId, GameSession gameSession) {
-        return gameSessionList.remove(gameSessionId, gameSession);
+        boolean removed = gameSessionList.remove(gameSessionId, gameSession);
+        if (removed && gameSessionId != null) {
+            GuardianShieldPadService padService = GuardianShieldPadService.getInstance();
+            if (padService != null) {
+                padService.onMatchEnd(gameSessionId);
+            }
+        }
+        return removed;
     }
 
     public GameSession getGameSessionBySessionId(int sessionId) {
