@@ -28,6 +28,9 @@ public class RabbitMQConfig extends AbstractRabbitMQConfiguration {
      */
     @Override
     protected List<RabbitQueueDefinition> getAdditionalQueues() {
-        return List.of(new RabbitQueueDefinition("match-queue", List.of("game.stats.match.rally")));
+        return List.of(
+                new RabbitQueueDefinition("match-queue", List.of("game.stats.match.rally")),
+                new RabbitQueueDefinition("court-position-queue", List.of("game.stats.match.court"))
+        );
     }
 }
