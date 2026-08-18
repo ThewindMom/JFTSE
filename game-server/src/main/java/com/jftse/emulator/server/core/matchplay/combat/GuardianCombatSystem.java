@@ -215,18 +215,7 @@ public class GuardianCombatSystem implements GuardianCombatable {
 
     @Override
     public short updateHealthByDamage(PlayerBattleState targetPlayer, int dmg) {
-        int currentHealth = targetPlayer.getCurrentHealth().get();
-        currentHealth = Math.max(currentHealth, 0);
-        short newPlayerHealth = (short) (currentHealth + dmg);
-        if (newPlayerHealth < 1) {
-            targetPlayer.setDead(true);
-        }
-        newPlayerHealth = newPlayerHealth < 0 ? 0 : newPlayerHealth;
-
-        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth))
-            return newPlayerHealth;
-        else
-            return (short) currentHealth;
+        return PlayerDamageApplier.updateHealthByDamage(targetPlayer, dmg);
     }
 
     @Override
