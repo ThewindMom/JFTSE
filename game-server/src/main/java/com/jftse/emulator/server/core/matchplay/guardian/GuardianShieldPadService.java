@@ -1,11 +1,13 @@
 package com.jftse.emulator.server.core.matchplay.guardian;
 
+import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.shared.packets.matchplay.SMSGPlayerUseSkill;
+import com.jftse.server.core.thread.ThreadManager;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Spring wrapper around {@link GuardianShieldPads}. Grants {@code BattleState.shieldActive}
@@ -40,9 +44,11 @@ public class GuardianShieldPadService {
     private final int delaySeconds;
 
     private final byte visualSkillIndex;
+    private final GameEventBus gameEventBus;
 
     @Autowired
     public GuardianShieldPadService(
+            GameEventBus gameEventBus,
             @Value("${jftse.guardian.shield-pads.enabled:true}") boolean enabled,
             @Value("${jftse.guardian.shield-pads.delay-seconds:10}") int delaySeconds,
             @Value("${jftse.guardian.shield-pads.left-x:-40}") int leftX,
@@ -52,6 +58,7 @@ public class GuardianShieldPadService {
             @Value("${jftse.guardian.shield-pads.radius:15}") int radius,
             @Value("${jftse.guardian.shield-pads.zone-file:}") String zoneFile,
             @Value("${jftse.guardian.shield-pads.visual-skill-index:9}") int visualSkillIndex) {
+        this.gameEventBus = gameEventBus;
         this.delaySeconds = delaySeconds;
         this.visualSkillIndex = (byte) visualSkillIndex;
         Path zonePath = (zoneFile == null || zoneFile.isBlank()) ? null : Path.of(zoneFile);
@@ -65,6 +72,68 @@ public class GuardianShieldPadService {
     @PostConstruct
     public void init() {
         instance = this;
+        registerMatchEvents();
+    }
+
+    /**
+     * MP_MATCH_START is fired immediately after handleable.onStart (stage start).
+     * MP_MATCH_END covers the normal Guardian finish path; session removal covers banable/cleanup.
+     */
+    private void registerMatchEvents() {
+        if (gameEventBus == null) {
+            log.warn("GameEventBus not injected; shield pads will rely on MatchplayGuardianModeHandler hooks");
+            return;
+        }
+        gameEventBus.on("MP_MATCH_START", this::onMatchStartEvent);
+        gameEventBus.on("MP_MATCH_END", this::onMatchEndEvent);
+    }
+
+    private void onMatchStartEvent(Object... args) {
+        MatchplayGuardianGame game = null;
+        FTClient client = null;
+        for (Object arg : args) {
+            if (arg instanceof MatchplayGuardianGame guardianGame) {
+                game = guardianGame;
+            } else if (arg instanceof FTClient ftClient) {
+                client = ftClient;
+            }
+        }
+        if (game == null || client == null || client.getGameSessionId() == null) {
+            return;
+        }
+        Integer sessionId = client.getGameSessionId();
+        onMatchStart(sessionId);
+        ScheduledFuture<?> future = ThreadManager.getInstance().schedule(
+                () -> activate(sessionId),
+                delaySeconds,
+                TimeUnit.SECONDS);
+        game.getScheduledFutures().add(future);
+    }
+
+    private void onMatchEndEvent(Object... args) {
+        Integer sessionId = sessionIdFromEvent(args);
+        if (sessionId != null) {
+            onMatchEnd(sessionId);
+        }
+    }
+
+    private Integer sessionIdFromEvent(Object... args) {
+        if (args == null) {
+            return null;
+        }
+        for (Object arg : args) {
+            if (arg instanceof FTClient client && client.getGameSessionId() != null) {
+                return client.getGameSessionId();
+            }
+            if (arg instanceof ConcurrentLinkedDeque<?> deque) {
+                for (Object item : deque) {
+                    if (item instanceof FTClient client && client.getGameSessionId() != null) {
+                        return client.getGameSessionId();
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public void onMatchStart(int sessionId) {

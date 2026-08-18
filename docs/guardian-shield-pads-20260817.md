@@ -6,7 +6,7 @@ Official clients without the client hook play the fight normally and do not see 
 
 ## Timing
 
-`GameAnimationSkipTriggeredPacketHandler` sets the room Running and 8 seconds later calls `game.getHandleable().onStart(client)`. `MatchplayGuardianModeHandler.onStart` resets `stageStartTime` and then schedules the pads via `ThreadManager` / `game.scheduledFutures`. The 10s delay starts there, not at skip-click.
+`GameAnimationSkipTriggeredPacketHandler` sets the room Running and 8 seconds later calls `game.getHandleable().onStart(client)`, then fires `GameEventType.MP_MATCH_START` (stage start, not skip-click). `GuardianShieldPadService` listens for that event and schedules the pads via `ThreadManager` / `game.scheduledFutures`. `MatchplayGuardianModeHandler.onStart` also schedules (same 10s clock; a second schedule is a no-op once pads are `VISIBLE`). The 10s delay starts at `onStart`, not at skip-click.
 
 ## Court coordinates
 
@@ -80,7 +80,13 @@ or a Linux path the hooked process actually polls.
 
 ## Cleanup
 
-`MatchplayGuardianModeHandler.onEnd` (including the early banable path after `finished` is set) clears per-session pad state and writes `clear` when appropriate. Cancelled `scheduledFutures` on finish/disconnect prevent a late activate.
+Cleanup is hooked three ways so pads (and the optional zone-file) clear even if one path is missed:
+
+- `MatchplayGuardianModeHandler.onEnd` after `finished` CAS (includes the early banable return)
+- `GameEventBus` `MP_MATCH_END` (normal Guardian finish)
+- `GameSessionManager.removeGameSession` (last-client / banable leftover)
+
+Cancelled `scheduledFutures` on finish/disconnect prevent a late activate.
 
 ## Honest gaps
 
