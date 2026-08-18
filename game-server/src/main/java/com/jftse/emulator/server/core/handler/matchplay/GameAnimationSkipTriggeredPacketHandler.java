@@ -88,6 +88,8 @@ public class GameAnimationSkipTriggeredPacketHandler implements PacketHandler<FT
                 GameEventBus.call(GameEventType.MP_GAME_ANIM_SKIP_END, game, room);
 
                 game.getHandleable().onStart(client);
+                // Stage start (after onStart), not the skip-click. Shield pads use this.
+                GameEventBus.call(GameEventType.MP_MATCH_START, game, room, client);
             }, 8, TimeUnit.SECONDS);
         }
     }
