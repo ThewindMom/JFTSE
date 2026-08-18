@@ -95,6 +95,15 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return;
         }
 
+        // SeaWave (table 28 / packet 27) is a full-court band. Client reports every
+        // actor it crosses, including guardians. Dummy 4 is God (no team), so those
+        // hits would apply. Ignore guardian targets so herding waves only hurt players.
+        if (game instanceof MatchplayGuardianGame
+                && spellHitsTargetExt.getTargetPosition() > 9
+                && isSeaWaveHit(skill, skillId)) {
+            return;
+        }
+
         if (skill != null && this.isUniqueSkill(skill)) {
             GameEventBus.call(GameEventType.MP_PLAYER_HITS_TARGET, ftClient, game, skill);
 
@@ -117,6 +126,13 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             this.handleAllGuardiansDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
             this.handleAllPlayersDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
         }
+    }
+
+    private static boolean isSeaWaveHit(Skill skill, byte packetSkillId) {
+        if (packetSkillId == 27 || packetSkillId == 28) {
+            return true;
+        }
+        return skill != null && (skill.getId() == 28L || "SeaWave".equalsIgnoreCase(skill.getName()));
     }
 
     private boolean isUniqueSkill(Skill skill) {
