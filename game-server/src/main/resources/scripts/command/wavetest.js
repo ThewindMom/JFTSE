@@ -4,9 +4,10 @@ var S2CMatchplayUseSkill = Java.type("com.jftse.emulator.server.core.packets.mat
 var S2CChatRoomAnswerPacket = Java.type("com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket");
 var MatchplayGuardianGame = Java.type("com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame");
 var GameManager = Java.type("com.jftse.emulator.server.core.manager.GameManager");
+var S2CMatchplayDealDamage = Java.type("com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage");
 
 var SEA_WAVE_PACKET_ID = 27;
-var STEP_MS = 7000;
+var STEP_MS = 5000;
 
 var impl = new CommandAdapter({
     getRank: function () {
@@ -20,8 +21,19 @@ var impl = new CommandAdapter({
     },
     execute: function (connection, params) {
         const client = connection.getClient();
-        if (!client || !client.getActiveGameSession()) {
-            sendChat(connection, "Need an active match. Start a guardian game first.");
+        if (!client) {
+            return;
+        }
+        if (!client.getActiveGameSession()) {
+            try {
+                var fw = new (Java.type("java.io.FileWriter"))("/tmp/jftse-wavetest.arm");
+                fw.write("1");
+                fw.close();
+            } catch (e) {
+                sendChat(connection, "Arm failed: " + e);
+                return;
+            }
+            sendChat(connection, "Armed. START a guardian match; volley fires after the intro.");
             return;
         }
 
@@ -44,7 +56,23 @@ var impl = new CommandAdapter({
             { attacker: 4, x: -150, z: 0, y: 150, guess: "corner -X / +Y" }
         ];
 
-        sendChat(connection, "Wave origin test: " + steps.length + " SeaWaves, 7s apart. Watch spawn and travel.");
+        try {
+            const states = game.getPlayerBattleStates();
+            const it = states.iterator();
+            while (it.hasNext()) {
+                const pbs = it.next();
+                pbs.setMaxHealth(30000);
+                pbs.getCurrentHealth().set(30000);
+                pbs.setDead(false);
+            }
+            const heal = new S2CMatchplayDealDamage(0, 30000, 0, 1, 0.0, 0.0);
+            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(heal, connection);
+            sendChat(connection, "HP padded to 30000 (client heal packet).");
+        } catch (e) {
+            sendChat(connection, "HP pad failed: " + e);
+        }
+
+        sendChat(connection, "Wave origin test: " + steps.length + " SeaWaves, 5s apart. Watch spawn and travel.");
 
         const eventHandler = GameManager.getInstance().getEventHandler();
         for (let i = 0; i < steps.length; i++) {
@@ -63,6 +91,10 @@ var impl = new CommandAdapter({
                 const msg = new S2CChatRoomAnswerPacket(2, "WaveTest", label);
                 GameManager.getInstance().sendPacketToAllClientsInSameGameSession(msg, connection);
 
+                try {
+                    const heal = new S2CMatchplayDealDamage(0, 30000, 0, 1, 0.0, 0.0);
+                    GameManager.getInstance().sendPacketToAllClientsInSameGameSession(heal, connection);
+                } catch (e2) {}
                 const seed = Math.floor(Math.random() * 127);
                 const packet = new S2CMatchplayUseSkill(
                     step.attacker,
@@ -75,7 +107,7 @@ var impl = new CommandAdapter({
                 );
                 GameManager.getInstance().sendPacketToAllClientsInSameGameSession(packet, connection);
             }, delay);
-            session.getFireables().push(runnableEvent);
+            gameSession.getFireables().push(runnableEvent);
             eventHandler.offerJS(runnableEvent);
         }
     }
