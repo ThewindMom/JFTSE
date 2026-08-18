@@ -12,6 +12,7 @@ import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.GuardianShieldPadService;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
 import com.jftse.emulator.server.core.packets.matchplay.CMSGSpellHitsTargetExtended;
@@ -98,9 +99,22 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         // SeaWave (table 28 / packet 27) is a full-court band. Client reports every
         // actor it crosses, including guardians. Dummy 4 is God (no team), so those
         // hits would apply. Ignore guardian targets so herding waves only hurt players.
-        if (game instanceof MatchplayGuardianGame
-                && spellHitsTargetExt.getTargetPosition() > 9
-                && isSeaWaveHit(skill, skillId)) {
+        // Players standing in a visible green pad are in a SeaWave safe zone for the
+        // whole volley; that check does not consume the one-shot shield grant.
+        if (game instanceof MatchplayGuardianGame && isSeaWaveHit(skill, skillId)) {
+            short targetPosition = spellHitsTargetExt.getTargetPosition();
+            if (targetPosition > 9) {
+                return;
+            }
+            if (targetPosition < 4 && isPlayerInSeaWaveSafeZone(ftClient, (MatchplayGuardianGame) game, targetPosition)) {
+                return;
+            }
+        }
+
+        if (game instanceof MatchplayGuardianGame guardianGame
+                && guardianGame.arePlayerSupportSkillsDisabled()
+                && spellHitsTargetExt.getTargetPosition() < 4
+                && guardianGame.isPlayerSupportSkill(skill)) {
             return;
         }
 
@@ -133,6 +147,19 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return true;
         }
         return skill != null && (skill.getId() == 28L || "SeaWave".equalsIgnoreCase(skill.getName()));
+    }
+
+    private static boolean isPlayerInSeaWaveSafeZone(FTClient ftClient, MatchplayGuardianGame game, short targetPosition) {
+        GuardianShieldPadService padService = GuardianShieldPadService.getInstance();
+        if (padService == null || ftClient.getGameSessionId() == null) {
+            return false;
+        }
+        PlayerBattleState target = game.getPlayerBattleStates().stream()
+                .filter(state -> state.getPosition() == targetPosition)
+                .findFirst()
+                .orElse(null);
+        int playerId = target != null ? (int) target.getId() : 0;
+        return padService.isInsideVisiblePad(ftClient.getGameSessionId(), playerId, targetPosition);
     }
 
     private boolean isUniqueSkill(Skill skill) {

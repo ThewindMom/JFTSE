@@ -170,6 +170,30 @@ public class GuardianShieldPads {
         return inside(x, z, config.leftX, config.leftZ) || inside(x, z, config.rightX, config.rightZ);
     }
 
+    /**
+     * SeaWave safe zone: last court X/Z is inside a currently visible pad circle.
+     * Does not consume the one-shot {@code shieldActive} grant.
+     */
+    public boolean isInsideVisiblePad(int sessionId, int playerId, int playerPosition) {
+        SessionState state = sessions.get(sessionId);
+        if (state == null || state.phase != Phase.VISIBLE) {
+            return false;
+        }
+        LastCourtPos byId = state.lastPosByPlayerId.get(playerId);
+        if (byId != null && contains(byId.x(), byId.z())) {
+            return true;
+        }
+        if (playerId != 0) {
+            return false;
+        }
+        for (LastCourtPos pos : state.lastPosByPlayerId.values()) {
+            if (pos.playerPosition() == playerPosition && contains(pos.x(), pos.z())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public String visibleZoneFileContent() {
         return "pad " + config.leftX + " " + config.leftZ + "\n"
                 + "pad " + config.rightX + " " + config.rightZ + "\n";

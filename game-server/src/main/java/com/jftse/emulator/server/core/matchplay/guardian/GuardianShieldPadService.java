@@ -152,6 +152,14 @@ public class GuardianShieldPadService {
         pads.onCourtPosition(sessionId, playerId, playerPosition, x, z);
     }
 
+    /**
+     * True when the player's last court X/Z is inside a visible pad circle.
+     * Used to drop SeaWave hits without consuming the one-shot shield.
+     */
+    public boolean isInsideVisiblePad(int sessionId, int playerId, int playerPosition) {
+        return pads.isInsideVisiblePad(sessionId, playerId, playerPosition);
+    }
+
     void grantShield(int sessionId, int playerId, int playerPosition) {
         GameSessionManager manager = GameSessionManager.getInstance();
         if (manager == null) {

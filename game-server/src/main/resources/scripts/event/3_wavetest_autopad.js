@@ -31,16 +31,13 @@ function padAndHeal(game, connection) {
 }
 
 function fireVolley(connection) {
+    // Confirmed LTR look: dummy 4, packet 27, xyz=(-200,0,0). Five copies, 5s apart.
     var steps = [
-        { attacker: 4, x: 0, z: 0, y: 0, guess: "net / court origin" },
-        { attacker: 4, x: -150, z: 0, y: 0, guess: "-X sideline (left?)" },
-        { attacker: 4, x: 150, z: 0, y: 0, guess: "+X sideline (right?)" },
-        { attacker: 4, x: 0, z: 0, y: -150, guess: "-Y baseline" },
-        { attacker: 4, x: 0, z: 0, y: 150, guess: "+Y baseline" },
-        { attacker: 4, x: 0, z: -150, y: 0, guess: "-Z axis" },
-        { attacker: 4, x: 0, z: 150, y: 0, guess: "+Z axis" },
-        { attacker: 5, x: 0, z: 0, y: 0, guess: "dummy slot 5, origin 0" },
-        { attacker: 4, x: -150, z: 0, y: 150, guess: "corner -X / +Y" }
+        { attacker: 4, x: -200, z: 0, y: 0, guess: "LTR confirmed spawn" },
+        { attacker: 4, x: -200, z: 0, y: 0, guess: "LTR confirmed spawn" },
+        { attacker: 4, x: -200, z: 0, y: 0, guess: "LTR confirmed spawn" },
+        { attacker: 4, x: -200, z: 0, y: 0, guess: "LTR confirmed spawn" },
+        { attacker: 4, x: -200, z: 0, y: 0, guess: "LTR confirmed spawn" }
     ];
     chat(connection, "Wave origin test: " + steps.length + " SeaWaves, 5s apart. Watch spawn and travel.");
     var eventHandler = GameManager.getInstance().getEventHandler();

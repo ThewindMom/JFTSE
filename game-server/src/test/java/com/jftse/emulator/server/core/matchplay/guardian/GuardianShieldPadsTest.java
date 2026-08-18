@@ -94,6 +94,26 @@ class GuardianShieldPadsTest {
     }
 
     @Test
+    void visiblePadIsSeaWaveSafeZoneWithoutConsumingGrant() {
+        GuardianShieldPads pads = newPads(null, grants());
+        pads.onMatchStart(SESSION);
+        pads.onCourtPosition(SESSION, PLAYER_A, 0, -40, -40);
+        assertFalse(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0));
+
+        pads.activate(SESSION);
+        assertTrue(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0));
+        assertTrue(pads.hasGranted(SESSION, PLAYER_A));
+
+        pads.onCourtPosition(SESSION, PLAYER_A, 0, 0, 0);
+        assertFalse(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0));
+        assertTrue(pads.hasGranted(SESSION, PLAYER_A));
+
+        pads.onCourtPosition(SESSION, PLAYER_A, 0, 40, -40);
+        assertTrue(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0));
+        assertTrue(pads.hasGranted(SESSION, PLAYER_A));
+    }
+
+    @Test
     void outsidePadDoesNotGrant() {
         AtomicInteger grants = new AtomicInteger();
         GuardianShieldPads pads = newPads(null, (s, p, pos) -> grants.incrementAndGet());
