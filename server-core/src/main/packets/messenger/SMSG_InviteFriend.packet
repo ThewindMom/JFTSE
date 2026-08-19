@@ -1,0 +1,3 @@
+message SMSG_InviteFriend (0x2348) {
+    short result = 1;
+}
