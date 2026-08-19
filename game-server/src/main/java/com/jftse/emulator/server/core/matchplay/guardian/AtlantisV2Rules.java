@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class AtlantisV2Rules {
     public static final String MAP_PATH = "10";
     public static final String PHASE_GROUP = "10";
-    public static final String ARCHIVED_PHASE_GROUP = "10-legacy";
 
     public static final byte SEA_WAVE_PACKET_ID = 27;
     public static final long SEA_WAVE_SKILL_ID = 28L;
@@ -83,7 +82,7 @@ public final class AtlantisV2Rules {
     }
 
     /**
-     * Map 10 always loads {@code guardian-phase/10/} (the V2 scripts).
+     * Map 10 always loads {@code guardian-phase/10/}, the only Atlantis fight.
      * Other maps keep their own group folder.
      */
     public static String resolvePhaseGroup(Integer mapId) {

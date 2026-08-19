@@ -17,7 +17,8 @@ class AtlantisV2RulesTest {
         assertEquals("7", AtlantisV2Rules.resolvePhaseGroup(7));
         assertEquals("", AtlantisV2Rules.resolvePhaseGroup(null));
         assertFalse(AtlantisV2Rules.isAtlantisMap(11));
-        assertNotEquals(AtlantisV2Rules.ARCHIVED_PHASE_GROUP, AtlantisV2Rules.resolvePhaseGroup(10));
+        assertNotEquals("10-legacy", AtlantisV2Rules.resolvePhaseGroup(10));
+        assertNotEquals("10-v2", AtlantisV2Rules.resolvePhaseGroup(10));
     }
 
     @Test

@@ -858,7 +858,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
     }
 
     /**
-     * Map 10 always loads the V2 scripts in {@code guardian-phase/10/}.
+     * Map 10 always loads {@code guardian-phase/10/}, the only Atlantis fight.
      * Other maps keep their own group folder.
      */
     String resolveGuardianPhaseGroupPath() {

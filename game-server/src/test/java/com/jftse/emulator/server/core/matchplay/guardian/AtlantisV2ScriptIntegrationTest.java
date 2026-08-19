@@ -12,8 +12,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AtlantisV2ScriptIntegrationTest {
 
-    private static final Path LIVE = Path.of("src/main/resources/scripts/guardian-phase/10");
-    private static final Path LEGACY = Path.of("src/main/resources/scripts/guardian-phase/10-legacy");
+    private static final Path PHASE_ROOT = Path.of("src/main/resources/scripts/guardian-phase");
+    private static final Path LIVE = PHASE_ROOT.resolve("10");
+    private static final List<String> FORBIDDEN_SCRIPT_NAMES = List.of(
+            "1_echoes_of_the_deep.js",
+            "2_maelstrom_unleashed.js",
+            "3_leviathans_will.js",
+            "4_abyssal_reckoning.js");
 
     @Test
     void liveMap10FolderContainsOnlyV2ScriptsInFilenameOrder() throws IOException {
@@ -28,15 +33,22 @@ class AtlantisV2ScriptIntegrationTest {
     }
 
     @Test
-    void archivedLegacyScriptsAreNotOnTheLivePath() throws IOException {
-        List<String> names = jsNames(LEGACY);
-        assertEquals(List.of(
-                "1_echoes_of_the_deep.js",
-                "2_maelstrom_unleashed.js",
-                "3_leviathans_will.js",
-                "4_abyssal_reckoning.js"), names);
-        assertFalse(Files.exists(Path.of("src/main/resources/scripts/guardian-phase/10-v2")));
-        assertFalse(Files.exists(LIVE.resolve("1_echoes_of_the_deep.js")));
+    void oldAtlantisScriptsAreGone() throws IOException {
+        assertFalse(Files.exists(PHASE_ROOT.resolve("10-legacy")));
+        assertFalse(Files.exists(PHASE_ROOT.resolve("10-v2")));
+        try (Stream<Path> stream = Files.walk(PHASE_ROOT)) {
+            List<String> leftover = stream
+                    .filter(Files::isRegularFile)
+                    .map(path -> path.getFileName().toString())
+                    .filter(FORBIDDEN_SCRIPT_NAMES::contains)
+                    .toList();
+            assertEquals(List.of(), leftover);
+        }
+        String tree = walkText(PHASE_ROOT);
+        assertFalse(tree.contains("Echoes of the Deep"));
+        assertFalse(tree.contains("Maelstrom Unleashed"));
+        assertFalse(tree.contains("Leviathan"));
+        assertFalse(tree.contains("Abyssal Reckoning"));
     }
 
     @Test
@@ -88,5 +100,15 @@ class AtlantisV2ScriptIntegrationTest {
                     .sorted()
                     .toList();
         }
+    }
+
+    private static String walkText(Path dir) throws IOException {
+        StringBuilder out = new StringBuilder();
+        try (Stream<Path> stream = Files.walk(dir)) {
+            for (Path path : stream.filter(Files::isRegularFile).toList()) {
+                out.append(Files.readString(path)).append('\n');
+            }
+        }
+        return out.toString();
     }
 }

@@ -2,15 +2,14 @@
 
 Branch: `feat/atlantis-v2-green-wave` from taken-over `development` `568fc3ec`.
 
-V2 **replaces** the live Atlantis boss. There is no flag.
+V2 **is** the Atlantis boss. There is no flag, no `10-v2` folder, and no archived old fight.
 
 | Path | Role |
 |---|---|
-| `game-server/src/main/resources/scripts/guardian-phase/10/` | **Live** V2 scripts (filename-sorted) |
-| `game-server/src/main/resources/scripts/guardian-phase/10-legacy/` | Archived Echoes / Maelstrom / Leviathan / Abyssal Reckoning. Not loaded. |
+| `game-server/src/main/resources/scripts/guardian-phase/10/` | The only Atlantis scripts. Loaded automatically, same as Monslava map 7/8. |
 | `AtlantisV2Rules` | Single source of truth for timings, skill IDs, LTR spawn, hit filters |
 
-Map 10 / `BOSS_BATTLE_V2` loads group `"10"` only. After script edits: `-reloadScripts`. After Java filter changes: rebuild game-server.
+Map 10 / `BOSS_BATTLE_V2` loads group `"10"` at match start through `MatchplayGuardianGame.loadAdvancedBossGuardianMode()`. Restart game-server after a rebuild. No `-reloadScripts` is required for a normal start.
 
 ## Fight
 
@@ -28,7 +27,7 @@ Shield and heal strips are independent flags. After the crab revive, heals are 2
 ## Tests
 
 - `AtlantisV2RulesTest` — loader, SeaWave identity, pad/guardian ignore, independent shield/heal strip, heal 20%, spawn contract
-- `AtlantisV2ScriptIntegrationTest` — live folder is V2, legacy is archived, scripts bind Java rules
+- `AtlantisV2ScriptIntegrationTest` — live folder is only the four V2 scripts; old Echoes/Maelstrom/Leviathan/Abyssal files are absent
 - `AtlantisV2SafeZoneIntegrationTest` — volley-long pad ignore, leave-pad + one-shot shield, not-visible pads
 - `AtlantisV2ScriptHarnessTest` — Graal eval of all four phases: LTR packet fields, revive HP, 20% heal window, delayed enrage
 - `GuardianShieldPadsTest` — existing pad machine + `isInsideVisiblePad`
