@@ -12,6 +12,7 @@ import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules;
 import com.jftse.emulator.server.core.matchplay.guardian.GuardianShieldPadService;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
@@ -101,20 +102,21 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         // hits would apply. Ignore guardian targets so herding waves only hurt players.
         // Players standing in a visible green pad are in a SeaWave safe zone for the
         // whole volley; that check does not consume the one-shot shield grant.
-        if (game instanceof MatchplayGuardianGame && isSeaWaveHit(skill, skillId)) {
+        if (game instanceof MatchplayGuardianGame guardianGame && AtlantisV2Rules.isSeaWaveHit(skill, skillId)) {
             short targetPosition = spellHitsTargetExt.getTargetPosition();
-            if (targetPosition > 9) {
-                return;
-            }
-            if (targetPosition < 4 && isPlayerInSeaWaveSafeZone(ftClient, (MatchplayGuardianGame) game, targetPosition)) {
+            boolean inPad = AtlantisV2Rules.isPlayerSlot(targetPosition)
+                    && isPlayerInSeaWaveSafeZone(ftClient, guardianGame, targetPosition);
+            if (AtlantisV2Rules.shouldIgnoreSeaWaveHit(targetPosition, inPad)) {
                 return;
             }
         }
 
         if (game instanceof MatchplayGuardianGame guardianGame
-                && guardianGame.arePlayerSupportSkillsDisabled()
-                && spellHitsTargetExt.getTargetPosition() < 4
-                && guardianGame.isPlayerSupportSkill(skill)) {
+                && AtlantisV2Rules.shouldIgnorePlayerSupportHit(
+                        guardianGame.arePlayerShieldSkillsDisabled(),
+                        guardianGame.arePlayerHealSkillsDisabled(),
+                        spellHitsTargetExt.getTargetPosition(),
+                        skill)) {
             return;
         }
 
@@ -140,13 +142,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             this.handleAllGuardiansDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
             this.handleAllPlayersDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
         }
-    }
-
-    private static boolean isSeaWaveHit(Skill skill, byte packetSkillId) {
-        if (packetSkillId == 27 || packetSkillId == 28) {
-            return true;
-        }
-        return skill != null && (skill.getId() == 28L || "SeaWave".equalsIgnoreCase(skill.getName()));
     }
 
     private static boolean isPlayerInSeaWaveSafeZone(FTClient ftClient, MatchplayGuardianGame game, short targetPosition) {

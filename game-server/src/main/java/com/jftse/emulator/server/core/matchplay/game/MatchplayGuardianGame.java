@@ -25,7 +25,7 @@ import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.emulator.server.core.matchplay.combat.GuardianCombatSystem;
 import com.jftse.emulator.server.core.matchplay.combat.PlayerCombatSystem;
 import com.jftse.emulator.server.core.matchplay.guardian.AdvancedGuardianState;
-import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Config;
+import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules;
 import com.jftse.emulator.server.core.matchplay.guardian.BossBattlePhaseable;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseScript;
@@ -97,10 +97,15 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private boolean isAdvancedBossGuardianMode;
     private PhaseManager phaseManager;
     /**
-     * When true, player shield / teamshield / heal / teamheal skill hits are ignored.
+     * When true, player shield / teamshield skill hits are ignored.
      * Scripts toggle this for Atlantis V2 strip windows. Default off.
      */
-    private final AtomicBoolean playerSupportSkillsDisabled = new AtomicBoolean(false);
+    private final AtomicBoolean playerShieldSkillsDisabled = new AtomicBoolean(false);
+    /**
+     * When true, player heal / teamheal skill hits are ignored.
+     * Independent of shields so post-revive 20% heal can stay on.
+     */
+    private final AtomicBoolean playerHealSkillsDisabled = new AtomicBoolean(false);
 
     private final PlayerCombatSystem playerCombatSystem;
     private final GuardianCombatSystem guardianCombatSystem;
@@ -817,7 +822,8 @@ public class MatchplayGuardianGame extends MatchplayGame {
         List<PhaseScript> phases = new ArrayList<>();
         if (scriptManager.isPresent()) {
             ScriptManagerV2 sm = scriptManager.get();
-            List<ScriptFile> scriptFiles = sm.getScriptFiles("GUARDIAN-PHASE");
+            List<ScriptFile> scriptFiles = new ArrayList<>(sm.getScriptFiles("GUARDIAN-PHASE"));
+            scriptFiles.sort(Comparator.comparing(ScriptFile::getName, Comparator.nullsLast(String::compareTo)));
             for (ScriptFile scriptFile : scriptFiles) {
                 if (!scriptFile.getGroupPath().equals(resolveGuardianPhaseGroupPath())) {
                     continue;
@@ -852,50 +858,41 @@ public class MatchplayGuardianGame extends MatchplayGame {
     }
 
     /**
-     * Map 10 keeps {@code guardian-phase/10/} unless {@code jftse.guardian.atlantis.v2.enabled=true}
-     * (or env {@code JFTSE_ATLANTIS_V2=true}). Other maps are unchanged. Default is the old fight.
+     * Map 10 always loads the V2 scripts in {@code guardian-phase/10/}.
+     * Other maps keep their own group folder.
      */
     String resolveGuardianPhaseGroupPath() {
-        String mapPath = map.getMap().toString();
-        if (!"10".equals(mapPath) || !isAtlantisV2Enabled()) {
-            return mapPath;
-        }
-        log.info("Loading Atlantis V2 guardian-phase group 10-v2 (flag on)");
-        return "10-v2";
-    }
-
-    static boolean isAtlantisV2Enabled() {
-        String property = System.getProperty("jftse.guardian.atlantis.v2.enabled");
-        if (property != null && !property.isBlank()) {
-            return isTruthy(property);
-        }
-        String env = System.getenv("JFTSE_ATLANTIS_V2");
-        if (env != null && !env.isBlank()) {
-            return isTruthy(env);
-        }
-        AtlantisV2Config config = AtlantisV2Config.getInstance();
-        return config != null && config.isEnabled();
-    }
-
-    private static boolean isTruthy(String value) {
-        return "true".equalsIgnoreCase(value) || "1".equals(value) || "yes".equalsIgnoreCase(value);
+        Integer mapId = map == null || map.getMap() == null ? null : map.getMap();
+        return AtlantisV2Rules.resolvePhaseGroup(mapId);
     }
 
     public void setPlayerSupportSkillsDisabled(boolean disabled) {
-        playerSupportSkillsDisabled.set(disabled);
+        playerShieldSkillsDisabled.set(disabled);
+        playerHealSkillsDisabled.set(disabled);
+    }
+
+    public void setPlayerShieldSkillsDisabled(boolean disabled) {
+        playerShieldSkillsDisabled.set(disabled);
+    }
+
+    public void setPlayerHealSkillsDisabled(boolean disabled) {
+        playerHealSkillsDisabled.set(disabled);
     }
 
     public boolean arePlayerSupportSkillsDisabled() {
-        return playerSupportSkillsDisabled.get();
+        return playerShieldSkillsDisabled.get() && playerHealSkillsDisabled.get();
+    }
+
+    public boolean arePlayerShieldSkillsDisabled() {
+        return playerShieldSkillsDisabled.get();
+    }
+
+    public boolean arePlayerHealSkillsDisabled() {
+        return playerHealSkillsDisabled.get();
     }
 
     public boolean isPlayerSupportSkill(Skill skill) {
-        if (skill == null || skill.getId() == null) {
-            return false;
-        }
-        long id = skill.getId();
-        return id == 1L || id == 2L || id == 10L || id == 16L || id == 17L || id == 18L
-                || id == 19L || id == 20L || id == 31L || id == 39L;
+        return AtlantisV2Rules.isPlayerSupportSkill(skill);
     }
 
     public GuardianBattleState getGuardianBattleStateByPosition(int position) {

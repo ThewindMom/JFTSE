@@ -1,22 +1,22 @@
 var S2CMatchplayUseSkill = Java.type("com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayUseSkill");
 var S2CChatRoomAnswerPacket = Java.type("com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket");
 var PhaseUpdateResult = Java.type("com.jftse.emulator.server.core.matchplay.guardian.PhaseUpdateResult");
+var AtlantisV2Rules = Java.type("com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules");
 
-// Atlantis V2 act 1 — Thewind 18 Aug 01:53 PT draft, tuned so Testmon does not melt.
-// 5 then 10 LTR SeaWaves, dummy attacker 4, xyz=(-200,0,0). Stand on green pads.
-// Draft 5/10 counts kept; WAVE_GAP_MS is 2500 (draft did not specify intra-volley spacing).
-var SEA_WAVE_PACKET_ID = 27;
-var WAVE_X = -200;
-var WAVE_Z = 0;
-var WAVE_Y = 0;
-var WAVE_GAP_MS = 2500;
-var FIRST_VOLLEY = 5;
-var SECOND_VOLLEY = 10;
-var STRIP_GUARDIAN_MS = 30000;
-var STRIP_PLAYER_MS = 35000;
-var FIRST_VOLLEY_MS = 40000;
-var SECOND_VOLLEY_MS = 55000;
-var RESTORE_MS = 85000;
+// Live Atlantis act 1. Numbers come from AtlantisV2Rules — do not retune here.
+var SEA_WAVE_PACKET_ID = AtlantisV2Rules.SEA_WAVE_PACKET_ID;
+var WAVE_X = AtlantisV2Rules.WAVE_X;
+var WAVE_Z = AtlantisV2Rules.WAVE_Z;
+var WAVE_Y = AtlantisV2Rules.WAVE_Y;
+var WAVE_GAP_MS = AtlantisV2Rules.WAVE_GAP_MS;
+var FIRST_VOLLEY = AtlantisV2Rules.FIRST_VOLLEY_COUNT;
+var SECOND_VOLLEY = AtlantisV2Rules.SECOND_VOLLEY_COUNT;
+var STRIP_GUARDIAN_MS = AtlantisV2Rules.STRIP_GUARDIAN_MS;
+var STRIP_PLAYER_MS = AtlantisV2Rules.STRIP_PLAYER_MS;
+var FIRST_VOLLEY_MS = AtlantisV2Rules.FIRST_VOLLEY_MS;
+var SECOND_VOLLEY_MS = AtlantisV2Rules.SECOND_VOLLEY_MS;
+var RESTORE_MS = AtlantisV2Rules.RESTORE_MS;
+var DUMMY_ATTACKER = AtlantisV2Rules.DUMMY_ATTACKER;
 
 class GreenTide {
     constructor() {
@@ -25,7 +25,8 @@ class GreenTide {
         this.phaseStarted = false;
         this.isBossImmune = true;
         this.guardianSpellsOn = true;
-        this.playerSupportOn = true;
+        this.playerShieldsOn = true;
+        this.playerHealsOn = true;
         this.firstVolleyFired = false;
         this.secondVolleyFired = false;
         this.guardianSkillTimers = new Map();
@@ -44,7 +45,7 @@ function announce(connection, text) {
 
 function fireSeaWave(connection) {
     const seed = Math.floor(Math.random() * 127);
-    const packet = new S2CMatchplayUseSkill(4, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
+    const packet = new S2CMatchplayUseSkill(DUMMY_ATTACKER, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
 }
 
@@ -71,7 +72,7 @@ var phase = {
         return "Green Tide";
     },
     start: function () {
-        tide.timeStarted = Date.now();
+        tide.timeStarted = AtlantisV2Rules.now();
         tide.phaseStarted = true;
         game.setPlayerSupportSkillsDisabled(false);
 
@@ -80,7 +81,7 @@ var phase = {
         for (let g of guardians) {
             g.getSkills().clear();
             if (!g.isBoss()) {
-                tide.guardianSkillTimers.set(g.getPosition(), Date.now() + delayOffset);
+                tide.guardianSkillTimers.set(g.getPosition(), AtlantisV2Rules.now() + delayOffset);
                 delayOffset += 3750;
                 tide.guardianAggroState.set(g.getPosition(), false);
             }
@@ -89,7 +90,7 @@ var phase = {
     update: function (connection) {
         if (!tide.phaseStarted || this.hasEnded()) return PhaseUpdateResult.CONTINUE;
 
-        const now = Date.now();
+        const now = AtlantisV2Rules.now();
         const elapsed = now - tide.timeStarted;
         const guardians = game.getGuardianBattleStates();
         const boss = guardians.stream().filter(g => g.isBoss()).findFirst().orElse(null);
@@ -100,8 +101,9 @@ var phase = {
             announce(connection, "The temple's voices fall silent.");
         }
 
-        if (tide.playerSupportOn && elapsed >= STRIP_PLAYER_MS) {
-            tide.playerSupportOn = false;
+        if (tide.playerShieldsOn && elapsed >= STRIP_PLAYER_MS) {
+            tide.playerShieldsOn = false;
+            tide.playerHealsOn = false;
             game.setPlayerSupportSkillsDisabled(true);
             announce(connection, "Shields and heals will not answer. Get to the green pads.");
         }
@@ -116,8 +118,9 @@ var phase = {
             fireVolley(connection, SECOND_VOLLEY, "Tide 2");
         }
 
-        if (!tide.playerSupportOn && elapsed >= RESTORE_MS) {
-            tide.playerSupportOn = true;
+        if (!tide.playerShieldsOn && elapsed >= RESTORE_MS) {
+            tide.playerShieldsOn = true;
+            tide.playerHealsOn = true;
             tide.guardianSpellsOn = true;
             game.setPlayerSupportSkillsDisabled(false);
             announce(connection, "The current eases. Shields and heals return.");
@@ -197,7 +200,7 @@ var phase = {
         game.setPlayerSupportSkillsDisabled(false);
     },
     phaseTime: function () {
-        return Date.now() - tide.timeStarted;
+        return AtlantisV2Rules.now() - tide.timeStarted;
     },
     playTime: function () {
         return 0;
@@ -212,7 +215,7 @@ var phase = {
         if (isGuardian) {
             return game.getGuardianCombatSystem().heal(target, healAmount);
         }
-        if (!tide.playerSupportOn) {
+        if (!tide.playerHealsOn) {
             const current = game.getPlayerBattleStates().stream()
                 .filter(p => p.getPosition() === target)
                 .findFirst()

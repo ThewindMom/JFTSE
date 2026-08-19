@@ -1,19 +1,21 @@
 var S2CMatchplayUseSkill = Java.type("com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayUseSkill");
 var S2CChatRoomAnswerPacket = Java.type("com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket");
 var PhaseUpdateResult = Java.type("com.jftse.emulator.server.core.matchplay.guardian.PhaseUpdateResult");
+var AtlantisV2Rules = Java.type("com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules");
 
-// Atlantis V2 act 3 — heals 100%, shields stay off.
-// 30s Storm (id 62) + script Inferno (id 35) every 5s, then 50s charge, then 20 LTR SeaWaves.
-// Charge animation is UNKNOWN / untested — we only wait and announce.
-var SEA_WAVE_PACKET_ID = 27;
-var WAVE_X = -200;
-var WAVE_Z = 0;
-var WAVE_Y = 0;
-var WAVE_GAP_MS = 1200;
-var MEGAWAVE_COUNT = 20;
-var STORM_DWELL_MS = 30000;
-var INFERNO_INTERVAL_MS = 5000;
-var CHARGE_MS = 50000;
+// Live Atlantis act 3. Numbers come from AtlantisV2Rules — do not retune here.
+var SEA_WAVE_PACKET_ID = AtlantisV2Rules.SEA_WAVE_PACKET_ID;
+var WAVE_X = AtlantisV2Rules.WAVE_X;
+var WAVE_Z = AtlantisV2Rules.WAVE_Z;
+var WAVE_Y = AtlantisV2Rules.WAVE_Y;
+var WAVE_GAP_MS = AtlantisV2Rules.MEGAWAVE_GAP_MS;
+var MEGAWAVE_COUNT = AtlantisV2Rules.MEGAWAVE_COUNT;
+var STORM_DWELL_MS = AtlantisV2Rules.STORM_DWELL_MS;
+var INFERNO_INTERVAL_MS = AtlantisV2Rules.INFERNO_INTERVAL_MS;
+var CHARGE_MS = AtlantisV2Rules.CHARGE_MS;
+var DUMMY_ATTACKER = AtlantisV2Rules.DUMMY_ATTACKER;
+var STORM_SKILL_ID = AtlantisV2Rules.STORM_SKILL_ID;
+var INFERNO_SKILL_ID = AtlantisV2Rules.INFERNO_SKILL_ID;
 
 class StormCharge {
     constructor() {
@@ -37,7 +39,7 @@ function announce(connection, text) {
 
 function fireSeaWave(connection) {
     const seed = Math.floor(Math.random() * 127);
-    const packet = new S2CMatchplayUseSkill(4, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
+    const packet = new S2CMatchplayUseSkill(DUMMY_ATTACKER, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
 }
 
@@ -64,16 +66,17 @@ var phase = {
         return "Storm Charge";
     },
     start: function () {
-        storm.timeStarted = Date.now();
+        storm.timeStarted = AtlantisV2Rules.now();
         storm.phaseStarted = true;
-        game.setPlayerSupportSkillsDisabled(true);
-        storm.lastInferno = Date.now();
+        game.setPlayerHealSkillsDisabled(false);
+        game.setPlayerShieldSkillsDisabled(true);
+        storm.lastInferno = AtlantisV2Rules.now();
         storm.lastStorm = 0;
     },
     update: function (connection) {
         if (!storm.phaseStarted || this.hasEnded()) return PhaseUpdateResult.CONTINUE;
         try {
-            const now = Date.now();
+            const now = AtlantisV2Rules.now();
             const elapsed = now - storm.timeStarted;
             const boss = game.getGuardianBattleStates().stream().filter(g => g.isBoss()).findFirst().orElse(null);
             if (!boss) return PhaseUpdateResult.ERROR;
@@ -86,14 +89,14 @@ var phase = {
                 if (storm.lastStorm === 0) {
                     storm.lastStorm = now;
                     announce(connection, "Hold the green pads. Do not play the ball.");
-                    const bigBlizz = skillService.findSkillById(62);
+                    const bigBlizz = skillService.findSkillById(STORM_SKILL_ID);
                     if (bigBlizz) {
                         const packet = new S2CMatchplayUseSkill(boss.getPosition(), 4, bigBlizz.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
                         gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
                     }
                 }
                 if (now - storm.lastInferno >= INFERNO_INTERVAL_MS) {
-                    const inferno = skillService.findSkillById(35);
+                    const inferno = skillService.findSkillById(INFERNO_SKILL_ID);
                     if (inferno) {
                         for (let player of players) {
                             const packet = new S2CMatchplayUseSkill(4, player.getPosition(), inferno.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
@@ -131,7 +134,7 @@ var phase = {
         storm.finished = true;
     },
     phaseTime: function () {
-        return Date.now() - storm.timeStarted;
+        return AtlantisV2Rules.now() - storm.timeStarted;
     },
     playTime: function () {
         return 0;

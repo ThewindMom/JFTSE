@@ -2,34 +2,33 @@ var S2CMatchplayUseSkill = Java.type("com.jftse.emulator.server.core.packets.mat
 var S2CMatchplayDealDamage = Java.type("com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage");
 var S2CChatRoomAnswerPacket = Java.type("com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket");
 var PhaseUpdateResult = Java.type("com.jftse.emulator.server.core.matchplay.guardian.PhaseUpdateResult");
+var AtlantisV2Rules = Java.type("com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules");
 
-// Atlantis V2 act 2 — both adds already dead; boss immune until they were.
-// Blizzard + 5 LTR waves, then waves-only, then 2 min crab window, then full-HP revive.
-var SEA_WAVE_PACKET_ID = 27;
-var WAVE_X = -200;
-var WAVE_Z = 0;
-var WAVE_Y = 0;
-var WAVE_GAP_MS = 2500;
-var BLIZZARD_VOLLEY = 5;
-var CRAB_WINDOW_MS = 120000;
-var WAVE_ONLY_MS = 30000;
+// Live Atlantis act 4. Numbers come from AtlantisV2Rules — do not retune here.
+var SEA_WAVE_PACKET_ID = AtlantisV2Rules.SEA_WAVE_PACKET_ID;
+var WAVE_X = AtlantisV2Rules.WAVE_X;
+var WAVE_Z = AtlantisV2Rules.WAVE_Z;
+var WAVE_Y = AtlantisV2Rules.WAVE_Y;
+var STUN_MS = AtlantisV2Rules.STUN_MS;
+var ENRAGE_WAVE_MS = AtlantisV2Rules.ENRAGE_WAVE_MS;
+var ENRAGE_BLIZZARD_MS = AtlantisV2Rules.ENRAGE_BLIZZARD_MS;
+var DUMMY_ATTACKER = AtlantisV2Rules.DUMMY_ATTACKER;
+var BLIZZARD_SKILL_ID = AtlantisV2Rules.BLIZZARD_SKILL_ID;
+var REBIRTH_SKILL_ID = AtlantisV2Rules.REBIRTH_SKILL_ID;
 
-class CrabWindow {
+class Enrage {
     constructor() {
         this.timeStarted = 0;
         this.finished = false;
         this.phaseStarted = false;
-        this.blizzardVolleyFired = false;
-        this.crabAnnounced = false;
         this.revived = false;
-        this.healingMultiplier = 0.20;
-        this.lastBlizzard = 0;
+        this.enraged = false;
         this.lastWave = 0;
-        this.waveOnly = false;
+        this.lastBlizzard = 0;
     }
 }
 
-let crab = new CrabWindow();
+let rage = new Enrage();
 
 function announce(connection, text) {
     const packet = new S2CChatRoomAnswerPacket(2, "Server", text);
@@ -38,127 +37,106 @@ function announce(connection, text) {
 
 function fireSeaWave(connection) {
     const seed = Math.floor(Math.random() * 127);
-    const packet = new S2CMatchplayUseSkill(4, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
+    const packet = new S2CMatchplayUseSkill(DUMMY_ATTACKER, 4, SEA_WAVE_PACKET_ID, seed, WAVE_X, WAVE_Z, WAVE_Y);
     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
-}
-
-function fireVolley(connection, count, label) {
-    announce(connection, label + " — " + count + " LTR waves. Green pads are safe.");
-    const eventHandler = gameManager.getEventHandler();
-    for (let i = 0; i < count; i++) {
-        const delay = 250 + i * WAVE_GAP_MS;
-        const n = i + 1;
-        const runnableEvent = eventHandler.createRunnableEvent(function () {
-            const session = connection.getClient() && connection.getClient().getActiveGameSession();
-            if (!session) return;
-            announce(connection, label + " " + n + "/" + count);
-            fireSeaWave(connection);
-        }, delay);
-        eventHandler.offerJS(runnableEvent);
-    }
 }
 
 function reviveAddsFull(connection) {
     const skillService = serviceManager.getSkillService();
-    const rebirth = skillService.findSkillById(29);
+    const rebirth = skillService.findSkillById(REBIRTH_SKILL_ID);
     const boss = game.getGuardianBattleStates().stream().filter(g => g.isBoss()).findFirst().orElse(null);
     const pos = boss ? boss.getPosition() : 4;
     for (let g of game.getGuardianBattleStates()) {
         if (g.isBoss()) continue;
         g.getCurrentHealth().set(g.getMaxHealth());
         if (rebirth) {
-            const packet = new S2CMatchplayUseSkill(pos, g.getPosition(), rebirth.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
             const dmgPacket = new S2CMatchplayDealDamage(g.getPosition(), g.getCurrentHealth().get(), 4, rebirth.getId(), 0.0, 0.0);
             gameManager.sendPacketToAllClientsInSameGameSession(dmgPacket, connection);
         }
     }
 }
 
+function addsDead() {
+    return game.getGuardianBattleStates().stream()
+        .filter(g => !g.isBoss())
+        .allMatch(g => g.getCurrentHealth().get() < 1);
+}
+
 var phase = {
     getPhaseName: function () {
-        return "Crab Window";
+        return "Abyssal Enrage";
     },
     start: function () {
-        crab.timeStarted = Date.now();
-        crab.phaseStarted = true;
-        game.setPlayerSupportSkillsDisabled(true);
-        crab.lastBlizzard = Date.now();
-        crab.lastWave = Date.now();
+        rage.timeStarted = AtlantisV2Rules.now();
+        rage.phaseStarted = true;
+        game.setPlayerSupportSkillsDisabled(false);
     },
     update: function (connection) {
-        if (!crab.phaseStarted || this.hasEnded()) return PhaseUpdateResult.CONTINUE;
+        if (!rage.phaseStarted || this.hasEnded()) return PhaseUpdateResult.CONTINUE;
         try {
-            const now = Date.now();
-            const elapsed = now - crab.timeStarted;
+            const now = AtlantisV2Rules.now();
+            const elapsed = now - rage.timeStarted;
             const boss = game.getGuardianBattleStates().stream().filter(g => g.isBoss()).findFirst().orElse(null);
             if (!boss) return PhaseUpdateResult.ERROR;
             const skillService = serviceManager.getSkillService();
 
-            if (!crab.blizzardVolleyFired) {
-                crab.blizzardVolleyFired = true;
-                announce(connection, "Blizzard over the foam. Stay on green.");
-                fireVolley(connection, BLIZZARD_VOLLEY, "Blizz tide");
+            if (elapsed < STUN_MS) {
+                if (!rage.revived) {
+                    rage.revived = true;
+                    reviveAddsFull(connection);
+                    announce(connection, "A brief calm. Shields and heals work. The boss is stunned.");
+                }
+                return PhaseUpdateResult.CONTINUE;
             }
 
-            if (!crab.waveOnly && elapsed < WAVE_ONLY_MS) {
-                if (now - crab.lastBlizzard >= 18000) {
-                    const blizzard = skillService.findSkillById(13);
+            if (rage.revived && !rage.enraged && addsDead()) {
+                rage.enraged = true;
+                game.setPlayerSupportSkillsDisabled(true);
+                rage.lastWave = 0;
+                rage.lastBlizzard = now;
+                announce(connection, "Enrage. Waves and blizzard, no shields, no heals. Kill the boss.");
+            }
+
+            if (rage.enraged) {
+                if (now - rage.lastWave >= ENRAGE_WAVE_MS) {
+                    fireSeaWave(connection);
+                    rage.lastWave = now;
+                }
+                if (now - rage.lastBlizzard >= ENRAGE_BLIZZARD_MS) {
+                    const blizzard = skillService.findSkillById(BLIZZARD_SKILL_ID);
                     if (blizzard) {
                         const packet = new S2CMatchplayUseSkill(boss.getPosition(), 4, blizzard.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
                         gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
                     }
-                    crab.lastBlizzard = now;
+                    rage.lastBlizzard = now;
                 }
             }
 
-            if (!crab.waveOnly && elapsed >= WAVE_ONLY_MS && !crab.crabAnnounced) {
-                crab.waveOnly = true;
-                crab.crabAnnounced = true;
-                announce(connection, "Adds revive in 2 minutes. Plant crabs on their court.");
-            }
-
-            if (crab.waveOnly && !crab.revived && now - crab.lastWave >= 8000) {
-                fireSeaWave(connection);
-                crab.lastWave = now;
-            }
-
-            if (!crab.revived && elapsed >= WAVE_ONLY_MS + CRAB_WINDOW_MS) {
-                crab.revived = true;
-                reviveAddsFull(connection);
-                announce(connection, "The attendants return at full strength. Heals are 20%.");
-            }
-
-            if (crab.revived) {
-                if (now - crab.lastWave >= 8000) {
-                    fireSeaWave(connection);
-                    crab.lastWave = now;
-                }
-                const supportsDead = game.getGuardianBattleStates().stream()
-                    .filter(g => !g.isBoss())
-                    .allMatch(g => g.getCurrentHealth().get() < 1);
-                if (supportsDead) {
-                    announce(connection, "The attendants fall again.");
-                    return PhaseUpdateResult.NEXT_PHASE;
-                }
+            const allDead = game.getGuardianBattleStates().stream()
+                .allMatch(g => g.getCurrentHealth().get() < 1);
+            if (allDead) {
+                announce(connection, "The deep is still.");
+                return PhaseUpdateResult.NEXT_PHASE;
             }
 
             return PhaseUpdateResult.CONTINUE;
         } catch (e) {
-            log.error("Script error in 2_crab_window.js:", e.message, e.stack || e);
+            log.error("Script error in 4_enrage.js:", e.message, e.stack || e);
             return PhaseUpdateResult.ERROR;
         }
     },
     end: function () {
-        crab.finished = true;
+        rage.finished = true;
+        game.setPlayerSupportSkillsDisabled(false);
     },
     phaseTime: function () {
-        return Date.now() - crab.timeStarted;
+        return AtlantisV2Rules.now() - rage.timeStarted;
     },
     playTime: function () {
         return 0;
     },
     hasEnded: function () {
-        return crab.finished || (this.playTime() !== 0 && this.phaseTime() > this.playTime());
+        return rage.finished || (this.playTime() !== 0 && this.phaseTime() > this.playTime());
     },
     getGuardianAttackLoopTime: function (guardian) {
         return -1;
@@ -167,15 +145,14 @@ var phase = {
         if (isGuardian) {
             return game.getGuardianCombatSystem().heal(target, healAmount);
         }
-        if (!crab.revived) {
+        if (rage.enraged) {
             const current = game.getPlayerBattleStates().stream()
                 .filter(p => p.getPosition() === target)
                 .findFirst()
                 .orElse(null);
             return current ? current.getCurrentHealth().get() : 0;
         }
-        const reduced = Math.floor(healAmount * crab.healingMultiplier);
-        return game.getPlayerCombatSystem().heal(target, reduced);
+        return game.getPlayerCombatSystem().heal(target, healAmount);
     },
     onDealDamage: function (attackingPlayer, targetGuardian, damage, hasAttackerDmgBuff, hasTargetDefBuff, skill) {
         return game.getGuardianCombatSystem().dealDamage(attackingPlayer, targetGuardian, damage, hasAttackerDmgBuff, hasTargetDefBuff, skill);
