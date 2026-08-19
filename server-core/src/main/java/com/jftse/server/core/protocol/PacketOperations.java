@@ -240,6 +240,8 @@ public enum PacketOperations {
     C2SInviteFriendRequest(0x2347),
     S2CInviteFriendAnswer(0x2348),
     S2CInviteFriendNotification(0x2349),
+    C2SPlayWithRequest(0x234A),
+    S2CPlayWithAnswer(0x234B),
     C2SDeleteFriendRequest(0x1F55),
     S2CDeleteFriendAnswer(0x1F57),
     C2SSendMessageRequest(0x1F5F),

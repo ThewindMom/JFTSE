@@ -50,6 +50,7 @@ public class FTConnection extends Connection<FTClient> {
             CMSGEnchantRequest.PACKET_ID,
             CMSGAddFriendApproval.PACKET_ID,
             CMSGInviteFriend.PACKET_ID,
+            CMSGPlayWith.PACKET_ID,
             CMSGSendParcel.PACKET_ID,
             CMSGAcceptParcel.PACKET_ID,
             CMSGDenyParcel.PACKET_ID,
