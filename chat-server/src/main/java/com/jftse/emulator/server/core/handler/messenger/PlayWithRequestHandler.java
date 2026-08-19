@@ -42,7 +42,7 @@ public class PlayWithRequestHandler implements PacketHandler<FTConnection, CMSGP
 
         FTPlayer player = ftClient.getPlayer();
         final String hostName = packet.getPlayerName();
-        final short roomId = packet.getRoomId();
+        final short roomId = packet.getServerId();
 
         Player hostPlayer = playerService.findByName(hostName);
         if (hostPlayer == null || hostPlayer.getId().equals(player.getId())) {
@@ -86,7 +86,7 @@ public class PlayWithRequestHandler implements PacketHandler<FTConnection, CMSGP
                 .result(result)
                 .playerName(playerName != null ? playerName : "")
                 .roomId(roomId)
-                .unk0(0)
+                .serverId((short) 0)
                 .build();
     }
 

@@ -12,9 +12,9 @@ import com.jftse.entities.database.model.account.Account;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.messenger.Message;
-import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.packets.shop.SMSGSetMoney;
 
@@ -81,10 +81,8 @@ public class CoupleRing extends BaseItem {
                 .build();
         this.packetsToSend.add(this.localPlayerId, moneyPacket);
 
-        List<Player> friends = socialService.getFriendList(player.getPlayerRef(), EFriendshipState.Friends).stream()
-                .map(Friend::getFriend)
-                .toList();
-        S2CFriendsListAnswerPacket friendsListAnswerPacket = new S2CFriendsListAnswerPacket(friends);
+        List<FTFriend> friendList = socialService.getFTFriendList(player.getPlayerRef(), EFriendshipState.Friends);
+        S2CFriendsListAnswerPacket friendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
         this.packetsToSend.add(this.localPlayerId, friendsListAnswerPacket);
 
         Message message = new Message();
@@ -94,11 +92,8 @@ public class CoupleRing extends BaseItem {
         message.setMessage("[Automatic response] I divorced you");
         messageService.save(message);
 
-        friends = socialService.getFriendList(playerCouple.getFriend(), EFriendshipState.Friends).stream()
-                .map(Friend::getFriend)
-                .toList();
-
-        friendsListAnswerPacket = new S2CFriendsListAnswerPacket(friends);
+        friendList = socialService.getFTFriendList(playerCouple.getFriend(), EFriendshipState.Friends);
+        friendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
         this.packetsToSend.add(this.playerCoupleId, friendsListAnswerPacket);
 
         S2CReceivedMessageNotificationPacket receivedMessageNotificationPacket = new S2CReceivedMessageNotificationPacket(message, player.getName());

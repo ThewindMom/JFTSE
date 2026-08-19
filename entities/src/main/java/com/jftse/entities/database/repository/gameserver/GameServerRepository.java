@@ -13,4 +13,7 @@ public interface GameServerRepository extends JpaRepository<GameServer, Long> {
     List<GameServer> findAllFetched();
     @Query(value = "FROM GameServer gs LEFT JOIN FETCH gs.gameServerType gst WHERE gs.port = :port")
     Optional<GameServer> findGameServerByPort(@Param("port") Integer port);
+
+    @Query(value = "FROM GameServer gs LEFT JOIN FETCH gs.gameServerType gst WHERE gst.type = :type")
+    Optional<GameServer> findByChannelType(byte type);
 }

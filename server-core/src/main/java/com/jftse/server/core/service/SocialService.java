@@ -4,11 +4,13 @@ import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 
 import java.util.List;
 
 public interface SocialService {
     List<Friend> getFriendList(Player player, EFriendshipState friendshipState);
+    List<FTFriend> getFTFriendList(Player player, EFriendshipState friendshipState);
 
     List<Friend> getFriendListByFriend(Player player, EFriendshipState friendshipState);
 

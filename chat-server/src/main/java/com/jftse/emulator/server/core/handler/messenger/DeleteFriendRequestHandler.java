@@ -10,6 +10,7 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.FriendService;
@@ -55,10 +56,8 @@ public class DeleteFriendRequestHandler implements PacketHandler<FTConnection, C
         if (friend2 != null) {
             friendService.remove(friend2.getId());
 
-            List<Player> friends = socialService.getFriendList(friend2.getPlayer(), EFriendshipState.Friends).stream()
-                    .map(Friend::getFriend)
-                    .toList();
-            S2CFriendsListAnswerPacket targetFriendsListAnswerPacket = new S2CFriendsListAnswerPacket(friends);
+            List<FTFriend> friendList = socialService.getFTFriendList(friend2.getPlayer(), EFriendshipState.Friends);
+            S2CFriendsListAnswerPacket targetFriendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
 
             PacketMessage packetMessage = PacketMessage.builder()
                     .receivingPlayerId(friend2.getPlayer().getId())

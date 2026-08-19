@@ -8,6 +8,7 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.rabbit.AbstractMessageHandler;
 import com.jftse.server.core.rabbit.MessageHandlerRegistry;
 import com.jftse.server.core.service.FriendService;
@@ -50,9 +51,7 @@ public class RefreshFriendListHandler extends AbstractMessageHandler<RefreshFrie
         AtomicInteger notifyCount = new AtomicInteger();
         List<Friend> friends = friendService.findByPlayer(player);
         friends.forEach(x -> {
-            List<Player> friendList = socialService.getFriendList(x.getFriend(), EFriendshipState.Friends).stream()
-                    .map(Friend::getFriend)
-                    .toList();
+            List<FTFriend> friendList = socialService.getFTFriendList(x.getFriend(), EFriendshipState.Friends);
             S2CFriendsListAnswerPacket friendListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
             FTConnection friendConnection = gameManager.getConnectionByPlayerId(x.getFriend().getId());
             if (friendConnection != null) {

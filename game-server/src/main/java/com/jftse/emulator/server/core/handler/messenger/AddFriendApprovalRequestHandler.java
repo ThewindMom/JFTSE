@@ -10,6 +10,7 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.FriendService;
@@ -19,7 +20,6 @@ import com.jftse.server.core.shared.packets.messenger.CMSGAddFriendApproval;
 import com.jftse.server.core.shared.rabbit.messages.PacketMessage;
 
 import java.util.List;
-import java.util.Optional;
 
 @PacketId(CMSGAddFriendApproval.PACKET_ID)
 public class AddFriendApprovalRequestHandler implements PacketHandler<FTConnection, CMSGAddFriendApproval> {
@@ -73,9 +73,7 @@ public class AddFriendApprovalRequestHandler implements PacketHandler<FTConnecti
             friendService.save(friend);
             friendService.save(newFriend);
 
-            List<Player> friendList = socialService.getFriendList(activePlayer.getPlayerRef(), EFriendshipState.Friends).stream()
-                    .map(Friend::getFriend)
-                    .toList();
+            List<FTFriend> friendList = socialService.getFTFriendList(activePlayer.getPlayerRef(), EFriendshipState.Friends);
             S2CFriendsListAnswerPacket friendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
             GameManager.getInstance().getClients().stream()
                     .filter(c -> c.hasPlayer() && c.getPlayer().getId() == activePlayer.getId())
@@ -86,9 +84,7 @@ public class AddFriendApprovalRequestHandler implements PacketHandler<FTConnecti
                         }
                     });
 
-            friendList = socialService.getFriendList(targetPlayer, EFriendshipState.Friends).stream()
-                    .map(Friend::getFriend)
-                    .toList();
+            friendList = socialService.getFTFriendList(targetPlayer, EFriendshipState.Friends);
             S2CFriendsListAnswerPacket targetFriendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
 
             PacketMessage packetMessage = PacketMessage.builder()

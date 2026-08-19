@@ -13,6 +13,7 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.messenger.EFriendshipState;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.PlayerService;
@@ -42,10 +43,8 @@ public class FriendListRequestHandler implements PacketHandler<FTConnection, CMS
 
         FTPlayer player = ftClient.getPlayer();
 
-        List<Player> friends = socialService.getFriendList(player.getPlayerRef(), EFriendshipState.Friends).stream()
-                .map(Friend::getFriend)
-                .toList();
-        S2CFriendsListAnswerPacket s2CFriendsListAnswerPacket = new S2CFriendsListAnswerPacket(friends);
+        List<FTFriend> friendList = socialService.getFTFriendList(player.getPlayerRef(), EFriendshipState.Friends);
+        S2CFriendsListAnswerPacket s2CFriendsListAnswerPacket = new S2CFriendsListAnswerPacket(friendList);
         connection.sendTCP(s2CFriendsListAnswerPacket);
 
         RefreshFriendListMessage refreshFriendListMessage = RefreshFriendListMessage.builder()
