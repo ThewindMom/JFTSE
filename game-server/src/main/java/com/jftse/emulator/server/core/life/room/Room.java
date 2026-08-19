@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 public class Room {
     public Room() {
         bannedPlayers = new ConcurrentLinkedDeque<>();
+        invitedPlayerIds = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
         positions = new ArrayList<>(Arrays.asList(
                 RoomPositionState.Free, RoomPositionState.Free,
@@ -42,6 +43,7 @@ public class Room {
     private int ball;
     private String password;
     private ConcurrentLinkedDeque<Long> bannedPlayers;
+    private ConcurrentLinkedDeque<Long> invitedPlayerIds;
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
     private ArrayList<Short> positions;
     private int status;
