@@ -19,7 +19,7 @@ public class S2CFriendsListAnswerPacket extends Packet {
             this.write((int) friend.getPlayerId());
             this.write(friend.getName());
             this.write(friend.getPlayerType());
-            this.write(friend.getServerId());
+            this.write((short) friend.getServerId());
         }
     }
 }
