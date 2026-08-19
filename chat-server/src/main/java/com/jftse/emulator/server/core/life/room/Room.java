@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Room {
     public Room() {
         bannedPlayers = new ConcurrentLinkedDeque<>();
+        invitedPlayerIds = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
         status = RoomStatus.NotRunning;
     }
@@ -34,6 +35,7 @@ public class Room {
     private int ball;
     private String password;
     private ConcurrentLinkedDeque<Long> bannedPlayers;
+    private ConcurrentLinkedDeque<Long> invitedPlayerIds;
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
     private int status;
 

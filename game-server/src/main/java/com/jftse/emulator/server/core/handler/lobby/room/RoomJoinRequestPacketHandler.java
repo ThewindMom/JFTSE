@@ -54,10 +54,9 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
             return;
         }
 
-        Room room = GameManager.getInstance().getRooms().stream()
-                .filter(r -> r.getRoomId() == roomJoinRequestPacket.getRoomId())
-                .findAny()
-                .orElse(null);
+        final short requestedRoomId = roomJoinRequestPacket.getRoomId();
+        final long invitedPlayerId = ftClient.hasPlayer() ? ftClient.getPlayer().getId() : -1L;
+        final Room room = resolveJoinRoom(requestedRoomId, invitedPlayerId);
 
         if (room == null) {
             SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
@@ -93,7 +92,8 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         }
 
         FTPlayer activePlayer = ftClient.getPlayer();
-        if (!ftClient.isGameMaster() && room.isPrivate() && (StringUtils.isEmpty(roomJoinRequestPacket.getPassword()) || !roomJoinRequestPacket.getPassword().equals(room.getPassword()))) {
+        final boolean invitedToRoom = room.getInvitedPlayerIds().contains(activePlayer.getId());
+        if (!ftClient.isGameMaster() && !invitedToRoom && room.isPrivate() && (StringUtils.isEmpty(roomJoinRequestPacket.getPassword()) || !roomJoinRequestPacket.getPassword().equals(room.getPassword()))) {
             SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
                     .result((char) -5)
                     .roomType((byte) 0)
@@ -172,7 +172,10 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         boolean useGmSlot = false;
         int gmSlot = 9;
         if (!isTownSquare) {
-            if (ftClient.isGameMaster()) {
+            // Invited guests must take a visible Free seat. Test accounts are GMs
+            // (account.gm=1); stuffing them in InvisibleGmSlot 9 hides them from
+            // both clients and greys READY (position > 3 => spectator).
+            if (ftClient.isGameMaster() && !invitedToRoom) {
                 int i = 0;
                 boolean isGmSlotInUse = false;
                 for (Short pos : room.getPositions()) {
@@ -268,10 +271,43 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         }
 
         room.getRoomPlayerList().add(roomPlayer);
+        room.getInvitedPlayerIds().remove(activePlayer.getId());
 
         handleRoomUponJoin(connection, room, false);
 
         ftClient.getIsJoiningOrLeavingRoom().set(false);
+    }
+
+
+    /**
+     * Resolve CMSG 0x138B roomId for both encodings:
+     * <ul>
+     *   <li>0-based server id ({@code Room.roomId}) — official room-list join and
+     *       Invite Yes (low word of 0x2349 unk0).</li>
+     *   <li>1-based display id ("1. InviteTest") — only when the player is on
+     *       that room's invite list, so a display-id join cannot land in a
+     *       different room that happens to have the same 0-based id.</li>
+     * </ul>
+     */
+    private static Room resolveJoinRoom(short requestedRoomId, long playerId) {
+        final var rooms = GameManager.getInstance().getRooms();
+        Room exact = rooms.stream()
+                .filter(r -> r.getRoomId() == requestedRoomId)
+                .findAny()
+                .orElse(null);
+        Room display = requestedRoomId > 0
+                ? rooms.stream()
+                    .filter(r -> r.getRoomId() == requestedRoomId - 1)
+                    .findAny()
+                    .orElse(null)
+                : null;
+        if (exact != null && exact.getInvitedPlayerIds().contains(playerId)) {
+            return exact;
+        }
+        if (display != null && display.getInvitedPlayerIds().contains(playerId)) {
+            return display;
+        }
+        return exact;
     }
 
     private void handleRoomUponJoin(final FTConnection connection, Room room, boolean existingRoom) {
