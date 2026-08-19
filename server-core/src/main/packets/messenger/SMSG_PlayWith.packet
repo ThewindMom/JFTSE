@@ -1,6 +1,6 @@
 message SMSG_PlayWith (0x234B) {
     short result = 1;
     string playerName = 2;
-    short roomId = 3;
-    int32 unk0 = 4;
+    short serverId = 3;
+    int32 roomId = 4;
 }

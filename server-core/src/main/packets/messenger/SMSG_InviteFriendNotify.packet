@@ -1,5 +1,5 @@
 message SMSG_InviteFriendNotify (0x2349) {
     string playerName = 1;
-    short roomId = 2;
-    int32 unk0 = 3;
+    short serverId = 2;
+    int32 roomId = 3;
 }
