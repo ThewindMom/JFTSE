@@ -13,7 +13,6 @@ import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules;
-import com.jftse.emulator.server.core.matchplay.guardian.GuardianShieldPadService;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
 import com.jftse.emulator.server.core.packets.matchplay.CMSGSpellHitsTargetExtended;
@@ -97,27 +96,36 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return;
         }
 
-        // SeaWave (table 28 / packet 27) is a full-court band. Client reports every
-        // actor it crosses, including guardians. Dummy 4 is God (no team), so those
-        // hits would apply. Ignore guardian targets so herding waves only hurt players.
-        // Players standing in a visible green pad are in a SeaWave safe zone for the
-        // whole volley; that check does not consume the one-shot shield grant.
-        if (game instanceof MatchplayGuardianGame guardianGame && AtlantisV2Rules.isSeaWaveHit(skill, skillId)) {
-            short targetPosition = spellHitsTargetExt.getTargetPosition();
-            boolean inPad = AtlantisV2Rules.isPlayerSlot(targetPosition)
-                    && isPlayerInSeaWaveSafeZone(ftClient, guardianGame, targetPosition);
-            if (AtlantisV2Rules.shouldIgnoreSeaWaveHit(targetPosition, inPad)) {
-                return;
-            }
+        // Actorless SeaWaves are enemy hazards in Guardian mode. Keep their native
+        // client damage/tumble for players, but do not let dummy slot 4 damage the
+        // guardians that produced the encounter.
+        if (game instanceof MatchplayGuardianGame
+                && AtlantisV2Rules.isSeaWaveHit(skill, skillId)
+                && AtlantisV2Rules.shouldIgnoreSeaWaveHit(spellHitsTargetExt.getTargetPosition(), false)) {
+            return;
         }
 
-        if (game instanceof MatchplayGuardianGame guardianGame
-                && AtlantisV2Rules.shouldIgnorePlayerSupportHit(
-                        guardianGame.arePlayerShieldSkillsDisabled(),
-                        guardianGame.arePlayerHealSkillsDisabled(),
-                        spellHitsTargetExt.getTargetPosition(),
-                        skill)) {
-            return;
+        if (game instanceof MatchplayGuardianGame guardianGame) {
+            RoomPlayer roomPlayer = ftClient.getRoomPlayer();
+            short actorPosition = roomPlayer == null ? -1 : roomPlayer.getPosition();
+            int exemptPosition = guardianGame.getPlayerSupportExemptPosition();
+            boolean authorizedAreaSupportHit = AtlantisV2Rules.isAllyAreaSupportHitReport(
+                    actorPosition,
+                    exemptPosition,
+                    spellHitsTargetExt.getAttackerPosition(),
+                    spellHitsTargetExt.getTargetPosition())
+                    && guardianGame.consumeAuthorizedPlayerAreaSupportHit(
+                    spellHitsTargetExt.getTargetPosition(), skill);
+            if (AtlantisV2Rules.shouldIgnorePlayerSupportHit(
+                    guardianGame.arePlayerShieldSkillsDisabled(),
+                    guardianGame.arePlayerHealSkillsDisabled(),
+                    actorPosition,
+                    exemptPosition,
+                    spellHitsTargetExt.getTargetPosition(),
+                    skill,
+                    authorizedAreaSupportHit)) {
+                return;
+            }
         }
 
         if (skill != null && this.isUniqueSkill(skill)) {
@@ -142,19 +150,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             this.handleAllGuardiansDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
             this.handleAllPlayersDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
         }
-    }
-
-    private static boolean isPlayerInSeaWaveSafeZone(FTClient ftClient, MatchplayGuardianGame game, short targetPosition) {
-        GuardianShieldPadService padService = GuardianShieldPadService.getInstance();
-        if (padService == null || ftClient.getGameSessionId() == null) {
-            return false;
-        }
-        PlayerBattleState target = game.getPlayerBattleStates().stream()
-                .filter(state -> state.getPosition() == targetPosition)
-                .findFirst()
-                .orElse(null);
-        int playerId = target != null ? (int) target.getId() : 0;
-        return padService.isInsideVisiblePad(ftClient.getGameSessionId(), playerId, targetPosition);
     }
 
     private boolean isUniqueSkill(Skill skill) {
@@ -627,6 +622,19 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 game.fillRemainingGuardianSlots(true, game, game.getGuardiansInBossStage(), guardians);
             }
 
+            boolean atlantisLizardAids = AtlantisV2Rules.shouldUseLizardFamilyAids(
+                    game.getMap().getMap(), isAdvancedBossGuardianMode);
+            if (atlantisLizardAids) {
+                List<Long> lizardAidIds = AtlantisV2Rules.selectLizardAidIds(random);
+                Guardian firstAid = guardianService.findGuardianById(lizardAidIds.get(0));
+                Guardian secondAid = guardianService.findGuardianById(lizardAidIds.get(1));
+                if (firstAid == null || secondAid == null) {
+                    log.error("Atlantis lizard aids not found: {}", lizardAidIds);
+                    return;
+                }
+                guardians = new ArrayList<>(List.of(bossGuardian, firstAid, secondAid));
+            }
+
             guardians.set(0, bossGuardian);
 
             GuardianBattleState bossBattleState = game.createGuardianBattleState(false, bossGuardian, (short) 10, activePlayingPlayersCount);
@@ -638,7 +646,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 GuardianBase guardianBase = guardians.get(i);
                 if (guardianBase == null) continue;
 
-                if (game.getIsRandomGuardiansMode().get()) {
+                if (game.getIsRandomGuardiansMode().get() && !atlantisLizardAids) {
                     guardianBase.setId(random.nextLong(72) + 1);
                 }
 
@@ -648,7 +656,7 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 } else {
                     guardianBase = bossGuardianService.findBossGuardianById(guardianBase.getId());
                 }
-                if (game.getIsRandomGuardiansMode().get()) {
+                if (game.getIsRandomGuardiansMode().get() && !atlantisLizardAids) {
                     guardians.set(i, guardianBase);
                 }
 

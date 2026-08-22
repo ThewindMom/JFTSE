@@ -5,6 +5,7 @@ import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.net.FTClient;
+import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
 import com.jftse.server.core.matchplay.battle.PlayerBattleState;
 import com.jftse.server.core.shared.packets.matchplay.SMSGPlayerUseSkill;
 import com.jftse.server.core.thread.ThreadManager;
@@ -16,14 +17,14 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Spring wrapper around {@link GuardianShieldPads}. Grants {@code BattleState.shieldActive}
- * and optionally broadcasts the official Shield skill (index 9 / XML ID 9 / DB id 10)
- * so clients that understand SMSGPlayerUseSkill can play the shield cue.
+ * Spring wrapper around {@link GuardianShieldPads}.
+ * Atlantis map 10 opts out; other Guardian maps keep the shared pad mechanic.
  */
 @Service
 @Log4j2
@@ -101,7 +102,21 @@ public class GuardianShieldPadService {
         if (game == null || client == null || client.getGameSessionId() == null) {
             return;
         }
-        Integer sessionId = client.getGameSessionId();
+        schedulePads(game, client.getGameSessionId());
+    }
+
+    /** Schedule pads for supported Guardian maps; Atlantis map 10 is excluded. */
+    public void schedulePads(MatchplayGuardianGame game, int sessionId) {
+        if (game == null) {
+            return;
+        }
+        Integer mapId = game.getMap() != null ? game.getMap().getMap() : null;
+        if (!AtlantisV2Rules.shouldSchedulePads(mapId)) {
+            pads.trackSession(sessionId);
+            log.info("Guardian pads skipped session={} map={} bossActive={}",
+                    sessionId, mapId, game.getBossBattleActive().get());
+            return;
+        }
         onMatchStart(sessionId);
         ScheduledFuture<?> future = ThreadManager.getInstance().schedule(
                 () -> activate(sessionId),
@@ -142,9 +157,13 @@ public class GuardianShieldPadService {
 
     public void activate(int sessionId) {
         pads.activate(sessionId);
+        if (pads.isVisible(sessionId)) {
+            announce(sessionId, "Safe zones are up. Stand in the green pads at back-left or back-right.");
+        }
     }
 
     public void onMatchEnd(int sessionId) {
+        clearPadRings(sessionId);
         pads.onMatchEnd(sessionId);
     }
 
@@ -158,6 +177,21 @@ public class GuardianShieldPadService {
      */
     public boolean isInsideVisiblePad(int sessionId, int playerId, int playerPosition) {
         return pads.isInsideVisiblePad(sessionId, playerId, playerPosition);
+    }
+
+    /** One current court centroid per clustered group of living Atlantis players. */
+    public GuardianShieldPads.ClusterCenter[] clusteredAlivePlayerCenters(int sessionId, int radius) {
+        GameSession session = sessionOf(sessionId);
+        if (session == null || !(session.getMatchplayGame() instanceof MatchplayGuardianGame game)) {
+            return new GuardianShieldPads.ClusterCenter[0];
+        }
+        Set<Integer> activePositions = game.getPlayerBattleStates().stream()
+                .filter(player -> player != null
+                        && AtlantisV2Rules.isPlayerSlot((short) player.getPosition())
+                        && player.getCurrentHealth().get() > 0)
+                .map(PlayerBattleState::getPosition)
+                .collect(java.util.stream.Collectors.toSet());
+        return pads.clusteredPlayerCenters(sessionId, radius, activePositions);
     }
 
     void grantShield(int sessionId, int playerId, int playerPosition) {
@@ -204,5 +238,51 @@ public class GuardianShieldPadService {
         }
         log.info("BattleState.shieldActive set and Shield skill index {} broadcast session={} playerId={} pos={}",
                 visualSkillIndex, sessionId, playerId, battleState.getPosition());
+    }
+
+    private void placePadRings(int sessionId) {
+        GameSession session = sessionOf(sessionId);
+        if (session == null || !(session.getMatchplayGame() instanceof MatchplayGuardianGame game)) {
+            return;
+        }
+        FTClient client = session.getClients() != null ? session.getClients().peek() : null;
+        if (client == null || client.getConnection() == null) {
+            return;
+        }
+        game.placeAtlantisPadRings(client.getConnection());
+    }
+
+    private void clearPadRings(int sessionId) {
+        GameSession session = sessionOf(sessionId);
+        if (session == null || !(session.getMatchplayGame() instanceof MatchplayGuardianGame game)) {
+            return;
+        }
+        FTClient client = session.getClients() != null ? session.getClients().peek() : null;
+        if (client == null || client.getConnection() == null) {
+            return;
+        }
+        game.clearMarkerCrystals(client.getConnection());
+    }
+
+    private GameSession sessionOf(int sessionId) {
+        GameSessionManager manager = GameSessionManager.getInstance();
+        return manager == null ? null : manager.getGameSessionBySessionId(sessionId);
+    }
+
+    private void announce(int sessionId, String text) {
+        GameSessionManager manager = GameSessionManager.getInstance();
+        if (manager == null) {
+            return;
+        }
+        GameSession session = manager.getGameSessionBySessionId(sessionId);
+        if (session == null || session.getClients() == null) {
+            return;
+        }
+        S2CChatRoomAnswerPacket packet = new S2CChatRoomAnswerPacket((byte) 2, "Server", text);
+        session.getClients().forEach(c -> {
+            if (c != null && c.getConnection() != null) {
+                c.getConnection().sendTCP(packet);
+            }
+        });
     }
 }

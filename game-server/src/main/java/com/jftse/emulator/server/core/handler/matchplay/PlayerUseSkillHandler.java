@@ -12,6 +12,7 @@ import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules;
 import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemCountPacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage;
 import com.jftse.emulator.server.net.FTClient;
@@ -104,6 +105,17 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         if (skill != null)
             skillUse = new SkillUse(skill, attackerPosition, targetPosition, isQuickSlot, skillUseTimestamp, false);
 
+        if (game instanceof MatchplayGuardianGame guardianGame
+                && attackerIsPlayer
+                && AtlantisV2Rules.shouldIgnorePlayerSupportUse(
+                guardianGame.arePlayerShieldSkillsDisabled(),
+                guardianGame.arePlayerHealSkillsDisabled(),
+                roomPlayer.getPosition(),
+                guardianGame.getPlayerSupportExemptPosition(),
+                skill)) {
+            return;
+        }
+
         GameEventBus.call(GameEventType.MP_PLAYER_USE_SKILL, ftClient, game, roomPlayer, skill, skillUse, anyoneUsesSkill);
 
         if (attackerIsGuardian) {
@@ -124,6 +136,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
                     }
                 }
             }
+        }
+
+        if (game instanceof MatchplayGuardianGame guardianGame && attackerIsPlayer) {
+            guardianGame.authorizePlayerAreaSupportHits(roomPlayer.getPosition(), skill);
         }
 
         SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()

@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +63,16 @@ public class GuardianShieldPads {
     public record Pad(int x, int z) {}
 
     public record LastCourtPos(int playerPosition, int x, int z) {}
+
+    public record ClusterCenter(int x, int z) {
+        public int getX() {
+            return x;
+        }
+
+        public int getZ() {
+            return z;
+        }
+    }
 
     @FunctionalInterface
     public interface GrantListener {
@@ -124,6 +137,11 @@ public class GuardianShieldPads {
                 sessionId, config.delaySeconds, config.leftX, config.leftZ, config.rightX, config.rightZ, config.radius);
     }
 
+    /** Track court positions for a match without scheduling or displaying shield pads. */
+    public void trackSession(int sessionId) {
+        sessions.putIfAbsent(sessionId, new SessionState());
+    }
+
     public void activate(int sessionId) {
         SessionState state = sessions.get(sessionId);
         if (state == null || state.phase != Phase.SCHEDULED) {
@@ -155,11 +173,22 @@ public class GuardianShieldPads {
      * @return true if a shield was granted on this call
      */
     public boolean onCourtPosition(int sessionId, int playerId, int playerPosition, int x, int z) {
+        if (!AtlantisV2Rules.isPlayerSlot((short) playerPosition)) {
+            return false;
+        }
         SessionState state = sessions.get(sessionId);
         if (state == null) {
             return false;
         }
-        state.lastPosByPlayerId.put(playerId, new LastCourtPos(playerPosition, x, z));
+        LastCourtPos previous = state.lastPosByPlayerId.get(playerId);
+        boolean wasInside = previous != null && contains(previous.x(), previous.z());
+        LastCourtPos next = new LastCourtPos(playerPosition, x, z);
+        state.lastPosByPlayerId.put(playerId, next);
+        boolean nowInside = contains(x, z);
+        if (state.phase == Phase.VISIBLE && wasInside != nowInside) {
+            log.info("Guardian pad {} session={} playerId={} pos={} at {},{}",
+                    nowInside ? "enter" : "leave", sessionId, playerId, playerPosition, x, z);
+        }
         if (state.phase != Phase.VISIBLE) {
             return false;
         }
@@ -180,18 +209,71 @@ public class GuardianShieldPads {
             return false;
         }
         LastCourtPos byId = state.lastPosByPlayerId.get(playerId);
-        if (byId != null && contains(byId.x(), byId.z())) {
-            return true;
-        }
-        if (playerId != 0) {
-            return false;
+        if (byId != null && AtlantisV2Rules.isPlayerSlot((short) byId.playerPosition())) {
+            return contains(byId.x(), byId.z());
         }
         for (LastCourtPos pos : state.lastPosByPlayerId.values()) {
-            if (pos.playerPosition() == playerPosition && contains(pos.x(), pos.z())) {
-                return true;
+            if (pos.playerPosition() == playerPosition && AtlantisV2Rules.isPlayerSlot((short) pos.playerPosition())) {
+                return contains(pos.x(), pos.z());
             }
         }
         return false;
+    }
+
+    /** Return one centroid for each connected cluster of at least two active players. */
+    public ClusterCenter[] clusteredPlayerCenters(int sessionId, int radius, Set<Integer> activePlayerPositions) {
+        SessionState state = sessions.get(sessionId);
+        if (state == null || radius < 0 || activePlayerPositions == null || activePlayerPositions.size() < 2) {
+            return new ClusterCenter[0];
+        }
+
+        Map<Integer, LastCourtPos> byPosition = new ConcurrentHashMap<>();
+        for (LastCourtPos position : state.lastPosByPlayerId.values()) {
+            if (activePlayerPositions.contains(position.playerPosition())) {
+                byPosition.put(position.playerPosition(), position);
+            }
+        }
+
+        List<LastCourtPos> positions = byPosition.values().stream()
+                .sorted(Comparator.comparingInt(LastCourtPos::playerPosition))
+                .toList();
+        List<ClusterCenter> centers = new ArrayList<>();
+        boolean[] visited = new boolean[positions.size()];
+        long radiusSquared = (long) radius * radius;
+        for (int start = 0; start < positions.size(); start++) {
+            if (visited[start]) {
+                continue;
+            }
+            List<LastCourtPos> cluster = new ArrayList<>();
+            ArrayDeque<Integer> pending = new ArrayDeque<>();
+            visited[start] = true;
+            pending.add(start);
+            while (!pending.isEmpty()) {
+                int current = pending.removeFirst();
+                LastCourtPos currentPosition = positions.get(current);
+                cluster.add(currentPosition);
+                for (int candidate = 0; candidate < positions.size(); candidate++) {
+                    if (!visited[candidate]
+                            && withinRadius(currentPosition, positions.get(candidate), radiusSquared)) {
+                        visited[candidate] = true;
+                        pending.add(candidate);
+                    }
+                }
+            }
+
+            if (cluster.size() >= 2) {
+                double averageX = cluster.stream().mapToInt(LastCourtPos::x).average().orElseThrow();
+                double averageZ = cluster.stream().mapToInt(LastCourtPos::z).average().orElseThrow();
+                centers.add(new ClusterCenter((int) Math.round(averageX), (int) Math.round(averageZ)));
+            }
+        }
+        return centers.toArray(ClusterCenter[]::new);
+    }
+
+    private static boolean withinRadius(LastCourtPos left, LastCourtPos right, long radiusSquared) {
+        long dx = (long) left.x() - right.x();
+        long dz = (long) left.z() - right.z();
+        return dx * dx + dz * dz <= radiusSquared;
     }
 
     public String visibleZoneFileContent() {

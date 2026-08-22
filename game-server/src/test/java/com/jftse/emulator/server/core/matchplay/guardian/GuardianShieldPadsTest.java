@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -114,6 +115,20 @@ class GuardianShieldPadsTest {
     }
 
     @Test
+    void guardianAnimationDoesNotOverwritePlayerPadFeet() {
+        GuardianShieldPads pads = newPads(null, grants());
+        pads.onMatchStart(SESSION);
+        pads.activate(SESSION);
+        assertTrue(pads.onCourtPosition(SESSION, PLAYER_A, 0, -40, -40));
+        assertTrue(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0));
+
+        assertFalse(pads.onCourtPosition(SESSION, PLAYER_A, 12, 22, 105));
+        assertTrue(pads.isInsideVisiblePad(SESSION, PLAYER_A, 0),
+                "guardian pos=12 must not replace the player's last court feet");
+        assertTrue(pads.isInsideVisiblePad(SESSION, 0, 0));
+    }
+
+    @Test
     void outsidePadDoesNotGrant() {
         AtomicInteger grants = new AtomicInteger();
         GuardianShieldPads pads = newPads(null, (s, p, pos) -> grants.incrementAndGet());
@@ -121,6 +136,38 @@ class GuardianShieldPadsTest {
         pads.activate(SESSION);
         assertFalse(pads.onCourtPosition(SESSION, PLAYER_A, 0, 0, 0));
         assertEquals(0, grants.get());
+    }
+
+    @Test
+    void trackedSessionReturnsCenterOfActivePlayerCluster() {
+        GuardianShieldPads pads = newPads(null, grants());
+        pads.trackSession(SESSION);
+        pads.onCourtPosition(SESSION, PLAYER_A, 0, -10, -60);
+        pads.onCourtPosition(SESSION, PLAYER_B, 1, 10, -60);
+        pads.onCourtPosition(SESSION, 303, 2, 50, -60);
+
+        assertArrayEquals(new GuardianShieldPads.ClusterCenter[]{
+                        new GuardianShieldPads.ClusterCenter(0, -60)},
+                pads.clusteredPlayerCenters(SESSION, 25, Set.of(0, 1, 2)));
+        assertArrayEquals(new GuardianShieldPads.ClusterCenter[0],
+                pads.clusteredPlayerCenters(SESSION, 25, Set.of(0, 2)));
+        assertEquals(GuardianShieldPads.Phase.NOT_ACTIVE, pads.phaseOf(SESSION));
+        assertFalse(pads.isVisible(SESSION));
+    }
+
+    @Test
+    void separatePlayerClustersKeepSeparateCenters() {
+        GuardianShieldPads pads = newPads(null, grants());
+        pads.trackSession(SESSION);
+        pads.onCourtPosition(SESSION, PLAYER_A, 0, -45, -60);
+        pads.onCourtPosition(SESSION, PLAYER_B, 1, -35, -60);
+        pads.onCourtPosition(SESSION, 303, 2, 35, -60);
+        pads.onCourtPosition(SESSION, 404, 3, 45, -60);
+
+        assertArrayEquals(new GuardianShieldPads.ClusterCenter[]{
+                        new GuardianShieldPads.ClusterCenter(-40, -60),
+                        new GuardianShieldPads.ClusterCenter(40, -60)},
+                pads.clusteredPlayerCenters(SESSION, 25, Set.of(0, 1, 2, 3)));
     }
 
     @Test
@@ -214,7 +261,7 @@ class GuardianShieldPadsTest {
 
     @Test
     void animationAbsoluteXYMapsToCourtXZ() {
-        MatchCourtPositionMessage msg = MatchCourtPositionMessage.fromAnimation(SESSION, PLAYER_A, 0, (short) -40, (short) -40);
+        MatchCourtPositionMessage msg = MatchCourtPositionMessage.fromAnimation(SESSION, PLAYER_A, 0, (short) -4000, (short) -4000);
         assertEquals(SESSION, msg.getGameSessionId());
         assertEquals(PLAYER_A, msg.getPlayerId());
         assertEquals(0, msg.getPlayerPosition());

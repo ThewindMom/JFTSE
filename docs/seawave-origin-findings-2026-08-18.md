@@ -7,7 +7,9 @@ PDF with stills: [seawave-origin-findings-2026-08-18.pdf](seawave-origin-finding
 
 ## Answer
 
-xyz places the drop. After that it is not a missile. Every SeaWave is a full-width foam band (crest already spans sideline to sideline) and it only travels along the court, baseline to net. No heading field. Left-to-right travel is not possible. Waves from behind the player still hit if the band passes through the character.
+xyz places the drop. After that it is not a missile. This morning run was **vanilla** (no LTR cave): every SeaWave is a full-width foam band and it only travels along the court, baseline to net (client **Z**). No heading field. Left-to-right travel needs the later skill-27 cave (`dir.x = ±1.0`). Waves from behind the player still hit if the band passes through the character.
+
+Axis correction (19 Aug): packet `(xTarget, zTarget, yTarget)` is client **X / height / Z**. The “Y” in the table below is **packet `yTarget`**, which is client Z (baseline↔net), not D3D Y. Packet `zTarget` is height. See `docs/atlantis-v2-green-wave-2026-08-19.md`.
 
 ## Packet
 
@@ -40,17 +42,17 @@ Command `-wavetest` in a Guardian match on Nest of Rubycrab. Nine SeaWaves, 5 se
 ## What the client did
 
 - (0,0,0) is net-center, not under the player.
-- +Y is the opponent / far baseline. -Y is the player / near baseline.
-- +/-X moves the drop toward a sideline. That is the lane axis.
-- +/-Z still produced a full-width wall. Z is not a useful heading.
-- Travel never changed. Always baseline to net.
+- Packet +Y (`yTarget`) is the opponent / far baseline = client **Z**. Packet −Y is the player / near baseline.
+- Packet +/-X moves the drop toward a sideline = client **X**. That is the LTR/RTL lane axis once the cave is installed.
+- Packet +/-Z (`zTarget`) is height. It still produced a full-width wall. It is not a travel heading.
+- Vanilla travel never changed. Always baseline to net (client Z). The later LTR cave supersedes “left-to-right is not possible.”
 - Knockback stays (0, 0, 150) along that axis.
 - WAVE 1 came from behind Testmon and popped 9708. WAVE 4 sat on the near baseline and popped 9042. Facing does not matter.
 - HP bar stayed 200/200 because of the pad. Popups are real hits (9000+).
 
-## For Atlantis herding
+## Final Atlantis constraint
 
-Do not spawn at the net and hope the wave comes at the players. Drop on the player half (-Y) with +/-X offsets so parallel bands sweep toward the net and leave corridors. Dummy 4 is fine. Anyone in a band takes damage, including from behind. Ground-placed herding, not a steered missile.
+The player-half / rear-origin placement was experimental and is not part of the live encounter. Atlantis randomizes every SeaWave's packet `xTarget` and selects `yTarget` only from the positive enemy-half depths `50`, `75`, and `100`. No live script can select a negative/rear depth. Dummy 4 remains the actorless caster.
 
 ## Not possible
 

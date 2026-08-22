@@ -34,6 +34,8 @@ public class MatchCourtPositionMessage extends AbstractBaseMessage {
 
     /**
      * Map CMSG_PlayerAnimation fields onto court X/Z. absoluteY is court Z.
+     * Native animation shorts are millicourt (100 = 1 court unit). Pad circles
+     * and spawn Points use court units, so always scale.
      */
     public static MatchCourtPositionMessage fromAnimation(Integer gameSessionId, Integer playerId,
                                                           int playerPosition, short absoluteXPositionOnMap,
@@ -42,9 +44,13 @@ public class MatchCourtPositionMessage extends AbstractBaseMessage {
                 .gameSessionId(gameSessionId)
                 .playerId(playerId)
                 .playerPosition(playerPosition)
-                .x((int) absoluteXPositionOnMap)
-                .z((int) absoluteYPositionOnMap)
+                .x(toCourtUnits(absoluteXPositionOnMap))
+                .z(toCourtUnits(absoluteYPositionOnMap))
                 .build();
+    }
+
+    static int toCourtUnits(short raw) {
+        return Math.round(raw / 100.0f);
     }
 
     @Override

@@ -1,6 +1,6 @@
 # Guardian shield pads (2026-08-17)
 
-In Guardian matches, **10 seconds after `onStart` / stage start** (not the skip-click), two green stand-pads appear on the player half of the court. Walking onto either pad grants a **one-shot** `BattleState.shieldActive` that absorbs the next incoming player HP damage (skills, guardian hits, ball-loss) and then clears.
+On supported Guardian maps, **10 seconds after `onStart` / stage start** (not the skip-click), two green stand-pads appear on the player half of the court. Walking onto either pad grants a **one-shot** `BattleState.shieldActive` that absorbs the next incoming player HP damage (skills, guardian hits, ball-loss) and then clears. Atlantis map 10 explicitly opts out and has no green-zone mechanic.
 
 Official clients without the client hook play the fight normally and do not see pads. That is expected.
 

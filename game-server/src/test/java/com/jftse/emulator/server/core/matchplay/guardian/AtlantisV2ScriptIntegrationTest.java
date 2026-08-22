@@ -25,8 +25,8 @@ class AtlantisV2ScriptIntegrationTest {
         List<String> names = jsNames(LIVE);
         assertEquals(List.of(
                 "1_green_tide.js",
-                "2_crab_window.js",
-                "3_storm_charge.js",
+                "2_twin_tides.js",
+                "3_rising_tide.js",
                 "4_enrage.js"), names);
         names.forEach(name -> assertTrue(AtlantisV2Rules.isV2PhaseScriptName(name)));
         names.forEach(name -> assertFalse(AtlantisV2Rules.isLegacyPhaseScriptName(name)));
@@ -52,30 +52,84 @@ class AtlantisV2ScriptIntegrationTest {
     }
 
     @Test
-    void liveScriptsBindJavaRulesAndConfirmedLtrSpawn() throws IOException {
+    void liveScriptsBindJavaRulesAndKeepSeaWavesOnTheEnemyCourt() throws IOException {
         for (String name : jsNames(LIVE)) {
             String src = Files.readString(LIVE.resolve(name));
             assertTrue(src.contains("AtlantisV2Rules"), name + " must read numbers from Java");
-            assertTrue(src.contains("DUMMY_ATTACKER"), name + " must fire dummy attacker 4");
+            assertFalse(src.contains("DUMMY_ATTACKER"), name + " must use a real living guardian attacker");
             assertTrue(src.contains("AtlantisV2Rules.now()"), name + " must use the testable clock");
             assertFalse(src.contains("xyz=(-500"), name + " must not use the stale -500 spawn");
             assertFalse(src.contains("31 C9") || src.contains("xor ecx"), name + " must not mention the rejected Z-zero cave");
-            assertFalse(src.toLowerCase().contains("rtl"), name + " must not invent RTL recipes");
+            assertFalse(src.contains("game.fireSeaWave"), name + " must not use a Java SeaWave helper");
         }
         String tide = Files.readString(LIVE.resolve("1_green_tide.js"));
+        assertTrue(tide.contains("castNormalSeaWave(connection, x, depth)"));
+        assertTrue(tide.contains("4, 4, SEA_WAVE_PACKET_ID"));
         assertTrue(tide.contains("SEA_WAVE_PACKET_ID"));
-        assertTrue(tide.contains("WAVE_X"));
-        assertTrue(tide.contains("FIRST_VOLLEY_COUNT") || tide.contains("FIRST_VOLLEY"));
+        assertTrue(tide.contains("ADD_PHASE_TRIGGER_HEALTH"));
+        assertTrue(tide.contains("BOSS_ATTACK_INTERVAL_MS"));
+        assertTrue(tide.contains("ADD_ATTACK_MIN_MS"));
+        assertTrue(tide.contains("ADD_ATTACK_MAX_MS"));
         assertTrue(tide.contains("setPlayerSupportSkillsDisabled(true)"));
+        assertTrue(tide.contains("FIRST_VOLLEY_COUNT"));
+        assertTrue(tide.contains("SECOND_VOLLEY_COUNT"));
+        assertTrue(tide.contains("BOSS_FINAL_PHASE_HEALTH"));
+        assertTrue(tide.contains("BOSS_NEXT_PHASE_HEALTH"));
+        assertTrue(tide.contains("SEA_WAVE_DEPTHS"));
+        assertTrue(tide.contains("randomWaveDepth()"));
+        assertTrue(tide.contains("PHASE_ONE_WAVE_X_MIN"));
+        assertTrue(tide.contains("PHASE_ONE_WAVE_X_MAX"));
+        assertFalse(tide.contains("WATER_PILLAR"), "Phase 1 must not cast Water Pillar");
+        assertFalse(tide.contains("STORM_SKILL"), "Phase 1 must not cast Storm");
+        assertFalse(tide.contains("FIREWORK_SKILL"), "support selection must be chat-only");
+        assertFalse(tide.contains("SMALL_HEAL_SKILL"), "support selection must have no pulse marker");
+        assertFalse(tide.contains("runSupportMarker"), "support selection must have no visual loop");
 
-        String crab = Files.readString(LIVE.resolve("2_crab_window.js"));
-        assertTrue(crab.contains("setPlayerHealSkillsDisabled(false)"));
-        assertTrue(crab.contains("setPlayerShieldSkillsDisabled(true)"));
-        assertTrue(crab.contains("POST_REVIVE_HEAL_MULTIPLIER"));
+        String twins = Files.readString(LIVE.resolve("2_twin_tides.js"));
+        assertTrue(twins.contains("TWIN_TIDE_WAVE_DELTA"));
+        assertTrue(twins.contains("TWIN_TIDE_PILLAR_DELTA"));
+        assertTrue(twins.contains("TWIN_TIDE_BLIZZARD_DELTA"));
+        assertTrue(twins.contains("TWIN_TIDE_KILL_WINDOW_MS"));
+        assertTrue(twins.contains("TWIN_TIDE_REVIVE_HEALTH"));
+        assertTrue(twins.contains("TWIN_TIDE_START_HEALTH"));
+        assertTrue(twins.contains("TWIN_TIDE_HOMING_BALL_MS"));
+        assertTrue(twins.contains("SEA_WAVE_DEPTHS"));
+        assertTrue(twins.contains("randomWaveDepth()"));
+        assertTrue(twins.contains("boss.getPosition(), guardian.getPosition(), rebirth.getId() - 1"));
+        assertTrue(twins.contains("WATER_PILLAR_SKILL_ID"));
+        assertTrue(twins.contains("POST_REVIVE_HEAL_MULTIPLIER"));
+        assertTrue(twins.contains("runTidalConvergence"));
+        assertTrue(twins.contains("clusteredAlivePlayerCenters"));
+        assertTrue(twins.contains("center.getX(), 0, center.getZ()"));
+        assertFalse(twins.contains("CRAB"));
+
+        String rising = Files.readString(LIVE.resolve("3_rising_tide.js"));
+        assertTrue(rising.contains("lowerTide()"));
+        assertTrue(rising.contains("runTidalConvergence"));
+        assertTrue(rising.contains("onDealDamageOnBallLossToPlayer"));
+        assertTrue(rising.contains("RISING_TIDE_HOMING_BALL_MS"));
+        assertTrue(rising.contains("RISING_TIDE_WATER_PILLAR_MS"));
+        assertTrue(rising.contains("RISING_TIDE_BLIZZARD_MS"));
+        assertTrue(rising.contains("RISING_TIDE_STORM_MS"));
+        assertTrue(rising.contains("clusteredAlivePlayerCenters"));
+        assertTrue(rising.contains("center.getX(), 0, center.getZ()"));
+        assertFalse(rising.contains("SEA_WAVE_PACKET_ID"));
+        assertFalse(rising.contains("INFERNO"), "Atlantis must not cast the magma-like Inferno attack");
 
         String enrage = Files.readString(LIVE.resolve("4_enrage.js"));
-        assertTrue(enrage.contains("addsDead()"));
-        assertTrue(enrage.contains("setPlayerSupportSkillsDisabled(false)"));
+        assertTrue(enrage.contains("BLOOD_TIDE_BOSS_HEAL"));
+        assertTrue(enrage.contains("BLOOD_TIDE_ADD_HEAL"));
+        assertTrue(enrage.contains("BLOOD_TIDE_CONSUME_HEAL"));
+        assertTrue(enrage.contains("clusteredAlivePlayerCenters"));
+        assertTrue(enrage.contains("center.getX(), 0, center.getZ()"));
+        assertTrue(enrage.contains("FINAL_POINT_WAVE_COUNT"));
+        assertTrue(enrage.contains("SEA_WAVE_PACKET_ID"));
+        assertTrue(enrage.contains("SEA_WAVE_DEPTHS"));
+        assertTrue(enrage.contains("randomWaveDepth()"));
+        assertTrue(enrage.contains("boss.getPosition(), guardian.getPosition(), rebirth.getId() - 1"));
+        assertTrue(enrage.contains("setPlayerShieldSkillsDisabled(false)"));
+        assertTrue(enrage.contains("runTidalConvergence"));
+        assertFalse(enrage.contains("INFERNO"));
     }
 
     @Test

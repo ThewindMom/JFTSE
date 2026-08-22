@@ -30,6 +30,9 @@ import com.jftse.emulator.server.core.matchplay.guardian.BossBattlePhaseable;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseScript;
 import com.jftse.emulator.server.core.matchplay.handler.MatchplayGuardianModeHandler;
+import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayLetCrystalDisappear;
+import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayPlaceSkillCrystal;
+import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.entities.database.model.SRelationships;
 import com.jftse.entities.database.model.battle.*;
@@ -53,6 +56,7 @@ import lombok.extern.log4j.Log4j2;
 
 import javax.persistence.TypedQuery;
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -67,6 +71,16 @@ import java.util.stream.Collectors;
 @Setter
 @Log4j2
 public class MatchplayGuardianGame extends MatchplayGame {
+    public static final int MIN_MARKER_RING_CRYSTALS = 3;
+    public static final int MAX_MARKER_RING_CRYSTALS = 12;
+    public static final int ATLANTIS_PAD_RING_CRYSTALS = 8;
+
+    public record MarkerCrystal(int id, float x, float y) {
+    }
+
+    private record AuthorizedAreaSupportCast(long skillId, long expiresAt, int pendingTargetMask) {
+    }
+
     private final short guardianHealPercentage = 5; // Balancing purposes. Only ever heal 5% of guardians hp.
     public final static long guardianAttackLoopTime = TimeUnit.SECONDS.toMillis(8);
 
@@ -76,6 +90,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private ConcurrentLinkedDeque<PlayerBattleState> playerBattleStates;
     private ConcurrentLinkedDeque<GuardianBattleState> guardianBattleStates;
     private ConcurrentLinkedDeque<SkillCrystal> skillCrystals;
+    private ConcurrentLinkedDeque<MarkerCrystal> markerCrystals;
     private AtomicInteger lastCrystalId;
     private AtomicBoolean bossBattleActive;
     private AtomicInteger lastGuardianServeSide;
@@ -106,6 +121,10 @@ public class MatchplayGuardianGame extends MatchplayGame {
      * Independent of shields so post-revive 20% heal can stay on.
      */
     private final AtomicBoolean playerHealSkillsDisabled = new AtomicBoolean(false);
+    /** Player slot allowed to use support skills during a scripted suppression window. */
+    private final AtomicInteger playerSupportExemptPosition = new AtomicInteger(-1);
+    /** Ally clients report area-support collisions independently, with synthetic attacker slot 4. */
+    private final AtomicReference<AuthorizedAreaSupportCast> authorizedAreaSupportCast = new AtomicReference<>();
 
     private final PlayerCombatSystem playerCombatSystem;
     private final GuardianCombatSystem guardianCombatSystem;
@@ -125,6 +144,7 @@ public class MatchplayGuardianGame extends MatchplayGame {
         this.playerBattleStates = new ConcurrentLinkedDeque<>();
         this.guardianBattleStates = new ConcurrentLinkedDeque<>();
         this.skillCrystals = new ConcurrentLinkedDeque<>();
+        this.markerCrystals = new ConcurrentLinkedDeque<>();
         this.lastCrystalId = new AtomicInteger(0);
         this.lastGuardianServeSide = new AtomicInteger(GameFieldSide.Guardian);
         this.scheduledFutures = new ConcurrentLinkedDeque<>();
@@ -149,6 +169,97 @@ public class MatchplayGuardianGame extends MatchplayGame {
         this.isAdvancedBossGuardianMode = false;
 
         random = new Random();
+    }
+
+    public int placeMarkerCrystal(FTConnection connection, float x, float y) {
+        MarkerCrystal marker = addMarkerCrystal(x, y);
+        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(createMarkerPlacementPacket(marker), connection);
+        log.info("Placed Guardian marker crystal id={} x={} y={}", marker.id(), marker.x(), marker.y());
+        return marker.id();
+    }
+
+    public List<Integer> placeMarkerRing(FTConnection connection, float centerX, float centerY, float radius, int count) {
+        List<MarkerCrystal> markers = addMarkerRing(centerX, centerY, radius, count);
+        markers.forEach(marker -> {
+            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(createMarkerPlacementPacket(marker), connection);
+            log.info("Placed Guardian marker crystal id={} x={} y={}", marker.id(), marker.x(), marker.y());
+        });
+        return markers.stream().map(MarkerCrystal::id).toList();
+    }
+
+    public int clearMarkerCrystals(FTConnection connection) {
+        List<MarkerCrystal> markers = drainMarkerCrystals();
+        markers.forEach(marker ->
+                GameManager.getInstance().sendPacketToAllClientsInSameGameSession(createMarkerDisappearPacket(marker), connection));
+        log.info("Cleared {} Guardian marker crystals", markers.size());
+        return markers.size();
+    }
+
+    synchronized MarkerCrystal addMarkerCrystal(float x, float y) {
+        if (!Float.isFinite(x) || !Float.isFinite(y)) {
+            throw new IllegalArgumentException("Marker coordinates must be finite");
+        }
+        MarkerCrystal marker = new MarkerCrystal(nextCrystalId(), x, y);
+        markerCrystals.add(marker);
+        return marker;
+    }
+
+    synchronized List<MarkerCrystal> addMarkerRing(float centerX, float centerY, float radius, int count) {
+        if (!Float.isFinite(centerX) || !Float.isFinite(centerY) || !Float.isFinite(radius) || radius <= 0) {
+            throw new IllegalArgumentException("Marker ring center and radius must be finite, and radius must be positive");
+        }
+        if (count < MIN_MARKER_RING_CRYSTALS || count > MAX_MARKER_RING_CRYSTALS) {
+            throw new IllegalArgumentException("Marker ring count must be between " + MIN_MARKER_RING_CRYSTALS + " and " + MAX_MARKER_RING_CRYSTALS);
+        }
+        List<MarkerCrystal> markers = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            double angle = 2 * Math.PI * i / count;
+            float x = centerX + (float) (radius * Math.cos(angle));
+            float y = centerY + (float) (radius * Math.sin(angle));
+            markers.add(addMarkerCrystal(x, y));
+        }
+        return markers;
+    }
+
+    synchronized List<MarkerCrystal> drainMarkerCrystals() {
+        List<MarkerCrystal> markers = List.copyOf(markerCrystals);
+        markerCrystals.clear();
+        return markers;
+    }
+
+    public synchronized boolean isMarkerCrystal(int crystalId) {
+        return markerCrystals.stream().anyMatch(marker -> marker.id() == crystalId);
+    }
+
+    public synchronized SkillCrystal addRandomSkillCrystal() {
+        SkillCrystal skillCrystal = new SkillCrystal(nextCrystalId());
+        skillCrystals.add(skillCrystal);
+        return skillCrystal;
+    }
+
+    private int nextCrystalId() {
+        for (int i = 0; i <= 100; i++) {
+            int crystalId = lastCrystalId.getAndUpdate(id -> id >= 100 ? 0 : id + 1);
+            boolean ordinaryCrystalUsesId = skillCrystals.stream().anyMatch(crystal -> crystal.getId() == crystalId);
+            boolean markerCrystalUsesId = markerCrystals.stream().anyMatch(marker -> marker.id() == crystalId);
+            if (!ordinaryCrystalUsesId && !markerCrystalUsesId) {
+                return crystalId;
+            }
+        }
+        throw new IllegalStateException("No Guardian crystal identifiers are available");
+    }
+
+    static S2CMatchplayPlaceSkillCrystal createMarkerPlacementPacket(MarkerCrystal marker) {
+        return new S2CMatchplayPlaceSkillCrystal((short) marker.id(), new Point2D.Float(marker.x(), marker.y()));
+    }
+
+    static S2CMatchplayLetCrystalDisappear createMarkerDisappearPacket(MarkerCrystal marker) {
+        return new S2CMatchplayLetCrystalDisappear((short) marker.id());
+    }
+
+    /** Pad visuals are supplied by the optional client hook, not skill crystals. */
+    public void placeAtlantisPadRings(FTConnection connection) {
+        log.info("Guardian pad visual is stroke-quads.zone, not skill crystals");
     }
 
     public List<GuardianBase> determineGuardians(List<Guardian2Maps> guardian2Maps, int guardianLevelLimit) {
@@ -889,6 +1000,58 @@ public class MatchplayGuardianGame extends MatchplayGame {
 
     public boolean arePlayerHealSkillsDisabled() {
         return playerHealSkillsDisabled.get();
+    }
+
+    public void setPlayerSupportExemptPosition(int position) {
+        playerSupportExemptPosition.set(position);
+    }
+
+    public void clearPlayerSupportExemptPosition() {
+        playerSupportExemptPosition.set(-1);
+        authorizedAreaSupportCast.set(null);
+    }
+
+    public int getPlayerSupportExemptPosition() {
+        return playerSupportExemptPosition.get();
+    }
+
+    public void authorizePlayerAreaSupportHits(int actorPosition, Skill skill) {
+        if (actorPosition != playerSupportExemptPosition.get()
+                || !AtlantisV2Rules.isPlayerAreaSupportSkill(skill)) {
+            return;
+        }
+        boolean suppressed = AtlantisV2Rules.isPlayerShieldSkill(skill)
+                ? playerShieldSkillsDisabled.get()
+                : playerHealSkillsDisabled.get();
+        if (!suppressed) {
+            return;
+        }
+        int allPlayerSlots = (1 << (AtlantisV2Rules.PLAYER_SLOT_MAX + 1)) - 1;
+        authorizedAreaSupportCast.set(new AuthorizedAreaSupportCast(
+                skill.getId(),
+                AtlantisV2Rules.now() + AtlantisV2Rules.PLAYER_AREA_SUPPORT_HIT_WINDOW_MS,
+                allPlayerSlots));
+    }
+
+    public boolean consumeAuthorizedPlayerAreaSupportHit(short targetPosition, Skill skill) {
+        if (!AtlantisV2Rules.isPlayerSlot(targetPosition)
+                || !AtlantisV2Rules.isPlayerAreaSupportSkill(skill)) {
+            return false;
+        }
+        int targetMask = 1 << targetPosition;
+        while (true) {
+            AuthorizedAreaSupportCast cast = authorizedAreaSupportCast.get();
+            if (cast == null || cast.skillId() != skill.getId()
+                    || AtlantisV2Rules.now() > cast.expiresAt()
+                    || (cast.pendingTargetMask() & targetMask) == 0) {
+                return false;
+            }
+            AuthorizedAreaSupportCast remaining = new AuthorizedAreaSupportCast(
+                    cast.skillId(), cast.expiresAt(), cast.pendingTargetMask() & ~targetMask);
+            if (authorizedAreaSupportCast.compareAndSet(cast, remaining)) {
+                return true;
+            }
+        }
     }
 
     public boolean isPlayerSupportSkill(Skill skill) {

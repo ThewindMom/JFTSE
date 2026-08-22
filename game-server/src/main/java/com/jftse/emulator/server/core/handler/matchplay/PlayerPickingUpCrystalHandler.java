@@ -70,6 +70,10 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
 
         boolean isBattleGame = game instanceof MatchplayBattleGame;
 
+        if (isMarkerPickup(game, packet.getCrystalId())) {
+            return;
+        }
+
         SkillCrystal skillCrystal = isBattleGame ?
                 ((MatchplayBattleGame) game).getSkillCrystals().stream()
                         .filter(x -> x.getId() == packet.getCrystalId())
@@ -129,6 +133,10 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
         RunnableEvent runnableEvent = eventHandler.createRunnableEvent(placeCrystalRandomlyTask, crystalSpawnInterval);
         gameSession.getFireables().push(runnableEvent);
         eventHandler.offer(runnableEvent);
+    }
+
+    static boolean isMarkerPickup(MatchplayGame game, int crystalId) {
+        return game instanceof MatchplayGuardianGame guardianGame && guardianGame.isMarkerCrystal(crystalId);
     }
 
     private int getRandomPlayerSkill(int playerLevel, PlayerBattleState otherPlayerBattleStateDead, boolean levelRequired) {

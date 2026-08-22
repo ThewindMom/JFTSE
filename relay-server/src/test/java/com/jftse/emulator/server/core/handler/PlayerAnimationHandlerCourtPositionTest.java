@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PlayerAnimationHandlerCourtPositionTest {
     @Test
-    void animationAbsoluteXAndYBecomeCourtXAndZ() {
+    void animationAbsoluteXAndYAlwaysScaleFromMillicourt() {
         CMSGPlayerAnimation packet = CMSGPlayerAnimation.builder()
                 .playerPosition((char) 1)
                 .absoluteXPositionOnMap((short) 40)
@@ -22,7 +22,23 @@ class PlayerAnimationHandlerCourtPositionTest {
         assertEquals(77, msg.getGameSessionId());
         assertEquals(9, msg.getPlayerId());
         assertEquals(1, msg.getPlayerPosition());
-        assertEquals(40, msg.getX());
+        assertEquals(0, msg.getX());
+        assertEquals(0, msg.getZ());
+    }
+
+    @Test
+    void millicourtAnimationScalesToPadUnits() {
+        CMSGPlayerAnimation packet = CMSGPlayerAnimation.builder()
+                .playerPosition((char) 0)
+                .absoluteXPositionOnMap((short) -4000)
+                .absoluteYPositionOnMap((short) -4000)
+                .relativeXMovement((short) 0)
+                .relativeYMovement((short) 0)
+                .animationType((byte) 0)
+                .build();
+
+        MatchCourtPositionMessage msg = PlayerAnimationHandler.toCourtPosition(77, 1, packet);
+        assertEquals(-40, msg.getX());
         assertEquals(-40, msg.getZ());
     }
 

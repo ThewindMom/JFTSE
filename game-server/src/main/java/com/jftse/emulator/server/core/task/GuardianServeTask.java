@@ -4,6 +4,7 @@ import com.jftse.emulator.server.core.constants.GameFieldSide;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.GuardianShieldPadService;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.matchplay.S2CGameSetNameColorAndRemoveBlackBar;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayTriggerGuardianServe;
@@ -47,6 +48,12 @@ public class GuardianServeTask extends AbstractTask {
         if (game.isAdvancedBossGuardianMode()) {
             final PhaseManager phaseManager = game.getPhaseManager();
             phaseManager.start(connection);
+        }
+
+        GuardianShieldPadService padService = GuardianShieldPadService.getInstance();
+        Integer sessionId = client.getGameSessionId();
+        if (padService != null && sessionId != null) {
+            padService.schedulePads(game, sessionId);
         }
 
         ThreadManager.getInstance().newTask(new DefeatTimerTask(connection, gameSession));
