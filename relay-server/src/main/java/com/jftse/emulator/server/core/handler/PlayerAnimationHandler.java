@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.handler;
 
 import com.jftse.emulator.server.core.manager.RelayManager;
+import com.jftse.emulator.server.core.rabbit.service.RProducerService;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -9,6 +10,7 @@ import com.jftse.server.core.protocol.IPacketTranslator;
 import com.jftse.server.core.shared.packets.relay.CMSGPlayerAnimation;
 import com.jftse.server.core.shared.packets.relay.SMSGPlayerAnimation;
 import com.jftse.server.core.shared.packets.translator.PlayerAnimationTranslator;
+import com.jftse.server.core.shared.rabbit.messages.MatchCourtPositionMessage;
 
 import java.util.List;
 
@@ -25,6 +27,26 @@ public class PlayerAnimationHandler implements PacketHandler<FTConnection, CMSGP
                 if (c.getConnection() != null)
                     c.getConnection().sendTCP(relayPacket);
             });
+
+            publishCourtPosition(connection.getClient(), gameSessionId, packet);
         });
+    }
+
+    static MatchCourtPositionMessage toCourtPosition(Integer gameSessionId, int playerId, CMSGPlayerAnimation packet) {
+        return MatchCourtPositionMessage.fromAnimation(
+                gameSessionId,
+                playerId,
+                packet.getPlayerPosition(),
+                packet.getAbsoluteXPositionOnMap(),
+                packet.getAbsoluteYPositionOnMap());
+    }
+
+    private void publishCourtPosition(FTClient client, Integer gameSessionId, CMSGPlayerAnimation packet) {
+        RProducerService producer = RProducerService.getInstance();
+        if (producer == null) {
+            return;
+        }
+        MatchCourtPositionMessage message = toCourtPosition(gameSessionId, client.getPlayerId(), packet);
+        producer.send(message, MatchCourtPositionMessage.ROUTING_KEY, "GuardianShieldPads(RelayServer)");
     }
 }

@@ -7,6 +7,7 @@ import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.AdvancedGuardianState;
+import com.jftse.emulator.server.core.matchplay.guardian.AtlantisV2Rules;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayGiveSpecificSkill;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.battle.Skill;
@@ -51,6 +52,13 @@ public class GuardianAttackTask extends AbstractTask {
         GameSession gameSession = connection.getClient().getActiveGameSession();
         if (gameSession == null) return;
         MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
+
+        Integer mapId = game.getMap() == null || game.getMap().getMap() == null
+                ? null
+                : game.getMap().getMap();
+        if (AtlantisV2Rules.shouldSuppressNativeGuardianAttacks(mapId, game.isAdvancedBossGuardianMode())) {
+            return;
+        }
 
         final boolean hasPhaseEnded = game.isAdvancedBossGuardianMode() && !game.getPhaseManager().getIsRunning().get();
         if (this.guardianBattleState == null) {

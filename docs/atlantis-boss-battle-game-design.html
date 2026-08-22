@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Atlantis Boss Battle — Game Design Guide</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #081b27; color: #eaf7f5; font-family: "Ubuntu Sans", "DejaVu Sans", sans-serif; }
+    body { font-size: 10.2pt; line-height: 1.38; }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 16mm 17mm 14mm;
+      position: relative;
+      overflow: hidden;
+      break-after: page;
+      background:
+        radial-gradient(circle at 92% 4%, rgba(52, 211, 193, .14), transparent 34%),
+        linear-gradient(150deg, #0a2632 0%, #081b27 54%, #07151f 100%);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page:last-child { break-after: auto; }
+    .page::after {
+      content: "";
+      position: absolute;
+      inset: 6mm;
+      border: .35mm solid rgba(100, 213, 200, .16);
+      pointer-events: none;
+    }
+    .eyebrow { color: #7ce2d4; text-transform: uppercase; letter-spacing: .18em; font-size: 7.8pt; font-weight: 700; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-family: "DejaVu Serif", serif; font-size: 34pt; line-height: 1.03; margin-bottom: 6mm; letter-spacing: -.03em; }
+    h2 { font-family: "DejaVu Serif", serif; font-size: 23pt; line-height: 1.08; margin: 2mm 0 5mm; letter-spacing: -.02em; }
+    h3 { font-size: 10pt; text-transform: uppercase; letter-spacing: .09em; color: #8ce8dc; margin: 0 0 2.2mm; }
+    .muted { color: #a8c5c8; }
+    .lead { font-size: 13.5pt; line-height: 1.45; max-width: 150mm; color: #cce5e4; }
+    .rule { width: 24mm; height: .8mm; background: #43cbb9; margin: 5mm 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+    .card {
+      background: rgba(13, 47, 59, .78);
+      border: .35mm solid rgba(109, 225, 211, .2);
+      border-radius: 3mm;
+      padding: 4mm;
+    }
+    .card.accent { border-color: rgba(87, 222, 204, .62); background: rgba(16, 67, 75, .72); }
+    .card.warning { border-color: rgba(244, 191, 92, .58); background: rgba(74, 56, 31, .42); }
+    .metric { font-size: 21pt; font-weight: 800; color: #f1d48d; line-height: 1; margin-bottom: 1.5mm; }
+    .metric-label { color: #bfd8d9; font-size: 8.2pt; }
+    ul { margin: 0; padding-left: 4.5mm; }
+    li { margin: 1.2mm 0; }
+    strong { color: #ffffff; }
+    .phase-tag { display: inline-block; padding: 1.1mm 2.5mm; border-radius: 99mm; background: #35bca9; color: #06252b; font-weight: 800; font-size: 8pt; letter-spacing: .06em; }
+    .objective { font-size: 13pt; font-family: "DejaVu Serif", serif; color: #f3dfa5; margin: 0; }
+    .timeline { display: grid; grid-template-columns: 24mm 1fr; gap: 0 4mm; margin-top: 4mm; }
+    .timeline .label { color: #7ce2d4; font-weight: 800; padding: 3mm 0; border-top: .3mm solid rgba(118, 214, 204, .22); }
+    .timeline .content { padding: 3mm 0; border-top: .3mm solid rgba(118, 214, 204, .22); }
+    .flow { display: flex; align-items: stretch; gap: 2.3mm; margin: 5mm 0; }
+    .flow .node { flex: 1; padding: 3mm 2.5mm; border-radius: 2.5mm; background: rgba(15, 58, 69, .88); border: .35mm solid rgba(92, 210, 198, .28); text-align: center; font-size: 8.5pt; }
+    .flow .arrow { align-self: center; color: #6fe0d1; font-size: 14pt; }
+    .callout { border-left: 1mm solid #e7bd63; padding: 2.5mm 0 2.5mm 4mm; color: #e8dcbd; margin: 4mm 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.4pt; }
+    th { color: #88e3d7; text-transform: uppercase; letter-spacing: .07em; font-size: 7.4pt; text-align: left; padding: 2.2mm; border-bottom: .5mm solid rgba(101, 218, 205, .42); }
+    td { padding: 2.2mm; vertical-align: top; border-bottom: .3mm solid rgba(101, 218, 205, .13); }
+    .footer { position: absolute; left: 17mm; right: 17mm; bottom: 8mm; display: flex; justify-content: space-between; color: #6f9499; font-size: 7pt; letter-spacing: .06em; }
+    .cover { display: flex; flex-direction: column; justify-content: center; }
+    .cover h1 { font-size: 45pt; max-width: 150mm; }
+    .crest { width: 31mm; height: 31mm; border-radius: 50%; border: 1.2mm solid #57d5c5; display: grid; place-items: center; color: #f1d48d; font-family: "DejaVu Serif", serif; font-size: 27pt; margin-bottom: 12mm; box-shadow: 0 0 16mm rgba(65, 203, 186, .18); }
+    .storyline { font-family: "DejaVu Serif", serif; font-size: 15pt; line-height: 1.6; color: #d7ece9; border-left: 1mm solid #4dcebd; padding-left: 6mm; }
+    .mini-title { color: #f1d48d; font-weight: 800; }
+    .check { color: #71decf; font-weight: 900; }
+    .avoid { color: #f2be73; font-weight: 900; }
+    .tight li { margin: .8mm 0; }
+    .spacer { height: 4mm; }
+  </style>
+</head>
+<body>
+
+<section class="page cover">
+  <div class="crest">A</div>
+  <div class="eyebrow">Fantasy Tennis · Guardian Mode · Map 10</div>
+  <h1>Atlantis<br>Boss Battle</h1>
+  <div class="rule"></div>
+  <p class="lead">A four-phase encounter built around readable escalation, tennis-driven pressure, positional discipline, and a final survival barrage.</p>
+  <div class="spacer"></div>
+  <p class="storyline">Living wards protect the Crown.<br>Severed bloodlines return as Twin Tides.<br>The exposed king commands the sea.<br>The Drowned Crown rises for one final point.</p>
+  <div class="footer"><span>GAME DESIGN GUIDE</span><span>IMPLEMENTED SPEC · 21 AUG 2026</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Encounter overview</div>
+  <h2>One fight, four lessons</h2>
+  <p class="lead">Each phase teaches one rule, then later phases combine those rules under greater pressure. Difficulty comes from decisions and positioning—not hidden damage or arbitrary support removal.</p>
+
+  <div class="flow">
+    <div class="node"><strong>1 · First Tide</strong><br><span class="muted">Learn waves and add priority</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>2 · Twin Tides</strong><br><span class="muted">Balance and synchronize</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>3 · Rising Tide</strong><br><span class="muted">Win points to control pressure</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>4 · Drowned Crown</strong><br><span class="muted">Execute the full ruleset</span></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>Encounter promise</h3>
+      <ul>
+        <li>Royal Lizard always enters with <strong>two distinct random Lizard-family adds</strong>.</li>
+        <li>No unrelated guardians: no Goliath, Windra, or equivalent substitutions.</li>
+        <li>SeaWave always approaches from the <strong>enemy court</strong> and retains native damage and tumble.</li>
+        <li>The encounter scripts never cast Magma or Inferno. The stock client and server leave the retail stage's native Magma behavior untouched.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Player mastery arc</h3>
+      <ul>
+        <li><strong>Read:</strong> identify the active rule from chat and attack language.</li>
+        <li><strong>Respond:</strong> move, switch targets, or control the tennis point.</li>
+        <li><strong>Coordinate:</strong> spread for Convergence, regroup briefly for recovery.</li>
+        <li><strong>Execute:</strong> choose between killing adds and burning the boss.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <div class="grid-3">
+    <div class="card"><div class="metric">4</div><div class="metric-label">distinct phases with a continuous narrative</div></div>
+    <div class="card"><div class="metric">2</div><div class="metric-label">Lizard-family attendants throughout the bloodline story</div></div>
+    <div class="card"><div class="metric">0</div><div class="metric-label">rear-court waves, green zones, or invisible forced damage</div></div>
+  </div>
+
+  <div class="callout"><strong>Design stance:</strong> support remains powerful, but permanent stacking is unsafe. Players can still group to recover; they cannot remain in an area-heal and area-shield bunker indefinitely.</div>
+  <div class="footer"><span>ATLANTIS BOSS BATTLE</span><span>02</span></div>
+</section>
+
+<section class="page">
+  <span class="phase-tag">PHASE 1</span>
+  <h2>The First Tide</h2>
+  <p class="objective">Teach add priority, wave reading, and controlled support scarcity.</p>
+
+  <div class="timeline">
+    <div class="label">Opening</div>
+    <div class="content"><strong>Royal Lizard is immune while either attendant lives.</strong> The boss remains silent; both adds use SeaWave and Blizzard on 6–12s attack intervals. Healing and shields initially work normally.</div>
+
+    <div class="label">Add at 50%</div>
+    <div class="content"><strong>The First Tide turns.</strong> Guardian spells stop. Healing and shields are disabled. Three-wave volleys begin: 1s spacing, random X and random enemy-court depth, then a random 4–5s rest.</div>
+
+    <div class="label">First add dies</div>
+    <div class="content"><strong>Five-Wave Rage.</strong> Volleys grow to five waves with random X and a random safe enemy-court depth per wave. One random player receives <em>Tide’s Grace</em> and alone retains healing and shields.</div>
+
+    <div class="label">Both adds die</div>
+    <div class="content"><strong>The ward breaks.</strong> Royal Lizard becomes vulnerable. A new random player receives Tide’s Grace for the Crown’s first reckoning.</div>
+
+    <div class="label">100–90%</div>
+    <div class="content">Royal Lizard attacks every 4s with SeaWave, Homing Ball, or Blizzard. The boss is now the clear focus target.</div>
+
+    <div class="label">90–70%</div>
+    <div class="content">Only Homing Ball remains in the boss attack loop, alongside the learned randomized five-wave volleys. Tide’s Grace remains on the announced player.</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>What players should learn</h3>
+      <ul class="tight">
+        <li>The adds are the boss’s living shield.</li>
+        <li>Three waves become five after the first kill.</li>
+        <li>Random X prevents rote lane camping.</li>
+        <li>The named support player becomes a temporary team role.</li>
+      </ul>
+    </div>
+    <div class="card warning">
+      <h3>Failure pressure</h3>
+      <ul class="tight">
+        <li>Ignoring adds produces zero boss progress.</li>
+        <li>Poor movement compounds repeated volleys.</li>
+        <li>Losing the Tide’s Grace player removes the team’s only support access during suppression.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout"><span class="mini-title">Transition:</span> at 70% HP, Royal Lizard sinks into the drowned court. The severed bloodlines begin to stir.</div>
+  <div class="footer"><span>PHASE 1 · THE FIRST TIDE</span><span>03</span></div>
+</section>
+
+<section class="page">
+  <span class="phase-tag">PHASE 2</span>
+  <h2>The Twin Tides</h2>
+  <p class="objective">Turn target selection into a coordination challenge, then demand a synchronized execution.</p>
+
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>Phase setup</h3>
+      <ul>
+        <li>Both attendants return at <strong>60% HP</strong> through separate rebirth casts into their original left and right slots.</li>
+        <li>Royal Lizard is immune while either lives.</li>
+        <li>Both adds remain vulnerable within 10%; at 10%+ imbalance, the lower-health add is protected until players restore balance.</li>
+        <li>Healing works at <strong>20%</strong>; shields are enabled.</li>
+        <li>Royal Lizard casts Homing Ball every <strong>10s</strong>.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Core player question</h3>
+      <p class="lead" style="font-size:12pt">Can the team distribute damage evenly, then commit to a clean ten-second double kill?</p>
+      <p class="muted">This phase punishes tunnel vision without asking players to stop attacking.</p>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <h3>Imbalance ladder</h3>
+  <table>
+    <thead><tr><th>Health difference</th><th>Response</th><th>Cadence</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0–9%</strong></td><td>Penalty recedes</td><td>—</td><td>Team is controlling the Twin Tides.</td></tr>
+      <tr><td><strong>10–19%</strong></td><td>3 randomized SeaWaves</td><td>Immediate, then every 12s</td><td>First warning; recoverable.</td></tr>
+      <tr><td><strong>20–29%</strong></td><td>5 waves + Water Pillar</td><td>Waves 12s; Pillar 10s</td><td>Movement and target correction overlap.</td></tr>
+      <tr><td><strong>30%+</strong></td><td>8 waves + Water Pillar + Blizzard</td><td>Waves 12s; Blizzard 18s</td><td>Critical failure state; balance immediately.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="flow">
+    <div class="node"><strong>Both adds ≤10%</strong><br><span class="muted">Protection ends</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>First add dies</strong><br><span class="muted">10s execution window</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>Second dies in time</strong><br><span class="muted">Permanent success</span></div>
+  </div>
+
+  <div class="card warning">
+    <h3>Failed execution</h3>
+    <p>If the second add survives the 10s window, the fallen bloodline returns at <strong>30% HP</strong>. Players must rebalance and attempt the execution again.</p>
+  </div>
+
+  <div class="callout"><span class="mini-title">Transition:</span> when both Twin Tides are severed, their ward drowns with them. The Crown stands alone.</div>
+  <div class="footer"><span>PHASE 2 · THE TWIN TIDES</span><span>04</span></div>
+</section>
+
+<section class="page">
+  <span class="phase-tag">PHASE 3</span>
+  <h2>The Rising Tide</h2>
+  <p class="objective">Make the tennis point itself the difficulty controller.</p>
+
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>Simple rule</h3>
+      <div class="metric">+1</div><p><strong>Player team loses a point:</strong> Tide rises one level.</p>
+      <div class="metric">−1</div><p><strong>Players win a point against Royal Lizard:</strong> Tide recedes one level.</p>
+    </div>
+    <div class="card">
+      <h3>What does not change Tide</h3>
+      <ul>
+        <li>Royal Lizard’s current HP</li>
+        <li>Direct skill damage</li>
+        <li>Elapsed phase time</li>
+      </ul>
+      <p class="muted">Phase 3 begins at Maximum Tide. The rule is fully observable: play better tennis to lower encounter pressure.</p>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <table>
+    <thead><tr><th>Level</th><th>Active attack set</th><th>Player read</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Low Tide · 0</strong></td><td>Homing Ball every 10s</td><td>Stable baseline; build momentum.</td></tr>
+      <tr><td><strong>Rising Tide · 1</strong></td><td>+ Water Pillar every 15s</td><td>Movement begins competing with point play.</td></tr>
+      <tr><td><strong>High Tide · 2</strong></td><td>+ Blizzard every 20s</td><td>Court control narrows.</td></tr>
+      <tr><td><strong>Maximum Tide · 3</strong></td><td>+ Storm every 30s</td><td>Full pressure; win the next point.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout"><strong>Cumulative, not replacement:</strong> higher levels retain all lower-level attacks. Only one overdue attack fires per update, with at least 2s between boss casts.</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Phase boundaries</h3>
+      <ul>
+        <li>Begins with Royal Lizard at <strong>70% HP</strong>.</li>
+        <li>Always starts at <strong>Maximum Tide</strong>.</li>
+        <li>Ends when Royal Lizard reaches <strong>25% HP</strong>.</li>
+        <li>Healing remains at 20%; shields remain enabled.</li>
+      </ul>
+    </div>
+    <div class="card warning">
+      <h3>Anti-snowball intent</h3>
+      <p>The phase opens at full pressure, but one won point immediately begins recovery. The mechanic rewards composure instead of requiring a damage-race solution.</p>
+    </div>
+  </div>
+
+  <div class="callout"><span class="mini-title">Transition:</span> driven to the brink, Royal Lizard sinks beneath Atlantis. The Drowned Crown awakens.</div>
+  <div class="footer"><span>PHASE 3 · THE RISING TIDE</span><span>05</span></div>
+</section>
+
+<section class="page">
+  <span class="phase-tag">PHASE 4</span>
+  <h2>The Drowned Crown</h2>
+  <p class="objective">A final-act synthesis: resurrection, healing pressure, target choice, inherited power, and execution.</p>
+
+  <div class="timeline">
+    <div class="label">5s calm</div>
+    <div class="content">Royal Lizard rises from 25% to <strong>35% HP</strong>. Both attendants return at <strong>30% HP</strong> through separate rebirth casts into their original left and right slots. Full player healing is briefly available; shields remain enabled.</div>
+
+    <div class="label">Blood Tide</div>
+    <div class="content">Every player-side point loss heals Royal Lizard by <strong>2%</strong> maximum HP, capped at 35%, and each living add by <strong>8%</strong>. Players must keep winning points while choosing targets.</div>
+
+    <div class="label">Boss pressure</div>
+    <div class="content">Homing Ball 8s · Water Pillar 12s. Each living add attacks every 8–12s with SeaWave or Blizzard. Boss casts maintain a 1.5s minimum gap.</div>
+  </div>
+
+  <div class="spacer"></div>
+  <h3>Two valid routes to the Crownless King</h3>
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>Route A · Sever the bloodline</h3>
+      <ul>
+        <li>Kill the first add permanently.</li>
+        <li>Royal Lizard inherits Blizzard at 16s cadence.</li>
+        <li>Kill the second add permanently.</li>
+        <li>Royal Lizard inherits Storm at 24s cadence.</li>
+      </ul>
+      <p class="muted">Safer boss HP state, but the Crown gains the full inherited kit.</p>
+    </div>
+    <div class="card warning">
+      <h3>Route B · Burn the Crown</h3>
+      <ul>
+        <li>Push Royal Lizard to 5% while adds live.</li>
+        <li>It consumes every survivor.</li>
+        <li>Each consumed add heals the boss by 5% maximum HP.</li>
+        <li>The Crown inherits each consumed bloodline’s power.</li>
+      </ul>
+      <p class="muted">Fast initially, but creates extra boss HP and a dangerous solo endgame.</p>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="node"><strong>Bloodline gone</strong><br><span class="muted">Killed or consumed</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>Crownless King</strong><br><span class="muted">Boss alone; healing still active</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>Boss reaches 5%</strong><br><span class="muted">Last Tide begins</span></div>
+  </div>
+
+  <div class="callout"><strong>Critical condition:</strong> the Last Tide cannot begin while an add survives. Royal Lizard must first be alone—either because players killed its bloodline or because it consumed the survivors.</div>
+  <div class="footer"><span>PHASE 4 · THE DROWNED CROWN</span><span>06</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Shared encounter systems</div>
+  <h2>Positioning and the final barrage</h2>
+
+  <div class="grid-2">
+    <div class="card accent">
+      <h3>Tidal Convergence · Phases 2–4</h3>
+      <ol style="padding-left:5mm; margin:0">
+        <li>Server checks live court positions every <strong>5s</strong>.</li>
+        <li>Two or more living players within <strong>25 court units</strong> trigger a warning.</li>
+        <li>The team has <strong>3s</strong> to spread.</li>
+        <li>If still grouped, the server recalculates each remaining cluster’s center.</li>
+        <li>One coordinate-targeted Water Pillar rises at each cluster center.</li>
+        <li>If they spread, the cast is cancelled and chat confirms success.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Escalating cooldown</h3>
+      <table>
+        <tbody>
+          <tr><td>Phase 2</td><td><strong>18s</strong></td></tr>
+          <tr><td>Phase 3</td><td><strong>15s</strong></td></tr>
+          <tr><td>Phase 4</td><td><strong>12s</strong></td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Support is never weakened by proximity. Instead, proximity creates a visible, avoidable positional threat.</p>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <span class="phase-tag">FINAL SEQUENCE</span>
+  <h2 style="font-size:20pt">The Last Tide</h2>
+  <div class="flow">
+    <div class="node"><strong>Crownless at 5%</strong><br><span class="muted">Healing ends</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>3s silence</strong><br><span class="muted">Boss immune</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>10 SeaWaves</strong><br><span class="muted">1s apart</span></div>
+    <div class="arrow">›</div>
+    <div class="node"><strong>Final Point</strong><br><span class="muted">Boss vulnerable</span></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card warning">
+      <h3>Last Tide barrage</h3>
+      <ul>
+        <li>Ten enemy-court SeaWaves.</li>
+        <li>Random X and random enemy-court depth.</li>
+        <li>One wave every second.</li>
+        <li>Native damage and tumble behavior.</li>
+        <li>No healing, resurrection, normal boss attacks, or rear waves.</li>
+      </ul>
+    </div>
+    <div class="card accent">
+      <h3>Final Point cadence</h3>
+      <ul>
+        <li>Homing Ball every <strong>6s</strong></li>
+        <li>Water Pillar every <strong>10s</strong></li>
+        <li>Blizzard every <strong>12s</strong></li>
+        <li>Storm every <strong>18s</strong></li>
+        <li>Tidal Convergence returns</li>
+      </ul>
+      <p><strong>Victory:</strong> reduce Royal Lizard from 5% to zero.</p>
+    </div>
+  </div>
+
+  <div class="callout">The barrage is a survival gate, not the kill itself. Passing it earns one final, aggressive execution window against a vulnerable Crown.</div>
+  <div class="footer"><span>SHARED SYSTEMS · LAST TIDE</span><span>07</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">Designer reference</div>
+  <h2>Readability, tuning, and playtest focus</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Chat language hierarchy</h3>
+      <ul>
+        <li><strong>Narrative state:</strong> ward, bloodline, Crown, Tide.</li>
+        <li><strong>Action instruction:</strong> balance, spread, execute, endure.</li>
+        <li><strong>Exact stakes:</strong> wave count, 10s window, health percentage.</li>
+      </ul>
+      <p class="muted">Atmosphere frames the event; explicit language tells players what to do.</p>
+    </div>
+    <div class="card accent">
+      <h3>Encounter invariants</h3>
+      <ul>
+        <li><span class="check">✓</span> Exactly two Lizard-family adds</li>
+        <li><span class="check">✓</span> Boss immunity is tied to living wards only where stated</li>
+        <li><span class="check">✓</span> All SeaWaves travel from enemy court</li>
+        <li><span class="check">✓</span> No scripted Magma, Inferno, rear waves, or green zones</li>
+        <li><span class="check">✓</span> Support restrictions are announced</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+  <h3>Playtest checklist</h3>
+  <table>
+    <thead><tr><th>Question</th><th>Healthy result</th><th>Warning sign</th></tr></thead>
+    <tbody>
+      <tr><td>Do players understand boss immunity?</td><td>They switch to adds immediately.</td><td>Repeated zero-damage attacks on Royal Lizard.</td></tr>
+      <tr><td>Can players read wave lanes?</td><td>Movement improves by the five-wave section.</td><td>Hits feel unavoidable or spawn behind players.</td></tr>
+      <tr><td>Is Tide’s Grace understood?</td><td>The named player assumes a support role.</td><td>Team believes healing is globally broken.</td></tr>
+      <tr><td>Does Twin Tides create coordination?</td><td>Players call target swaps and prepare the double kill.</td><td>Protection feels like unexplained invulnerability.</td></tr>
+      <tr><td>Does Rising Tide feel earned?</td><td>Players connect point losses to spell escalation.</td><td>Tide changes feel random or HP-driven.</td></tr>
+      <tr><td>Does Convergence stop bunkering?</td><td>Teams spread, regroup briefly, then spread again.</td><td>Players permanently separate or cannot recover.</td></tr>
+      <tr><td>Is Phase 4 a strategic climax?</td><td>Teams debate add kills versus boss burn.</td><td>One route is always obviously superior.</td></tr>
+      <tr><td>Does Last Tide land emotionally?</td><td>Silence → barrage → final point is clearly felt.</td><td>Final barrage blends into ordinary attacks.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="spacer"></div>
+  <div class="grid-3">
+    <div class="card"><h3>Primary tuning lever</h3><p>Wave rest and volley count</p></div>
+    <div class="card"><h3>Coordination lever</h3><p>Balance and execution windows</p></div>
+    <div class="card"><h3>Endurance lever</h3><p>Blood Tide healing and final cadence</p></div>
+  </div>
+
+  <div class="callout"><strong>Target experience:</strong> players should finish feeling that they learned a boss—not that they out-healed an effect or survived arbitrary damage.</div>
+  <div class="footer"><span>GAME DESIGNER REFERENCE</span><span>08</span></div>
+</section>
+
+</body>
+</html>
