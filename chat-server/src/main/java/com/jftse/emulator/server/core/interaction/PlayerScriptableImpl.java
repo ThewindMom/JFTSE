@@ -82,6 +82,10 @@ public class PlayerScriptableImpl implements PlayerScriptable {
     public PlayerScriptableImpl(FTClient client) {
         this();
         this.client = client;
+
+        if (client.hasPlayer()) {
+            this.playerId = client.getPlayer().getId();
+        }
     }
 
     /**
