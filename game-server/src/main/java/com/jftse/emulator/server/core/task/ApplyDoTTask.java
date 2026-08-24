@@ -70,7 +70,14 @@ public class ApplyDoTTask extends AbstractTask {
 
         Skill skill = skillService.findSkillById(SKILL_ID);
         if (skill != null) {
-            final short newHealth = (short) Math.max(0, playerState.getCurrentHealth().addAndGet(-damagePerTick));
+            int currentHealth = playerState.getCurrentHealth().get();
+            currentHealth = Math.max(currentHealth, 0);
+            short newHealth = (short) (currentHealth - damagePerTick);
+            if (newHealth < 1) {
+                playerState.setDead(true);
+            }
+            newHealth = newHealth < 0 ? 0 : newHealth;
+            playerState.getCurrentHealth().compareAndSet(currentHealth, newHealth);
             final S2CMatchplayDealDamage packet = new S2CMatchplayDealDamage((short) playerState.getPosition(), newHealth, (short) 4, skill.getId().byteValue(), 0.0f, 0.0f);
             GameManager.getInstance().sendPacketToAllClientsInSameGameSession(packet, connection);
         }
