@@ -118,6 +118,42 @@ public class SocialServiceImpl implements SocialService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<FTFriend> getFTGuildMemberList(Player player) {
+        List<GuildMember> guildMembers = getGuildMemberList(player);
+
+        List<FTFriend> result = new ArrayList<>();
+        for (GuildMember entry : guildMembers) {
+            Player guildMember = entry.getPlayer();
+            if (!guildMember.getOnline()) {
+                FTFriend ftFriend = new FTFriend(FTChannelType.NONE.getValue(), guildMember.getId(), guildMember.getName(), guildMember.getPlayerType());
+                result.add(ftFriend);
+                continue;
+            }
+
+            ServerType serverType = guildMember.getAccount() != null ? guildMember.getAccount().getLoggedInServer() : ServerType.NONE;
+            FTChannelType channelType = ServerTypeTranslator.toChannelType(serverType);
+
+            if (channelType == FTChannelType.NONE) {
+                FTFriend ftFriend = new FTFriend(FTChannelType.NONE.getValue(), guildMember.getId(), guildMember.getName(), guildMember.getPlayerType());
+                result.add(ftFriend);
+            } else {
+                Optional<GameServer> optGameServer = gameServerRepository.findByChannelType((byte) channelType.getValue());
+                if (optGameServer.isPresent()) {
+                    GameServer gameServer = optGameServer.get();
+                    FTFriend ftFriend = new FTFriend(gameServer.getId(), guildMember.getId(), guildMember.getName(), guildMember.getPlayerType());
+                    result.add(ftFriend);
+                } else {
+                    FTFriend ftFriend = new FTFriend(FTChannelType.NONE.getValue(), guildMember.getId(), guildMember.getName(), guildMember.getPlayerType());
+                    result.add(ftFriend);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public FTFriend toFTFriend(Friend friend) {
         Player friendPlayer = friend.getFriend();
         if (!friendPlayer.getOnline()) {

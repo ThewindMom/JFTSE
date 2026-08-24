@@ -19,6 +19,7 @@ public interface SocialService {
     Friend getRelationshipWithFriend(Player player);
 
     List<GuildMember> getGuildMemberList(Player player);
+    List<FTFriend> getFTGuildMemberList(Player player);
 
     FTFriend toFTFriend(Friend friend);
     FTFriend toFTFriend(Player player);

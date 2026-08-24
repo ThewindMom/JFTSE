@@ -6,11 +6,10 @@ import com.jftse.emulator.server.core.rabbit.MessageTypes;
 import com.jftse.emulator.server.core.rabbit.messages.NotifyGuildMemberListOnDisconnectMessage;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.guild.Guild;
-import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.player.Player;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.rabbit.AbstractMessageHandler;
 import com.jftse.server.core.rabbit.MessageHandlerRegistry;
-import com.jftse.server.core.service.GuildMemberService;
 import com.jftse.server.core.service.GuildService;
 import com.jftse.server.core.service.PlayerService;
 import com.jftse.server.core.service.SocialService;
@@ -28,8 +27,6 @@ public class NotifyGuildMemberListOnDisconnectHandler extends AbstractMessageHan
     private GameManager gameManager;
     @Autowired
     private PlayerService playerService;
-    @Autowired
-    private GuildMemberService guildMemberService;
     @Autowired
     private GuildService guildService;
     @Autowired
@@ -60,13 +57,11 @@ public class NotifyGuildMemberListOnDisconnectHandler extends AbstractMessageHan
         guild.getMemberList().stream()
                 .filter(m -> !m.getPlayer().getId().equals(player.getId()))
                 .forEach(m -> {
-                    List<Player> guildMembers = socialService.getGuildMemberList(m.getPlayer()).stream()
-                            .map(GuildMember::getPlayer)
-                            .toList();
-
-                    S2CClubMembersListAnswerPacket s2CClubMembersListAnswerPacket = new S2CClubMembersListAnswerPacket(guildMembers);
                     FTConnection guildMemberConnection = gameManager.getConnectionByPlayerId(m.getPlayer().getId());
                     if (guildMemberConnection != null) {
+                        List<FTFriend> guildMembers = socialService.getFTGuildMemberList(m.getPlayer());
+
+                        S2CClubMembersListAnswerPacket s2CClubMembersListAnswerPacket = new S2CClubMembersListAnswerPacket(guildMembers);
                         guildMemberConnection.sendTCP(s2CClubMembersListAnswerPacket);
                         notifyCount.getAndIncrement();
                     }
