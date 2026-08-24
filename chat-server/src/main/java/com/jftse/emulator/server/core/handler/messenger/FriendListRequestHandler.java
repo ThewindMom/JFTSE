@@ -16,7 +16,6 @@ import com.jftse.entities.database.model.player.Player;
 import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
-import com.jftse.server.core.service.PlayerService;
 import com.jftse.server.core.service.SocialService;
 import com.jftse.server.core.shared.packets.messenger.CMSGFriendList;
 
@@ -25,13 +24,11 @@ import java.util.List;
 @PacketId(CMSGFriendList.PACKET_ID)
 public class FriendListRequestHandler implements PacketHandler<FTConnection, CMSGFriendList> {
     private final SocialService socialService;
-    private final PlayerService playerService;
 
     private final RProducerService rProducerService;
 
     public FriendListRequestHandler() {
         this.socialService = ServiceManager.getInstance().getSocialService();
-        this.playerService = ServiceManager.getInstance().getPlayerService();
         this.rProducerService = RProducerService.getInstance();
     }
     @Override
@@ -58,10 +55,10 @@ public class FriendListRequestHandler implements PacketHandler<FTConnection, CMS
         S2CFriendRequestNotificationPacket s2CFriendRequestNotificationPacket = new S2CFriendRequestNotificationPacket(friendsWaitingForApproval);
         connection.sendTCP(s2CFriendRequestNotificationPacket);
 
-        Friend myRelation = socialService.getRelationship(player.getPlayerRef());
+        Friend myRelation = socialService.getRelationshipWithFriend(player.getPlayerRef());
         if (myRelation != null) {
-            Player pMyRelation = playerService.findWithAccountById(myRelation.getFriend().getId());
-            S2CRelationshipAnswerPacket s2CRelationshipAnswerPacket = new S2CRelationshipAnswerPacket(pMyRelation);
+            FTFriend ftMyRelation = socialService.toFTFriend(myRelation);
+            S2CRelationshipAnswerPacket s2CRelationshipAnswerPacket = new S2CRelationshipAnswerPacket(ftMyRelation);
             connection.sendTCP(s2CRelationshipAnswerPacket);
 
             RefreshFriendRelationMessage refreshFriendRelationMessage = RefreshFriendRelationMessage.builder()

@@ -115,4 +115,51 @@ public class SocialServiceImpl implements SocialService {
         }
         return new ArrayList<>();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FTFriend toFTFriend(Friend friend) {
+        Player friendPlayer = friend.getFriend();
+        if (!friendPlayer.getOnline()) {
+            return new FTFriend(FTChannelType.NONE.getValue(), friendPlayer.getId(), friendPlayer.getName(), friendPlayer.getPlayerType());
+        }
+
+        ServerType serverType = friendPlayer.getAccount() != null ? friendPlayer.getAccount().getLoggedInServer() : ServerType.NONE;
+        FTChannelType channelType = ServerTypeTranslator.toChannelType(serverType);
+
+        if (channelType == FTChannelType.NONE) {
+            return new FTFriend(FTChannelType.NONE.getValue(), friendPlayer.getId(), friendPlayer.getName(), friendPlayer.getPlayerType());
+        } else {
+            Optional<GameServer> optGameServer = gameServerRepository.findByChannelType((byte) channelType.getValue());
+            if (optGameServer.isPresent()) {
+                GameServer gameServer = optGameServer.get();
+                return new FTFriend(gameServer.getId(), friendPlayer.getId(), friendPlayer.getName(), friendPlayer.getPlayerType());
+            } else {
+                return new FTFriend(FTChannelType.NONE.getValue(), friendPlayer.getId(), friendPlayer.getName(), friendPlayer.getPlayerType());
+            }
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FTFriend toFTFriend(Player player) {
+        if (!player.getOnline()) {
+            return new FTFriend(FTChannelType.NONE.getValue(), player.getId(), player.getName(), player.getPlayerType());
+        }
+
+        ServerType serverType = player.getAccount() != null ? player.getAccount().getLoggedInServer() : ServerType.NONE;
+        FTChannelType channelType = ServerTypeTranslator.toChannelType(serverType);
+
+        if (channelType == FTChannelType.NONE) {
+            return new FTFriend(FTChannelType.NONE.getValue(), player.getId(), player.getName(), player.getPlayerType());
+        } else {
+            Optional<GameServer> optGameServer = gameServerRepository.findByChannelType((byte) channelType.getValue());
+            if (optGameServer.isPresent()) {
+                GameServer gameServer = optGameServer.get();
+                return new FTFriend(gameServer.getId(), player.getId(), player.getName(), player.getPlayerType());
+            } else {
+                return new FTFriend(FTChannelType.NONE.getValue(), player.getId(), player.getName(), player.getPlayerType());
+            }
+        }
+    }
 }

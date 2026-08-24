@@ -15,6 +15,7 @@ import com.jftse.entities.database.model.messenger.Message;
 import com.jftse.entities.database.model.messenger.Proposal;
 import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.client.FTFriend;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.item.EItemCategory;
@@ -120,10 +121,10 @@ public class ProposalAnswerRequestHandler implements PacketHandler<FTConnection,
             friendService.save(friendOfSender);
             friendService.save(friendOfReceiver);
 
-            Friend myRelation = socialService.getRelationship(player.getPlayerRef());
+            Friend myRelation = socialService.getRelationshipWithFriend(player.getPlayerRef());
             if (myRelation != null) {
-                Player pMyRelation = playerService.findWithAccountById(myRelation.getFriend().getId());
-                S2CRelationshipAnswerPacket s2CRelationshipAnswerPacket = new S2CRelationshipAnswerPacket(pMyRelation);
+                FTFriend ftMyRelation = socialService.toFTFriend(myRelation);
+                S2CRelationshipAnswerPacket s2CRelationshipAnswerPacket = new S2CRelationshipAnswerPacket(ftMyRelation);
                 connection.sendTCP(s2CRelationshipAnswerPacket);
 
                 RefreshFriendRelationMessage refreshFriendRelationMessage = RefreshFriendRelationMessage.builder()
