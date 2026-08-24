@@ -1,7 +1,11 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomCreateAnswerPacket;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerInformationPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
@@ -21,27 +25,28 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
             return;
         }
 
-        Room room = new Room();
-        room.setRoomId(GameManager.getInstance().getRoomId());
-        room.setRoomName(packet.getRoomName());
-        room.setRoomType(packet.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+        Room room = GameManager.getInstance().getRoomManager().createRoom(packet, client);
+        client.setActiveRoom(room);
+        client.setInLobby(false);
 
-        room.setMode(packet.getMode());
-        room.setRule(packet.getRule());
-        room.setPlayers(packet.getPlayers());
-        room.setPrivate(packet.getIsPrivate());
-        room.setPassword(packet.getPassword());
-        room.setSkillFree(packet.getSkillFree());
-        room.setQuickSlot(packet.getQuickSlot());
-        room.setLevel((byte) client.getPlayer().getLevel());
-        room.setLevelRange(packet.getLevelRange());
-        room.setBettingType(packet.getBettingType());
-        room.setBettingAmount(packet.getBettingAmount());
-        room.setBall(packet.getBall());
-        room.setMap(packet.getMapId());
+        RoomPlayer roomPlayer = client.getRoomPlayer();
+        float spawnX = roomPlayer.getLastX();
+        float spawnY = roomPlayer.getLastY();
 
-        GameManager.getInstance().internalHandleRoomCreate(client.getConnection(), room);
+        S2CRoomCreateAnswerPacket roomCreateAnswerPacket = new S2CRoomCreateAnswerPacket((char) 0, room.getRoomType(), room.getMode(), room.getMap());
+        S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
+        S2CRoomPlayerInformationPacket roomPlayerInformationPacket = new S2CRoomPlayerInformationPacket(roomPlayer, spawnX, spawnY, room.getMode() == 2 ? 0.0f : spawnX, room.getMode() == 2 ? 0.0f : spawnY, roomPlayer.getLastMapLayer());
+
+        connection.sendTCP(roomCreateAnswerPacket);
+        connection.sendTCP(roomInformationPacket);
+        connection.sendTCP(roomPlayerInformationPacket);
+
+        if (room.getMode() == 1) {
+            GameManager.getInstance().getFishManager().registerRoom(room.getRoomId());
+        }
+
+        GameManager.getInstance().updateLobbyRoomListForAllClients(connection);
+        GameManager.getInstance().refreshLobbyPlayerListForAllClients();
 
         client.getIsJoiningOrLeavingRoom().set(false);
     }

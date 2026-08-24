@@ -1,77 +1,52 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
-import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
-import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomCreateAnswerPacket;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerInformationPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
-import com.jftse.entities.database.model.home.AccountHome;
-import com.jftse.entities.database.model.player.Player;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
-import com.jftse.server.core.service.HomeService;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCreateQuick;
 
 @PacketId(CMSGRoomCreateQuick.PACKET_ID)
 public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConnection, CMSGRoomCreateQuick> {
-    private final HomeService homeService;
-
-    public RoomCreateQuickRequestPacketHandler() {
-        this.homeService = ServiceManager.getInstance().getHomeService();
-    }
-
     @Override
     public void handle(FTConnection connection, CMSGRoomCreateQuick packet) {
         FTClient client = connection.getClient();
         // prevent multiple room creations, this might have to be adjusted into a "room join answer"
-        if (client.getActiveRoom() != null)
+        if (client.getActiveRoom() != null || !client.hasPlayer())
             return;
-
-        if (!client.hasPlayer())
-            return;
-
-        FTPlayer player = client.getPlayer();
 
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
             return;
         }
 
-        byte players = packet.getPlayers();
-        if (players == 0) {
-            players = 8;
-        }
+        Room room = GameManager.getInstance().getRoomManager().createRoom(packet, client);
+        client.setActiveRoom(room);
+        client.setInLobby(false);
 
-        Room room = new Room();
-        room.setRoomId(GameManager.getInstance().getRoomId());
-        room.setRoomName(String.format("%s's room", player.getName()));
-        room.setRoomType(packet.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+        RoomPlayer roomPlayer = client.getRoomPlayer();
+        float spawnX = roomPlayer.getLastX();
+        float spawnY = roomPlayer.getLastY();
 
-        room.setMode(packet.getMode());
-        room.setRule((byte) 0);
-        room.setPlayers(players);
-        room.setPrivate(false);
-        room.setSkillFree(false);
-        room.setQuickSlot(false);
-        room.setLevel((byte) player.getLevel());
-        room.setLevelRange((byte) -1);
-        room.setBettingType('0');
-        room.setBettingAmount(0);
-        room.setBall(1);
+        S2CRoomCreateAnswerPacket roomCreateAnswerPacket = new S2CRoomCreateAnswerPacket((char) 0, room.getRoomType(), room.getMode(), room.getMap());
+        S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
+        S2CRoomPlayerInformationPacket roomPlayerInformationPacket = new S2CRoomPlayerInformationPacket(roomPlayer, spawnX, spawnY, room.getMode() == 2 ? 0.0f : spawnX, room.getMode() == 2 ? 0.0f : spawnY, roomPlayer.getLastMapLayer());
+
+        connection.sendTCP(roomCreateAnswerPacket);
+        connection.sendTCP(roomInformationPacket);
+        connection.sendTCP(roomPlayerInformationPacket);
 
         if (room.getMode() == 1) {
-            AccountHome accountHome = homeService.findAccountHomeByAccountId(client.getAccountId());
-            if (accountHome != null) {
-                room.setMap(accountHome.getLevel());
-            } else {
-                room.setMap((byte) 0);
-            }
-        } else {
-            room.setMap((byte) 0);
+            GameManager.getInstance().getFishManager().registerRoom(room.getRoomId());
         }
 
-        GameManager.getInstance().internalHandleRoomCreate(client.getConnection(), room);
+        GameManager.getInstance().updateLobbyRoomListForAllClients(connection);
+        GameManager.getInstance().refreshLobbyPlayerListForAllClients();
 
         client.getIsJoiningOrLeavingRoom().set(false);
     }

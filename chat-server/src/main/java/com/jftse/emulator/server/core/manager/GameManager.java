@@ -19,7 +19,6 @@ import com.jftse.entities.database.model.ServerType;
 import com.jftse.entities.database.model.Uptime;
 import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.guild.GuildMember;
-import com.jftse.entities.database.model.home.AccountHome;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.*;
 import com.jftse.server.core.BuildInfoProperties;
@@ -75,9 +74,11 @@ public class GameManager implements ServerLoopHandler {
     @Autowired
     private ServerLoopMetricsService serverLoopMetrics;
 
+    @Autowired
+    private RoomManager roomManager;
+
     private ConcurrentLinkedQueue<FTConnection> addConnectionQueue;
     private ConcurrentLinkedDeque<FTClient> clients;
-    private ConcurrentLinkedDeque<Room> rooms;
     private Room townSquare;
 
     private ConcurrentHashMap<Integer, String> personalBoardMessages;
@@ -117,13 +118,12 @@ public class GameManager implements ServerLoopHandler {
 
         rnd = new Random();
         clients = new ConcurrentLinkedDeque<>();
-        rooms = new ConcurrentLinkedDeque<>();
         personalBoardMessages = new ConcurrentHashMap<>();
         addConnectionQueue = new ConcurrentLinkedQueue<>();
 
         scriptManager = ScriptManagerFactory.loadScriptsV2("scripts", () -> scriptLogger);
 
-        setupChatLobby();
+        roomManager.setupChatLobby();
 
         GameTime.updateGameTimers();
         initTimers();
@@ -152,7 +152,7 @@ public class GameManager implements ServerLoopHandler {
             client.getConnection().close();
         }
 
-        rooms.clear();
+        roomManager.clearRooms();
         clients.clear();
 
         serviceManager.getUptimeService().updateUptimeAndMaxPlayers(GameTime.getUptimeSeconds(), getMaxPlayerCount(), ServerType.CHAT_SERVER, GameTime.getStartTime().getEpochSecond());
@@ -218,12 +218,8 @@ public class GameManager implements ServerLoopHandler {
         addConnectionQueue.offer(connection);
     }
 
-    public void addRoom(Room room) {
-        rooms.add(room);
-    }
-
-    public void removeRoom(Room room) {
-        rooms.remove(room);
+    public final List<Room> getRooms() {
+        return new ArrayList<>(roomManager.getRooms());
     }
 
     public List<FTPlayer> getPlayersInLobby() {
@@ -251,26 +247,6 @@ public class GameManager implements ServerLoopHandler {
                 .findFirst()
                 .map(FTClient::getConnection)
                 .orElse(null);
-    }
-
-    private void setupChatLobby() {
-        Room square = new Room();
-        square.setRoomId(getRoomId());
-        square.setRoomName("Town Square");
-        square.setRoomType((byte) 1);
-        square.setMode((byte) 2);
-        square.setMap((byte) 0);
-        square.setRule((byte) 0);
-        square.setPlayers((byte) 100);
-        square.setPrivate(false);
-        square.setSkillFree(false);
-        square.setQuickSlot(true);
-        square.setLevel((byte) 0);
-        square.setLevelRange((byte) 0);
-        square.setBall((byte) 0);
-
-        townSquare = square;
-        addRoom(townSquare);
     }
 
     public synchronized void handleChatLobbyJoin(FTClient client) {
@@ -412,7 +388,7 @@ public class GameManager implements ServerLoopHandler {
                     c.setActiveRoom(null);
                     //handleChatLobbyJoin(c);
                 });
-                removeRoom(room);
+                roomManager.removeRoom(room);
                 fishManager.clearFishes(room.getRoomId());
                 updateLobbyRoomListForAllClients(connection);
                 return;
@@ -421,7 +397,7 @@ public class GameManager implements ServerLoopHandler {
 
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
         if (roomPlayerList.isEmpty() && room.getMode() != 2) {
-            removeRoom(room);
+            roomManager.removeRoom(room);
         }
 
         if (playerPosition != -1) {
@@ -473,87 +449,6 @@ public class GameManager implements ServerLoopHandler {
             case 1 -> ChatMode.MY_HOME;
             default -> ChatMode.ALL;
         };
-    }
-
-    public synchronized void internalHandleRoomCreate(final FTConnection connection, Room room) {
-        room.setAllowBattlemon((byte) 0);
-
-        FTClient client = connection.getClient();
-        FTPlayer activePlayer = client.getPlayer();
-
-        Friend couple = serviceManager.getSocialService().getRelationshipWithFriend(activePlayer.getPlayerRef());
-        if (couple != null) {
-            activePlayer.setCoupleId(couple.getFriend().getId());
-            activePlayer.setCoupleName(couple.getFriend().getName());
-        }
-
-        RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
-        roomPlayer.setGameMaster(client.isGameMaster());
-        roomPlayer.setPosition((short) 0);
-        roomPlayer.setMaster(true);
-        roomPlayer.setFitting(false);
-
-        Random rnd = new Random();
-        float spawnX, spawnY;
-        if (room.getMode() == 0) {
-            spawnX = rnd.nextFloat(10.0f, 21.0f);
-            spawnY = rnd.nextFloat(15.0f, 50.0f);
-        } else if (room.getMode() == 1) {
-            AccountHome accountHome = serviceManager.getHomeService().findAccountHomeByAccountId(client.getAccountId());
-
-            spawnX = switch (accountHome.getLevel()) {
-                case 3, 4 -> 10.0f;
-                default -> 9.0f;
-            };
-            spawnY = switch (accountHome.getLevel()) {
-                case 2 -> 15.0f;
-                case 3 -> 17.0f;
-                case 4 -> 20.0f;
-                default -> 12.0f;
-            };
-        } else {
-            spawnX = rnd.nextFloat(40.0f, 46.0f);
-            spawnY = rnd.nextFloat(60.0f, 64.0f);
-        }
-
-        roomPlayer.setLastX(spawnX);
-        roomPlayer.setLastY(spawnY);
-        roomPlayer.setLastMapLayer(0);
-
-        connection.getClient().setActiveRoom(room);
-        connection.getClient().setInLobby(false);
-
-        room.getRoomPlayerList().add(roomPlayer);
-
-        addRoom(room);
-
-        S2CRoomCreateAnswerPacket roomCreateAnswerPacket = new S2CRoomCreateAnswerPacket((char) 0, room.getRoomType(), room.getMode(), room.getMap());
-        S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
-
-        S2CRoomPlayerInformationPacket roomPlayerInformationPacket = new S2CRoomPlayerInformationPacket(roomPlayer, spawnX, spawnY, room.getMode() == 2 ? 0.0f : spawnX, room.getMode() == 2 ? 0.0f : spawnY, roomPlayer.getLastMapLayer());
-
-        connection.sendTCP(roomCreateAnswerPacket);
-        connection.sendTCP(roomInformationPacket);
-        connection.sendTCP(roomPlayerInformationPacket);
-
-        if (room.getMode() == 1) {
-            fishManager.registerRoom(room.getRoomId());
-        }
-
-        updateLobbyRoomListForAllClients(connection);
-        refreshLobbyPlayerListForAllClients();
-    }
-
-    public synchronized short getRoomId() {
-        List<Short> roomIds = getRooms().stream().map(Room::getRoomId).sorted().collect(Collectors.toList());
-        short currentRoomId = 0;
-        for (Short roomId : roomIds) {
-            if (roomId != currentRoomId) {
-                return currentRoomId;
-            }
-            currentRoomId++;
-        }
-        return currentRoomId;
     }
 
     public GuildMember getGuildMemberByPlayerPositionInGuild(int playerPositionInGuild, final GuildMember guildMember) {

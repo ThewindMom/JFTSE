@@ -96,9 +96,11 @@ public class GameManager implements ServerLoopHandler {
     @Autowired
     private ServerLoopMetricsService serverLoopMetrics;
 
+    @Autowired
+    private RoomManager roomManager;
+
     private ConcurrentLinkedQueue<FTConnection> addConnectionQueue;
     private ConcurrentLinkedDeque<FTClient> clients;
-    private ConcurrentLinkedDeque<Room> rooms;
     private Room townSquare;
 
     private ConcurrentHashMap<Integer, String> personalBoardMessages;
@@ -133,14 +135,11 @@ public class GameManager implements ServerLoopHandler {
 
         rnd = new Random();
         clients = new ConcurrentLinkedDeque<>();
-        rooms = new ConcurrentLinkedDeque<>();
         personalBoardMessages = new ConcurrentHashMap<>();
         addConnectionQueue = new ConcurrentLinkedQueue<>();
 
         scriptManager = ScriptManagerFactory.loadScriptsV2("scripts", () -> scriptLogger);
         BattleUtils.loadStatConfig();
-
-        //setupChatLobby();
 
         GameTime.updateGameTimers();
         initTimers();
@@ -169,7 +168,7 @@ public class GameManager implements ServerLoopHandler {
             client.getConnection().close();
         }
 
-        rooms.clear();
+        roomManager.clearRooms();
         clients.clear();
 
         serviceManager.getUptimeService().updateUptimeAndMaxPlayers(GameTime.getUptimeSeconds(), getMaxPlayerCount(), ServerType.GAME_SERVER, GameTime.getStartTime().getEpochSecond());
@@ -241,12 +240,8 @@ public class GameManager implements ServerLoopHandler {
         addConnectionQueue.offer(connection);
     }
 
-    public void addRoom(Room room) {
-        rooms.add(room);
-    }
-
-    public void removeRoom(Room room) {
-        rooms.remove(room);
+    public final List<Room> getRooms() {
+        return new ArrayList<>(roomManager.getRooms());
     }
 
     public List<FTPlayer> getPlayersInLobby() {
@@ -274,26 +269,6 @@ public class GameManager implements ServerLoopHandler {
                 .findFirst()
                 .map(FTClient::getConnection)
                 .orElse(null);
-    }
-
-    private void setupChatLobby() {
-        Room square = new Room();
-        square.setRoomId(getRoomId());
-        square.setRoomName("Town Square");
-        square.setRoomType((byte) 1);
-        square.setMode((byte) 2);
-        square.setMap((byte) 0);
-        square.setRule((byte) 0);
-        square.setPlayers((byte) 100);
-        square.setPrivate(false);
-        square.setSkillFree(false);
-        square.setQuickSlot(true);
-        square.setLevel((byte) 0);
-        square.setLevelRange((byte) 0);
-        square.setBall((byte) 0);
-
-        townSquare = square;
-        addRoom(townSquare);
     }
 
     public synchronized void handleChatLobbyJoin(FTClient client) {
@@ -453,7 +428,7 @@ public class GameManager implements ServerLoopHandler {
 
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
         if (room.getRoomPlayerList().isEmpty() && !isTownSquare) {
-            removeRoom(room);
+            roomManager.removeRoom(room);
         }
 
         if (!isTownSquare) {
@@ -545,60 +520,6 @@ public class GameManager implements ServerLoopHandler {
             return GameMode.BATTLEMON;
         }
         return room.getMode();
-    }
-
-    public synchronized void internalHandleRoomCreate(final FTConnection connection, Room room) {
-        room.getPositions().set(0, RoomPositionState.InUse);
-
-        byte players = room.getPlayers();
-        if (players == 2) {
-            room.getPositions().set(2, RoomPositionState.Locked);
-            room.getPositions().set(3, RoomPositionState.Locked);
-        }
-
-        FTClient client = connection.getClient();
-        FTPlayer activePlayer = client.getPlayer();
-
-        Friend couple = serviceManager.getSocialService().getRelationshipWithFriend(activePlayer.getPlayerRef());
-        if (couple != null) {
-            activePlayer.setCoupleId(couple.getFriend().getId());
-            activePlayer.setCoupleName(couple.getFriend().getName());
-        }
-
-        RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
-        roomPlayer.setGameMaster(client.isGameMaster());
-        roomPlayer.setPosition((short) 0);
-        roomPlayer.setMaster(true);
-        roomPlayer.setFitting(false);
-
-        client.setActiveRoom(room);
-        client.setInLobby(false);
-
-        room.getRoomPlayerList().add(roomPlayer);
-        addRoom(room);
-
-        S2CRoomCreateAnswerPacket roomCreateAnswerPacket = new S2CRoomCreateAnswerPacket((char) 0, room.getRoomType(), room.getMode(), room.getMap());
-        S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
-        S2CRoomPlayerListInformationPacket roomPlayerInformationPacket = new S2CRoomPlayerListInformationPacket(new ArrayList<>(room.getRoomPlayerList()));
-
-        connection.sendTCP(roomCreateAnswerPacket);
-        connection.sendTCP(roomInformationPacket);
-        connection.sendTCP(roomPlayerInformationPacket);
-
-        updateLobbyRoomListForAllClients(connection);
-        refreshLobbyPlayerListForAllClients();
-    }
-
-    public synchronized short getRoomId() {
-        List<Short> roomIds = getRooms().stream().map(Room::getRoomId).sorted().collect(Collectors.toList());
-        short currentRoomId = 0;
-        for (Short roomId : roomIds) {
-            if (roomId != currentRoomId) {
-                return currentRoomId;
-            }
-            currentRoomId++;
-        }
-        return currentRoomId;
     }
 
     public GuildMember getGuildMemberByPlayerPositionInGuild(int playerPositionInGuild, final GuildMember guildMember) {
