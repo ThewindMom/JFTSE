@@ -9,6 +9,7 @@ public class PlayerBattleState extends BattleState {
     private final long id;
     private Long movementSpeedExpiresAtMillis;
     private Long movementSpeedSkillId;
+    private Long lastOutgoingSkillId;
 
     public PlayerBattleState(short position, long playerId, int hp, int str, int sta, int dex, int will) {
         super(position, hp, str, sta, dex, will);

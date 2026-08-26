@@ -388,12 +388,18 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
     private void maybeReEchoMovementSpeed(FTConnection connection, MatchplayGame game, short targetPosition,
                                           short newHealth, Skill skillToApply) {
         PlayerBattleState playerBattleState = this.findPlayerBattleState(game, targetPosition);
-        Long skillId = FastMovementSpeedClock.onAppliedSkill(
-                playerBattleState, skillToApply, System.currentTimeMillis());
+        if (playerBattleState == null || skillToApply == null || skillToApply.getId() == null) {
+            return;
+        }
+
+        long nowMillis = System.currentTimeMillis();
+        FastMovementSpeedClock.noteOutgoingSkill(playerBattleState, skillToApply.getId());
+        Long skillId = FastMovementSpeedClock.onAppliedSkill(playerBattleState, skillToApply, nowMillis);
         if (skillId == null) {
             return;
         }
 
+        FastMovementSpeedClock.noteOutgoingSkill(playerBattleState, skillId);
         S2CMatchplayDealDamage speedPacket = new S2CMatchplayDealDamage(
                 targetPosition,
                 newHealth,
@@ -402,6 +408,65 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 0.0f,
                 0.0f);
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(speedPacket, connection);
+
+        Long delayMillis = FastMovementSpeedClock.cancelDelayMillis(playerBattleState, nowMillis);
+        if (delayMillis == null) {
+            return;
+        }
+        this.scheduleMovementSpeedCancel(
+                connection, game, targetPosition, playerBattleState.getMovementSpeedExpiresAtMillis(), delayMillis);
+    }
+
+    private void scheduleMovementSpeedCancel(FTConnection connection, MatchplayGame game, short targetPosition,
+                                             long scheduledExpiresAtMillis, long delayMillis) {
+        if (connection.getClient() == null) {
+            return;
+        }
+        GameSession gameSession = connection.getClient().getActiveGameSession();
+        if (gameSession == null) {
+            return;
+        }
+
+        RunnableEvent runnableEvent = eventHandler.createRunnableEvent(
+                () -> this.sendMovementSpeedCancel(connection, game, targetPosition, scheduledExpiresAtMillis),
+                delayMillis);
+        gameSession.getFireables().push(runnableEvent);
+        eventHandler.offer(runnableEvent);
+    }
+
+    private void sendMovementSpeedCancel(FTConnection connection, MatchplayGame game, short targetPosition,
+                                         long scheduledExpiresAtMillis) {
+        if (connection.getClient() == null || connection.getClient().getActiveGameSession() == null) {
+            return;
+        }
+
+        PlayerBattleState playerBattleState = this.findPlayerBattleState(game, targetPosition);
+        long nowMillis = System.currentTimeMillis();
+        Long waitMillis = FastMovementSpeedClock.cancelWaitMillis(
+                playerBattleState, nowMillis, scheduledExpiresAtMillis);
+        if (waitMillis == null) {
+            return;
+        }
+        if (waitMillis > 0L) {
+            this.scheduleMovementSpeedCancel(connection, game, targetPosition, scheduledExpiresAtMillis, waitMillis);
+            return;
+        }
+
+        Long cancelSkillId = FastMovementSpeedClock.cancelSkillId(playerBattleState);
+        if (cancelSkillId == null) {
+            return;
+        }
+
+        short hp = (short) playerBattleState.getCurrentHealth().get();
+        S2CMatchplayDealDamage cancelPacket = new S2CMatchplayDealDamage(
+                targetPosition,
+                hp,
+                targetPosition,
+                cancelSkillId.byteValue(),
+                0.0f,
+                0.0f);
+        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(cancelPacket, connection);
+        FastMovementSpeedClock.noteOutgoingSkill(playerBattleState, cancelSkillId);
     }
 
     private void increasePotsFromGuardiansDeath(MatchplayGuardianGame game, int guardianPos) {
