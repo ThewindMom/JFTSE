@@ -9,7 +9,7 @@ public final class ParcelItemPlacement {
     }
 
     public static boolean shouldStack(PlayerPocket existing) {
-        return existing != null;
+        return existing != null && !existing.getUseType().equals("N/A");
     }
 
     public static PlayerPocket toPocketItem(PlayerPocket existing, Parcel parcel, Pocket pocket) {
