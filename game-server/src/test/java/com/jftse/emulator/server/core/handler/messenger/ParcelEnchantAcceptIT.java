@@ -352,7 +352,7 @@ class ParcelEnchantAcceptIT {
             ParcelRepository.class
     })
     @EnableTransactionManagement
-    static class TestApp {
+    public static class TestApp {
         @Bean
         JdbcUtil jdbcUtil() {
             return new JdbcUtil();
