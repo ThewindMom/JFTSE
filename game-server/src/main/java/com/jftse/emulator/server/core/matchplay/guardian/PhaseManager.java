@@ -9,6 +9,7 @@ import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
+import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayUseSkill;
 import com.jftse.emulator.server.core.task.GuardianAttackTask;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.battle.Skill;
@@ -123,6 +124,15 @@ public class PhaseManager {
                 updatePhase(diff);
             }
         }
+    }
+
+    public void sendSkill(S2CMatchplayUseSkill packet, FTConnection connection) {
+        if (gameSession == null || !isRunning.get() || isChangingPhase.get() ||
+                connection != hostConnection || connection.getClient().getActiveGameSession() != gameSession ||
+                gameSession.getMatchplayGame().getFinished().get()) return;
+        gameSession.authorizeSkillHits(packet.getAttacker(), -1,
+                Byte.toUnsignedInt(packet.getSkillIndex()) + 1, System.nanoTime());
+        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(packet, connection);
     }
 
     private void updatePhase(long diff) {

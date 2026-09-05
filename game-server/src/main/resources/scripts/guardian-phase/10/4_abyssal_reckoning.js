@@ -70,12 +70,12 @@ var phase = {
                         if (all) {
                             for (let p of players) {
                                 const packet = new S2CMatchplayUseSkill(pos, p.getPosition(), id - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                                game.getPhaseManager().sendSkill(packet, connection);
                             }
                         } else {
                             const target = players[Math.floor(Math.random() * players.length)];
                             const packet = new S2CMatchplayUseSkill(pos, target.getPosition(), id - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                            gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                            game.getPhaseManager().sendSkill(packet, connection);
                         }
                     }
                     abyss.bossSkillTimers.set(key, now);
@@ -215,7 +215,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         } else {
             const polymorphSkill = skillService.findSkillById(7);
@@ -228,7 +228,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         }
 
@@ -244,7 +244,7 @@ var phase = {
                     0, 0, 0
                 );
                 const event = eventHandler.createRunnableEvent(function () {
-                    gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                    game.getPhaseManager().sendSkill(packet, connection);
                 }, 1250);
                 eventHandler.offerJS(event, connection);
             }

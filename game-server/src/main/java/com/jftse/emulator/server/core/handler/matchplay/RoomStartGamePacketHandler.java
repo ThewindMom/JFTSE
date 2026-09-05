@@ -96,6 +96,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
 
         int requestedRoomType = room.getRoomType();
         int requestedMode = room.getMode();
+        byte requestedMap = room.getMap();
         boolean isBattlemon = requestedRoomType == RoomType.BATTLEMON;
         if (requestedMode != GameMode.BASIC && requestedMode != GameMode.BATTLE && requestedMode != GameMode.GUARDIAN ||
                 isBattlemon && requestedMode == GameMode.GUARDIAN) {
@@ -146,6 +147,11 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             selectedBattlemonPets.put(roomPlayer.getPlayerId(), pet);
         }
         if (isBattlemon && selectedBattlemonPets.size() != activeRoomPlayers.size()) {
+            connection.sendTCP(roomStartGameAck);
+            return;
+        }
+        if (requestedMode == GameMode.GUARDIAN &&
+                !ServiceManager.getInstance().getMapService().isGuardianMapAvailable((int) requestedMap)) {
             connection.sendTCP(roomStartGameAck);
             return;
         }
@@ -236,6 +242,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
                     .anyMatch(roomPlayer -> !roomPlayer.isMaster() && !roomPlayer.isReady());
             if (room.getStatus() != RoomStatus.NotRunning ||
                     room.getRoomType() != requestedRoomType || room.getMode() != requestedMode ||
+                    room.getMap() != requestedMap ||
                     GameSessionManager.getInstance().hasMatchplayReward(room.getRoomId()) ||
                     !selectedBattlemonPets.isEmpty() && room.getAllowBattlemon() == 0 ||
                     readinessChanged || battlemonLayoutChanged || battlemonSelectionChanged) {
@@ -374,8 +381,15 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
     }
 
     private void handleOrdinaryStart(FTConnection connection, Packet roomStartGameAck, FTClient ftClient, Room room) {
+        byte requestedMap = room.getMap();
+        byte requestedMode = room.getMode();
+        if (requestedMode == GameMode.GUARDIAN &&
+                !ServiceManager.getInstance().getMapService().isGuardianMapAvailable((int) requestedMap)) {
+            connection.sendTCP(roomStartGameAck);
+            return;
+        }
         synchronized (room) {
-            if (room.getStatus() != RoomStatus.NotRunning) {
+            if (room.getStatus() != RoomStatus.NotRunning || room.getMap() != requestedMap || room.getMode() != requestedMode) {
                 connection.sendTCP(roomStartGameAck);
                 return;
             }

@@ -65,7 +65,7 @@ var phase = {
                 const skill = skillService.findSkillById(3);
                 if (skill) {
                     let packet = new S2CMatchplayUseSkill(pos, 4, skill.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                    gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                    game.getPhaseManager().sendSkill(packet, connection);
                     for (let player of players) {
                         let applyDoTTask = new ApplyDoTTask(connection, player, 5, 1000, 5);
                         let runnableEvent = eventHandler.createRunnableEvent(applyDoTTask, 50);
@@ -80,7 +80,7 @@ var phase = {
                 const skill = skillService.findSkillById(28);
                 if (skill) {
                     let packet = new S2CMatchplayUseSkill(pos, 4, skill.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                    gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                    game.getPhaseManager().sendSkill(packet, connection);
                 }
                 maelstrom.bossSkillTimers.set("SeaWave", now);
             }
@@ -91,7 +91,7 @@ var phase = {
                 if (skill) {
                     for (let player of players) {
                         let packet = new S2CMatchplayUseSkill(pos, player.getPosition(), skill.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                        gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                        game.getPhaseManager().sendSkill(packet, connection);
                     }
                 }
                 maelstrom.bossSkillTimers.set("Chaos", now);
@@ -192,7 +192,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         } else {
             const polymorphSkill = skillService.findSkillById(7);
@@ -205,7 +205,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         }
 
@@ -222,7 +222,7 @@ var phase = {
                 );
 
                 const event = eventHandler.createRunnableEvent(function () {
-                    gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                    game.getPhaseManager().sendSkill(packet, connection);
                 }, 1250);
                 eventHandler.offerJS(event, connection);
             }

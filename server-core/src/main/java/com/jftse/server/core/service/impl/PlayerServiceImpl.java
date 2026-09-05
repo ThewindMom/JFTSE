@@ -84,6 +84,12 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Player findByIdForUpdate(Long playerId) {
+        return playerRepository.findByIdForUpdate(playerId).orElseThrow();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Player getPlayerRef(Long playerId) {
         return playerRepository.getReferenceById(playerId);

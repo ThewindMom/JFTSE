@@ -30,7 +30,10 @@ public class ThreadManager {
         virtualThreadExecutor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("ThreadManager-VT-", 0L).factory());
 
         // Use virtual threads for scheduled tasks
-        virtualScheduledExecutor = Executors.newScheduledThreadPool(0, Thread.ofVirtual().name("ThreadManager-VT-Scheduled-", 0L).factory());
+        ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(0,
+                Thread.ofVirtual().name("ThreadManager-VT-Scheduled-", 0L).factory());
+        scheduler.setRemoveOnCancelPolicy(true);
+        virtualScheduledExecutor = scheduler;
 
         log.info("{} initialized", this.getClass().getSimpleName());
     }

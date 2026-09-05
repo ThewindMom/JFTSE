@@ -229,8 +229,10 @@ class BattlemonActorPolicyTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void scriptedDotCommitsClampedDeathButCannotFollowReplacementSession(boolean replaceSession) {
+    @ValueSource(strings = {"live", "session", "phase"})
+    void scriptedDotCommitsClampedDeathButCannotFollowReplacementSession(String replacementKind) {
+        boolean replaceSession = replacementKind.equals("session");
+        boolean replaced = !replacementKind.equals("live");
         GuardianContext context = guardianContext((short) 0, true);
         when(context.game().getGuardianCombatSystem()).thenReturn(new GuardianCombatSystem(context.game()));
         when(context.game().getFinished()).thenReturn(new AtomicBoolean(false));
@@ -240,6 +242,11 @@ class BattlemonActorPolicyTest {
         Skill skill = new Skill();
         skill.setId(3L);
         when(skillService.findSkillById(3L)).thenReturn(skill);
+        var phases = mock(com.jftse.emulator.server.core.matchplay.guardian.PhaseManager.class);
+        var currentPhase = new java.util.concurrent.atomic.AtomicReference<>(
+                mock(com.jftse.emulator.server.core.matchplay.guardian.PhaseScript.class));
+        when(phases.getCurrentPhase()).thenReturn(currentPhase);
+        when(context.game().getPhaseManager()).thenReturn(phases);
         var task = new com.jftse.emulator.server.core.task.ApplyDoTTask(context.connection(), target, 3, 1000, 20);
         task.run();
         org.mockito.ArgumentCaptor<Runnable> callback = org.mockito.ArgumentCaptor.forClass(Runnable.class);
@@ -248,10 +255,11 @@ class BattlemonActorPolicyTest {
             GameSession replacement = mock(GameSession.class);
             when(context.connection().getClient().getActiveGameSession()).thenReturn(replacement);
         }
+        if (replacementKind.equals("phase")) currentPhase.set(mock(com.jftse.emulator.server.core.matchplay.guardian.PhaseScript.class));
         callback.getValue().run();
-        assertEquals(replaceSession ? 10 : 0, target.getCurrentHealth().get());
-        assertEquals(!replaceSession, target.isDead());
-        verify(GameManager.getInstance(), times(replaceSession ? 0 : 1))
+        assertEquals(replaced ? 10 : 0, target.getCurrentHealth().get());
+        assertEquals(!replaced, target.isDead());
+        verify(GameManager.getInstance(), times(replaced ? 0 : 1))
                 .sendPacketToAllClientsInSameGameSession(any(), eq(context.connection()));
     }
 
@@ -316,19 +324,23 @@ class BattlemonActorPolicyTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"18, 1", "17, 2", "17, 1"})
-    void crystalValidationConsumesOnlyMatchingHead(int crystalId, byte skillIndex) {
+    @CsvSource({"18,1,live", "17,2,live", "17,1,live", "17,1,disconnected", "17,1,replacement"})
+    void crystalValidationConsumesOnlyMatchingHead(int crystalId, byte skillIndex, String membership) {
         BattleContext context = battleContext((short) 0, true);
         SkillCrystal crystal = new SkillCrystal(17);
         crystal.setSkillIndex(1);
         SkillCrystal next = new SkillCrystal(19);
         Queue<SkillCrystal> crystals = new ConcurrentLinkedDeque<>(List.of(crystal, next));
         when(context.roomPlayer().getPickedUpSkillCrystals()).thenReturn(crystals);
-        FTClient peer = mock(FTClient.class);
+        FTClient peer = matchClient();
         FTConnection peerConnection = mock(FTConnection.class);
         when(peer.getConnection()).thenReturn(peerConnection);
         when(peerConnection.getId()).thenReturn(mock(io.netty.channel.ChannelId.class));
-        context.connection().getClient().getActiveGameSession().getClients().add(peer);
+        GameSession session = context.connection().getClient().getActiveGameSession();
+        Room room = context.connection().getClient().getActiveRoom();
+        when(peer.getActiveRoom()).thenReturn(room);
+        when(peer.getActiveGameSession()).thenReturn(membership.equals("live") ? session : membership.equals("replacement") ? new GameSession() : null);
+        session.getClients().add(peer);
 
         new PlayerUseSkillHandler().handle(context.connection(), CMSGPlayerUseSkill.builder()
                 .attackerPosition((byte) 0)
@@ -341,7 +353,7 @@ class BattlemonActorPolicyTest {
         boolean accepted = crystalId == 17 && skillIndex == 1;
         assertEquals(accepted ? List.of(next) : List.of(crystal, next), new ArrayList<>(crystals));
         verify(skillService, times(accepted ? 1 : 0)).findSkillByIndex(skillIndex);
-        verify(peerConnection, times(accepted ? 1 : 0)).sendTCP(any());
+        verify(peerConnection, times(accepted && membership.equals("live") ? 1 : 0)).sendTCP(any());
         verify(context.connection(), never()).sendTCP(any());
     }
 
@@ -419,9 +431,12 @@ class BattlemonActorPolicyTest {
         when(session.hasOwnedPetSeats()).thenReturn(pets);
         when(session.isDedicatedBattlemonRoom()).thenReturn(dedicated);
         when(session.tryConsumeSkillHit(anyInt(), anyInt(), anyInt(), anyLong())).thenReturn(true);
-        FTClient peer = mock(FTClient.class);
+        FTClient peer = matchClient();
         FTConnection peerConnection = mock(FTConnection.class);
         when(peer.getConnection()).thenReturn(peerConnection);
+        when(peer.getActiveGameSession()).thenReturn(session);
+        Room peerRoom = connection.getClient().getActiveRoom();
+        when(peer.getActiveRoom()).thenReturn(peerRoom);
         session.getClients().add(peer);
         org.mockito.Mockito.doAnswer(invocation -> {
             assertTrue(Thread.holdsLock(session.getMatchplayGame()), "HP mutation and publication share game lock");
@@ -450,18 +465,28 @@ class BattlemonActorPolicyTest {
         assertEquals(attacker, bytes.getShort(12));
     }
 
-    @Test
-    void secondDamageCannotCommitOrPublishWhileFirstPublicationIsBlocked() throws Exception {
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {6, 10})
+    void secondDamageCannotCommitOrPublishWhileFirstPublicationIsBlocked(int firstSkill) throws Exception {
         BattleContext context = battleContext((short) 0, true);
         when(context.game().getPlayerCombatSystem()).thenReturn(new PlayerCombatSystem(context.game()));
         Skill skill = new Skill();
         skill.setId(6L);
         skill.setDamage(-1);
         when(skillService.findSkillById(6L)).thenReturn(skill);
+        Skill shield = new Skill();
+        shield.setId(10L);
+        shield.setDamage(1);
+        when(skillService.findSkillById(10L)).thenReturn(shield);
+        short firstHp = (short) (firstSkill == 10 ? 100 : 99);
         FTConnection reporter = context.connection();
-        FTClient peer = mock(FTClient.class);
+        GameSession reporterSession = reporter.getClient().getActiveGameSession();
+        FTClient peer = matchClient();
         FTConnection peerConnection = mock(FTConnection.class);
         when(peer.getConnection()).thenReturn(peerConnection);
+        when(peer.getActiveGameSession()).thenReturn(reporterSession);
+        Room peerRoom = reporter.getClient().getActiveRoom();
+        when(peer.getActiveRoom()).thenReturn(peerRoom);
         reporter.getClient().getActiveGameSession().getClients().add(peer);
         org.mockito.Mockito.doCallRealMethod().when(GameManager.getInstance())
                 .sendPacketToAllClientsInSameGameSession(any(), eq(reporter));
@@ -485,11 +510,12 @@ class BattlemonActorPolicyTest {
             return null;
         }).when(peerConnection).sendTCP(any());
         var failure = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+        AtomicInteger reports = new AtomicInteger();
         Runnable hit = () -> {
             try {
                 new SpellHitsTargetHandler().handle(reporter, CMSGSpellHitsTarget.builder()
                         .attackerPosition((short) 0).targetPosition((short) 1)
-                        .skillId((byte) 6).applySkillEffect((byte) 0).build());
+                        .skillId((byte) (reports.getAndIncrement() == 0 ? firstSkill : 6)).applySkillEffect((byte) 0).build());
             } catch (Throwable error) {
                 failure.compareAndSet(null, error);
             }
@@ -508,8 +534,9 @@ class BattlemonActorPolicyTest {
                 Thread.yield();
             } while (System.nanoTime() < deadline);
             assertTrue(info != null && info.getLockOwnerId() == first.threadId());
-            assertEquals(System.identityHashCode(context.game()), info.getLockInfo().getIdentityHashCode());
-            assertEquals(99, context.game().getPlayerBattleStates().stream()
+            assertTrue(java.util.Set.of(System.identityHashCode(context.game()), System.identityHashCode(reporter.getClient()))
+                    .contains(info.getLockInfo().getIdentityHashCode()));
+            assertEquals(firstHp, context.game().getPlayerBattleStates().stream()
                     .filter(state -> state.getPosition() == 1).findFirst().orElseThrow().getCurrentHealth().get());
             assertTrue(reporterHp.isEmpty());
             assertTrue(peerHp.isEmpty());
@@ -519,9 +546,9 @@ class BattlemonActorPolicyTest {
             second.join(5000);
         }
         org.junit.jupiter.api.Assertions.assertNull(failure.get());
-        assertEquals(List.of((short) 99, (short) 98), reporterHp);
+        assertEquals(List.of(firstHp, (short) (firstHp - 1)), reporterHp);
         assertEquals(reporterHp, peerHp);
-        assertEquals(98, context.game().getPlayerBattleStates().stream()
+        assertEquals(firstHp - 1, context.game().getPlayerBattleStates().stream()
                 .filter(state -> state.getPosition() == 1).findFirst().orElseThrow().getCurrentHealth().get());
     }
 
@@ -1294,6 +1321,207 @@ class BattlemonActorPolicyTest {
         verify(skillService, never()).findSkillById(9L);
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "battle,10,0", "battle,20,0", "guardian-player,10,0", "guardian-player,20,0",
+            "guardian-enemy,10,0", "guardian-enemy,20,0",
+            "battle,10,50", "battle,10,100", "battle,20,50", "battle,20,100",
+            "guardian-player,10,50", "guardian-player,10,100", "guardian-player,20,50", "guardian-player,20,100",
+            "guardian-enemy,10,50", "guardian-enemy,10,100", "guardian-enemy,20,50", "guardian-enemy,20,100"})
+    void acceptedPositiveOneSkillCannotPublishHealthAboveMaximum(String mode, int skillId, int initialHp) {
+        FTConnection connection;
+        com.jftse.server.core.matchplay.battle.BattleState target;
+        if (mode.equals("battle")) {
+            var context = battleContext((short) 0, true);
+            connection = context.connection();
+            target = context.game().getPlayerBattleStates().getLast();
+            when(context.game().getPlayerCombatSystem()).thenReturn(new PlayerCombatSystem(context.game()));
+        } else {
+            var context = guardianContext((short) 0, true);
+            connection = context.connection();
+            when(context.roomPlayer().isMaster()).thenReturn(true);
+            when(context.game().getGuardianCombatSystem()).thenReturn(new GuardianCombatSystem(context.game()));
+            when(context.game().getPlayerCombatSystem()).thenReturn(new PlayerCombatSystem(context.game()));
+            target = mode.equals("guardian-enemy") ? context.game().getGuardianBattleStates().getFirst()
+                    : context.game().getPlayerBattleStates().getLast();
+            if (target instanceof GuardianBattleState guardian) when(guardian.getMaxHealth()).thenReturn(100);
+            when(context.session().tryConsumeSkillHit(anyInt(), anyInt(), anyInt(), anyLong())).thenReturn(true);
+        }
+        target.getCurrentHealth().set(initialHp);
+        if (initialHp == 0 && target instanceof PlayerBattleState player) player.setDead(true);
+        Skill shield = new Skill();
+        shield.setId((long) skillId);
+        shield.setDamage(1);
+        when(skillService.findSkillById((long) skillId)).thenReturn(shield);
+        new SpellHitsTargetHandler().handle(connection, CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 0).targetPosition((short) target.getPosition())
+                .skillId((byte) skillId).applySkillEffect((byte) 0).build());
+        if (initialHp == 0) {
+            assertEquals(0, target.getCurrentHealth().get());
+            if (target instanceof PlayerBattleState player) assertTrue(player.isDead());
+            verify(GameManager.getInstance(), never()).sendPacketToAllClientsInSameGameSession(any(), eq(connection));
+            return;
+        }
+        int expected = Math.min(100, initialHp + 1);
+        assertEquals(expected, target.getCurrentHealth().get());
+        var published = org.mockito.ArgumentCaptor.forClass(com.jftse.server.core.protocol.IPacket.class);
+        verify(GameManager.getInstance()).sendPacketToAllClientsInSameGameSession(published.capture(), eq(connection));
+        assertEquals(expected, java.nio.ByteBuffer.wrap(published.getValue().toBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN).getShort(10));
+    }
+
+    @Test
+    void staleOverlappingRostersCannotDeadlockTwoGamesPublishingUnderTheirOwnerLocks() throws Exception {
+        BattleContext first = battleContext((short) 0, true);
+        BattleContext second = battleContext((short) 0, true);
+        FTClient firstClient = first.connection().getClient();
+        FTClient secondClient = second.connection().getClient();
+        firstClient.getActiveGameSession().getClients().add(secondClient);
+        secondClient.getActiveGameSession().getClients().addFirst(firstClient);
+        org.mockito.Mockito.doCallRealMethod().when(GameManager.getInstance()).sendPacketToAllClientsInSameGameSession(any(), any());
+        var ownersLocked = new java.util.concurrent.CountDownLatch(2);
+        var error = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+        java.util.function.Consumer<BattleContext> publish = context -> {
+            try {
+                synchronized (context.game()) {
+                    synchronized (context.connection().getClient()) {
+                        ownersLocked.countDown();
+                        assertTrue(ownersLocked.await(2, java.util.concurrent.TimeUnit.SECONDS));
+                        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(
+                                new com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage((short) 0, (short) 90, (short) 1, (byte) 6, 0, 0), context.connection());
+                    }
+                }
+            } catch (Throwable failure) { error.set(failure); }
+        };
+        Thread left = Thread.ofPlatform().daemon().start(() -> publish.accept(first));
+        Thread right = Thread.ofPlatform().daemon().start(() -> publish.accept(second));
+        left.join(3000); right.join(3000);
+        org.junit.jupiter.api.Assertions.assertFalse(left.isAlive() || right.isAlive(), "Different game locks cannot serialize overlapping stale recipient monitors");
+        org.junit.jupiter.api.Assertions.assertNull(error.get());
+        verify(first.connection()).sendTCP(any());
+        verify(second.connection()).sendTCP(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"live", "disconnected", "replacement"})
+    void matchBroadcastDoesNotFollowStaleGuestMembership(String membership) {
+        BattleContext context = battleContext((short) 0, true);
+        FTClient guest = matchClient();
+        FTConnection socket = mock(FTConnection.class);
+        when(guest.getConnection()).thenReturn(socket);
+        GameSession original = context.connection().getClient().getActiveGameSession();
+        Room guestRoom = context.connection().getClient().getActiveRoom();
+        when(guest.getActiveRoom()).thenReturn(guestRoom);
+        when(guest.getActiveGameSession()).thenReturn(membership.equals("replacement") ? new GameSession() : membership.equals("live") ? original : null);
+        original.getClients().add(guest);
+        org.mockito.Mockito.doCallRealMethod().when(GameManager.getInstance())
+                .sendPacketToAllClientsInSameGameSession(any(), eq(context.connection()));
+        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(
+                new com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage((short) 0, (short) 90, (short) 1, (byte) 6, 0, 0), context.connection());
+        verify(socket, times(membership.equals("live") ? 1 : 0)).sendTCP(any());
+        verify(context.connection()).sendTCP(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,true,true", "false,false,true", "false,true,false",
+            "true,true,true", "true,false,true", "true,true,false"})
+    void sandglassExtendsOnlyAuthorizedExistingMatchTimer(boolean guardian, boolean timerPresent, boolean grant) {
+        FTConnection connection;
+        if (guardian) {
+            var context = guardianContext((short) 0, true);
+            connection = context.connection();
+            when(context.roomPlayer().isMaster()).thenReturn(true);
+        } else {
+            connection = battleContext((short) 0, true).connection();
+        }
+        GameSession session = connection.getClient().getActiveGameSession();
+        when(session.tryConsumeSkillHit(anyInt(), anyInt(), anyInt(), anyLong())).thenReturn(grant);
+        RunnableEvent timer = RunnableEvent.builder().currentTime(0).delayMS(1000).runnable(() -> {}).build();
+        when(session.getCountDownRunnable()).thenReturn(timerPresent ? timer : null);
+        Skill skill = new Skill();
+        skill.setId(38L);
+        skill.setDamage(0);
+        when(skillService.findSkillById(38L)).thenReturn(skill);
+        new SpellHitsTargetHandler().handle(connection, CMSGSpellHitsTarget.builder()
+                .attackerPosition((short) 0).targetPosition((short) 0).skillId((byte) 38).build());
+        assertEquals(!(timerPresent && grant), timer.shouldFire(1001));
+        assertTrue(timer.shouldFire(61001));
+        verify(GameManager.getInstance(), org.mockito.Mockito.times(timerPresent && grant ? 1 : 0))
+                .sendPacketToAllClientsInSameGameSession(any(), eq(connection));
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> specialReports() {
+        return java.util.stream.Stream.of("battle", "guardian-player", "guardian-enemy").flatMap(mode ->
+                java.util.stream.IntStream.of(15, 63, 64, 40).boxed().flatMap(skill ->
+                        java.util.stream.IntStream.of(0, 1).mapToObj(effect ->
+                                org.junit.jupiter.params.provider.Arguments.of(mode, skill, effect))));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("specialReports")
+    void specialDamageAndStatusBranchesPreserveHpAndAnimationContract(String mode, int skillId, int effect) throws Exception {
+        Object oldConfig = ((java.util.concurrent.atomic.AtomicReference<?>) ReflectionTestUtils.getField(
+                com.jftse.emulator.server.core.utils.BattleUtils.class, "statConfig")).get();
+        var config = mock(com.jftse.server.core.shared.ServerConfService.class);
+        when(GameManager.getInstance().getServerConfService()).thenReturn(config);
+        when(config.get("StrengthDamageScale", Double.class)).thenReturn(0.35);
+        when(config.get("StaminaDamageReductionScale", Double.class)).thenReturn(0.30);
+        when(config.get("WillpowerBallDamageScale", Double.class)).thenReturn(0.52);
+        when(config.get("BallBaseDamage", Integer.class)).thenReturn(10);
+        when(config.get("BallMinDamage", Integer.class)).thenReturn(20);
+        com.jftse.emulator.server.core.utils.BattleUtils.reloadStatConfig();
+        try {
+            FTConnection connection;
+            com.jftse.server.core.matchplay.battle.BattleState target;
+            if (mode.equals("battle")) {
+                var context = battleContext((short) 0, true);
+                connection = context.connection();
+                target = context.game().getPlayerBattleStates().getLast();
+                when(context.game().getPlayerCombatSystem()).thenReturn(new PlayerCombatSystem(context.game()));
+            } else {
+                var context = guardianContext((short) 0, true);
+                connection = context.connection();
+                when(context.roomPlayer().isMaster()).thenReturn(true);
+                when(context.game().getGuardianCombatSystem()).thenReturn(new GuardianCombatSystem(context.game()));
+                when(context.game().getPlayerCombatSystem()).thenReturn(new PlayerCombatSystem(context.game()));
+                when(context.session().tryConsumeSkillHit(anyInt(), anyInt(), anyInt(), anyLong())).thenReturn(true);
+                target = mode.equals("guardian-enemy") ? context.game().getGuardianBattleStates().getFirst()
+                        : context.game().getPlayerBattleStates().getLast();
+                if (target instanceof GuardianBattleState guardian) when(guardian.getMaxHealth()).thenReturn(100);
+            }
+            int damage = switch (skillId) { case 15 -> -8; case 63 -> -25; case 64 -> -10; default -> 0; };
+            Skill skill = new Skill();
+            skill.setId((long) skillId);
+            skill.setDamage(damage);
+            when(skillService.findSkillById((long) skillId)).thenReturn(skill);
+            Skill animation = new Skill();
+            animation.setId(3L);
+            when(skillService.findSkillById(3L)).thenReturn(animation);
+            new SpellHitsTargetHandler().handle(connection, CMSGSpellHitsTarget.builder()
+                    .attackerPosition((short) 0).targetPosition((short) target.getPosition()).skillId((byte) skillId)
+                    .applySkillEffect((byte) effect).attackerBuffId1((byte) 9).attackerBuffId2((byte) 9)
+                    .receiverBuffId1((byte) 9).receiverBuffId2((byte) 9).build());
+            boolean damageApplied = skillId != 40 && (effect == 0 || skillId == 15 || skillId == 63);
+            int expected = damageApplied ? 100 + damage + (mode.equals("guardian-player") ? 3 : mode.equals("guardian-enemy") ? -3 : 0) : 100;
+            assertEquals(expected, target.getCurrentHealth().get());
+            var packets = org.mockito.ArgumentCaptor.forClass(com.jftse.server.core.protocol.IPacket.class);
+            verify(GameManager.getInstance()).sendPacketToAllClientsInSameGameSession(packets.capture(), eq(connection));
+            var bytes = java.nio.ByteBuffer.wrap(packets.getValue().toBytes()).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            assertEquals(expected, bytes.getShort(10));
+            assertEquals(skillId == 64 || effect == 1 && (skillId == 15 || skillId == 63) ? 3 : skillId, bytes.get(14));
+        } finally {
+            ReflectionTestUtils.invokeMethod(ReflectionTestUtils.getField(
+                    com.jftse.emulator.server.core.utils.BattleUtils.class, "statConfig"), "set", oldConfig);
+        }
+    }
+
+    private static FTClient matchClient() {
+        FTClient client = mock(FTClient.class, org.mockito.Mockito.withSettings().useConstructor());
+        org.mockito.Mockito.doCallRealMethod().when(client).matchMembership();
+        org.mockito.Mockito.doCallRealMethod().when(client).sendMatchPacket(any(), any());
+        return client;
+    }
+
     private static BattleContext battleContext(short actorPosition, boolean actorOwned) {
         FTPlayer player = mock(FTPlayer.class);
         Room room = mock(Room.class);
@@ -1319,7 +1547,7 @@ class BattlemonActorPolicyTest {
                 org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
         when(session.getFireables()).thenReturn(new ConcurrentLinkedDeque<>());
 
-        FTClient client = mock(FTClient.class);
+        FTClient client = matchClient();
         when(client.hasPlayer()).thenReturn(true);
         when(client.getPlayer()).thenReturn(player);
         when(client.getActiveRoom()).thenReturn(room);
@@ -1368,7 +1596,7 @@ class BattlemonActorPolicyTest {
         when(session.getFireables()).thenReturn(new ConcurrentLinkedDeque<>());
         when(session.isActorOwnedBy(roomPlayer, actorPosition)).thenReturn(actorOwned);
 
-        FTClient client = mock(FTClient.class);
+        FTClient client = matchClient();
         when(client.hasPlayer()).thenReturn(true);
         when(client.getPlayer()).thenReturn(player);
         when(client.getActiveRoom()).thenReturn(room);

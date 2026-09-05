@@ -30,7 +30,9 @@ public class InventoryWearSpecialPacketHandler implements PacketHandler<FTConnec
         specialSlotEquipmentService.updateSpecialSlots(player.getPlayer(), packet.getSpecialSlotList());
         player.loadSpecialSlots();
 
-        S2CInventoryWearSpecialAnswerPacket inventoryWearSpecialAnswerPacket = new S2CInventoryWearSpecialAnswerPacket(packet.getSpecialSlotList());
-        connection.sendTCP(inventoryWearSpecialAnswerPacket);
+        synchronized (player) {
+            S2CInventoryWearSpecialAnswerPacket inventoryWearSpecialAnswerPacket = new S2CInventoryWearSpecialAnswerPacket(player.getSpecialSlots().toList());
+            connection.sendTCP(inventoryWearSpecialAnswerPacket);
+        }
     }
 }

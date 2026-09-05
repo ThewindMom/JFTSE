@@ -25,6 +25,8 @@ public class ApplyDoTTask extends AbstractTask {
     private final GameSession gameSession;
     private final MatchplayGuardianGame game;
     private final boolean bossStage;
+    private final com.jftse.emulator.server.core.matchplay.guardian.PhaseManager phaseManager;
+    private final com.jftse.emulator.server.core.matchplay.guardian.PhaseScript phase;
 
     private final EventHandler eventHandler;
     private final SkillService skillService;
@@ -44,6 +46,8 @@ public class ApplyDoTTask extends AbstractTask {
         this.gameSession = connection.getClient() == null ? null : connection.getClient().getActiveGameSession();
         this.game = gameSession != null && gameSession.getMatchplayGame() instanceof MatchplayGuardianGame guardian ? guardian : null;
         this.bossStage = game != null && game.getBossBattleActive().get();
+        this.phaseManager = game == null ? null : game.getPhaseManager();
+        this.phase = phaseManager == null ? null : phaseManager.getCurrentPhase().get();
 
         this.skillService = ServiceManager.getInstance().getSkillService();
         this.eventHandler = GameManager.getInstance().getEventHandler();
@@ -65,6 +69,9 @@ public class ApplyDoTTask extends AbstractTask {
         final FTClient client = connection.getClient();
         return client != null && client.getActiveGameSession() == gameSession &&
                 gameSession.getMatchplayGame() == game && !game.getFinished().get() &&
+                game.getPhaseManager() == phaseManager &&
+                (phaseManager == null || phaseManager.getCurrentPhase().get() == phase) &&
+                (phase == null || !phase.hasEnded()) &&
                 game.getBossBattleActive().get() == bossStage && !game.getStageChangingToBoss().get() &&
                 game.getPlayerBattleStates().contains(player);
     }

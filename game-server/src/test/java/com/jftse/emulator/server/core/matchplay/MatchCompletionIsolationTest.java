@@ -45,8 +45,8 @@ class MatchCompletionIsolationTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
-    void replacementDuringResultTransactionIsNotClearedByOldCompletion(boolean guardian) throws Exception {
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"basic", "battle", "guardian"})
+    void replacementDuringResultTransactionIsNotClearedByOldCompletion(String mode) throws Exception {
         Object previousManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServices = ReflectionTestUtils.getField(ServiceManager.class, "instance");
         Object previousSessions = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
@@ -74,7 +74,7 @@ class MatchCompletionIsolationTest {
             GameSession old = new GameSession(true);
             MatchplayGame game;
             MatchplayHandleable handler;
-            if (guardian) {
+            if (mode.equals("guardian")) {
                 var guardianGame = mock(com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame.class);
                 when(guardianGame.getBossBattleActive()).thenReturn(new AtomicBoolean());
                 when(guardianGame.getIsHardMode()).thenReturn(new AtomicBoolean());
@@ -84,6 +84,12 @@ class MatchCompletionIsolationTest {
                 when(guardianGame.getMap()).thenReturn(mock(com.jftse.entities.database.model.map.SMaps.class));
                 game = guardianGame;
                 handler = new com.jftse.emulator.server.core.matchplay.handler.MatchplayGuardianModeHandler(guardianGame);
+            } else if (mode.equals("basic")) {
+                var basicGame = mock(com.jftse.emulator.server.core.matchplay.game.MatchplayBasicGame.class);
+                when(basicGame.getSetsRedTeam()).thenReturn(new java.util.concurrent.atomic.AtomicInteger(2));
+                when(basicGame.getSetsBlueTeam()).thenReturn(new java.util.concurrent.atomic.AtomicInteger());
+                game = basicGame;
+                handler = new com.jftse.emulator.server.core.matchplay.handler.MatchplayBasicModeHandler(basicGame);
             } else {
                 var battleGame = mock(MatchplayBattleGame.class);
                 game = battleGame;

@@ -145,6 +145,7 @@ INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(249, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 83, 6, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(250, '2023-11-24 23:08:24', '2023-11-24 23:08:24', NULL, 50.0, 108, 56, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(251, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 83, 56, 1);
+/* Snow Moon guardian-map rows283..291 are disabled in guardian2maps.sql.
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(255, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 291, 6, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(256, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 291, 56, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(258, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 291, 27, 1);
@@ -243,10 +244,13 @@ INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(352, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 283, 2, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(353, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 283, 61, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(354, '2023-12-23 02:10:03', '2023-12-23 02:10:08', NULL, 50.0, 291, 65, 1);
+*/
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(355, '2023-12-23 02:36:49', '2023-12-23 02:36:50', NULL, 50.0, 83, 57, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(356, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 83, 63, 1);
+/* Same unavailable Snow Moon guardian-map rows.
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(357, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 283, 65, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(358, '2023-11-24 23:08:30', '2023-11-24 23:08:30', NULL, 50.0, 285, 65, 1);
+*/
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(406, '2023-11-14 01:30:47', '2023-11-14 01:30:47', NULL, 15.0, 234, 3, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(407, '2023-11-14 01:30:47', '2023-11-14 01:30:47', NULL, 15.0, 235, 3, 1);
 INSERT INTO Skill_2_Guardians (id, created, modified, btItemID, chance, guardian_2_maps_id, skill_id, status_id) VALUES(408, '2023-11-14 01:30:47', '2023-11-14 01:30:47', NULL, 15.0, 236, 3, 1);

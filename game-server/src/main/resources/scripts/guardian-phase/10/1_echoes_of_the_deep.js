@@ -124,7 +124,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         } else {
             const polymorphSkill = skillService.findSkillById(7);
@@ -137,7 +137,7 @@ var phase = {
                     Math.floor(Math.random() * 127),
                     0, 0, 0
                 );
-                gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                game.getPhaseManager().sendSkill(packet, connection);
             }
         }
 
@@ -154,7 +154,7 @@ var phase = {
                 );
 
                 const event = eventHandler.createRunnableEvent(function () {
-                    gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                    game.getPhaseManager().sendSkill(packet, connection);
                 }, 1250);
                 eventHandler.offerJS(event, connection);
             }

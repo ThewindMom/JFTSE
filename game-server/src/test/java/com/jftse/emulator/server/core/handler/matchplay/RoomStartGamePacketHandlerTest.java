@@ -76,12 +76,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class RoomStartGamePacketHandlerTest {
@@ -315,8 +317,9 @@ class RoomStartGamePacketHandlerTest {
                 session.getGameplayActorPositions());
     }
 
-    @Test
-    void plainGuardianStartInitializesHumanActorsForRelayConnections() {
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"0,false", "4,false", "0,true"})
+    void plainGuardianStartRequiresAvailableGuardianMapBeforeRelayInitialization(int nativeMap, boolean mapChanged) {
         Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
         Object previousSessionManager = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
@@ -325,6 +328,8 @@ class RoomStartGamePacketHandlerTest {
             AuthenticationService authenticationService = mock(AuthenticationService.class);
             ServiceManager serviceManager = mock(ServiceManager.class);
             when(serviceManager.getAuthenticationService()).thenReturn(authenticationService);
+            var maps = mock(com.jftse.server.core.service.MapService.class);
+            when(serviceManager.getMapService()).thenReturn(maps);
             ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
 
             ServerConfService serverConfService = mock(ServerConfService.class);
@@ -343,6 +348,13 @@ class RoomStartGamePacketHandlerTest {
             room.setMode((byte) com.jftse.server.core.constants.GameMode.GUARDIAN);
             room.setAllowBattlemon((byte) 0);
             room.setPlayers((byte) 2);
+            room.setMap((byte) nativeMap);
+            when(maps.isGuardianMapAvailable(nativeMap)).thenAnswer(invocation -> {
+                assertFalse(Thread.holdsLock(room), "No room monitor spans the database preflight");
+                assertEquals(RoomStatus.NotRunning, room.getStatus());
+                if (mapChanged) room.setMap((byte) 4);
+                return nativeMap != 4;
+            });
             FTClient first = guardianClientInRoom(room, 100L, (short) 0, pet(10L, "First pet"));
             FTClient second = guardianClientInRoom(room, 200L, (short) 1, pet(20L, "Second pet"));
             first.getRoomPlayer().setMaster(true);
@@ -356,6 +368,12 @@ class RoomStartGamePacketHandlerTest {
 
             new RoomStartGamePacketHandler().handle(first.getConnection(), CMSGStartGame.builder().build());
 
+            if (nativeMap == 4 || mapChanged) {
+                assertEquals(RoomStatus.NotRunning, room.getStatus());
+                assertTrue(sessionManager.getGameSessionList().isEmpty());
+                verifyNoInteractions(authenticationService, threadManager);
+                return;
+            }
             assertEquals(RoomStatus.StartingGame, room.getStatus());
             assertEquals(1, sessionManager.getGameSessionList().size());
             GameSession session = sessionManager.getGameSessionList().values().iterator().next();
@@ -372,8 +390,8 @@ class RoomStartGamePacketHandlerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2})
-    void guardianBattlemonStartAcceptsOptionalPets(int petCount) {
+    @org.junit.jupiter.params.provider.CsvSource({"0,true", "1,true", "2,true", "0,false", "1,false", "2,false"})
+    void guardianBattlemonStartAcceptsOptionalPetsOnlyOnAvailableMaps(int petCount, boolean mapAvailable) {
         Object previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousServiceManager = ReflectionTestUtils.getField(ServiceManager.class, "instance");
         Object previousSessionManager = ReflectionTestUtils.getField(GameSessionManager.class, "instance");
@@ -384,6 +402,9 @@ class RoomStartGamePacketHandlerTest {
             ServiceManager serviceManager = mock(ServiceManager.class);
             when(serviceManager.getAuthenticationService()).thenReturn(authenticationService);
             when(serviceManager.getPetService()).thenReturn(petService);
+            var maps = mock(com.jftse.server.core.service.MapService.class);
+            when(maps.isGuardianMapAvailable(anyInt())).thenReturn(mapAvailable);
+            when(serviceManager.getMapService()).thenReturn(maps);
             ReflectionTestUtils.setField(ServiceManager.class, "instance", serviceManager);
 
             ServerConfService serverConfService = mock(ServerConfService.class);
@@ -404,6 +425,7 @@ class RoomStartGamePacketHandlerTest {
             room.setMode((byte) com.jftse.server.core.constants.GameMode.GUARDIAN);
             room.setAllowBattlemon((byte) 1);
             room.setPlayers((byte) 4);
+            room.setMap((byte) (mapAvailable ? 0 : 4));
             room.getPositions().set(0, RoomPositionState.InUse);
             room.getPositions().set(1, RoomPositionState.InUse);
             room.getPositions().set(2, petCount >= 1 ? RoomPositionState.InUse : RoomPositionState.Free);
@@ -438,6 +460,12 @@ class RoomStartGamePacketHandlerTest {
 
             new RoomStartGamePacketHandler().handle(first.getConnection(), CMSGStartGame.builder().build());
 
+            if (!mapAvailable) {
+                assertEquals(RoomStatus.NotRunning, room.getStatus());
+                assertTrue(sessionManager.getGameSessionList().isEmpty());
+                verifyNoInteractions(authenticationService, threadManager, producer);
+                return;
+            }
             assertEquals(RoomStatus.StartingGame, room.getStatus(),
                     () -> "sent packets: " + sentPacketIds(first.getConnection()) +
                             ", sessions: " + sessionManager.getGameSessionList().size());

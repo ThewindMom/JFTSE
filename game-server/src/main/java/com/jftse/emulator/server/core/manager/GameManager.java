@@ -175,10 +175,10 @@ public class GameManager implements ServerLoopHandler {
             }
 
             gameSession.getClients().forEach(client -> client.clearActiveGameSession(gameSession));
-            if (gameSessionManager.getGameSessionBySessionId(gameSessionId) == gameSession) {
+            removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
+            if (removed) {
                 matchRallyStatsConsumer.clearSession(gameSessionId);
             }
-            removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
             if (removed && room != null) {
                 synchronized (room) {
                     boolean replacementRunning = getClientsInRoom(room.getRoomId()).stream()
@@ -794,11 +794,13 @@ public class GameManager implements ServerLoopHandler {
 
     public void sendPacketToAllClientsInSameGameSession(IPacket packet, FTConnection connection) {
         final GameSession gameSession = connection.getClient().getActiveGameSession();
+        final Room room = connection.getClient().getActiveRoom();
         if (gameSession != null) {
             final ArrayList<FTClient> clientsInGameSession = new ArrayList<>(gameSession.getClients());
             clientsInGameSession.forEach(c -> {
-                if (c.getConnection() != null) {
-                    c.getConnection().sendTCP(packet);
+                FTClient.MatchMembership membership = c.matchMembership();
+                if (membership.session() == gameSession && membership.room() == room) {
+                    c.sendMatchPacket(membership, packet);
                 }
             });
         }

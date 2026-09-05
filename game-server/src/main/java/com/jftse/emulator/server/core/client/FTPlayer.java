@@ -31,7 +31,7 @@ public class FTPlayer {
     @Setter private GuildView guild;
     @Setter private Long coupleId;
     @Setter private String coupleName = "";
-    @Setter private PlayerStatisticView playerStatistic;
+    private PlayerStatisticView playerStatistic;
 
     private String name;
     private int level;
@@ -50,7 +50,9 @@ public class FTPlayer {
 
     @Setter private EquippedQuickSlots quickSlots;
     @Setter private EquippedToolSlots toolSlots;
-    @Setter private EquippedSpecialSlots specialSlots;
+    private EquippedSpecialSlots specialSlots;
+    @Getter(lombok.AccessLevel.NONE)
+    private EquippedSpecialSlots initialSpecialSlots;
     @Setter private EquippedCardSlots cardSlots;
     @Setter private EquippedPetSlots petSlots;
 
@@ -63,6 +65,8 @@ public class FTPlayer {
 
     @Getter(lombok.AccessLevel.NONE)
     private long lastUpdateTime;
+    @Getter(lombok.AccessLevel.NONE)
+    private volatile long snapshotRevision;
 
     private FTPlayer() {
         this.sm = ServiceManager.getInstance();
@@ -98,20 +102,78 @@ public class FTPlayer {
         return new FTPlayer(player);
     }
 
+    public FTPlayer copyForUpdate(Player player) {
+        if (id != player.getId()) {
+            throw new IllegalArgumentException("Player ID mismatch during copy.");
+        }
+        FTPlayer copy = new FTPlayer(player);
+        copy.playerStatistic = PlayerStatisticView.fromEntity(player.getPlayerStatistic());
+        copy.itemPartsPPId = itemPartsPPId;
+        copy.itemPartsItemIndex = itemPartsItemIndex;
+        copy.itemStats = itemStats;
+        copy.quickSlots = quickSlots;
+        copy.toolSlots = toolSlots;
+        copy.specialSlots = specialSlots;
+        copy.initialSpecialSlots = specialSlots;
+        copy.cardSlots = cardSlots;
+        copy.petSlots = petSlots;
+        copy.loadType = loadType;
+        return copy;
+    }
+
+    public void refreshMatchResult(FTPlayer completed) {
+        java.util.Set<Integer> consumed = new java.util.HashSet<>();
+        if (completed.initialSpecialSlots != null && completed.specialSlots != null) {
+            consumed.addAll(completed.initialSpecialSlots.toList());
+            consumed.removeAll(completed.specialSlots.toList());
+            consumed.remove(0);
+        }
+        for (int attempt = 0; attempt < 4; attempt++) {
+            long revision = snapshotRevision;
+            Player committed = sm.getPlayerService().findWithStatisticById(id);
+            PlayerStatisticView statistics = PlayerStatisticView.fromEntity(committed.getPlayerStatistic());
+            synchronized (this) {
+                if (snapshotRevision != revision) continue;
+                syncGold(committed.getGold());
+                syncExpPoints(committed.getExpPoints());
+                syncLevel(committed.getLevel());
+                syncStatusPoints(committed.getStatusPoints());
+                syncCouplePoints(committed.getCouplePoints());
+                setPlayerStatistic(statistics);
+                if (!consumed.isEmpty() && specialSlots != null) {
+                    setSpecialSlots(EquippedSpecialSlots.of(specialSlots.id(), specialSlots.toList().stream()
+                            .map(item -> consumed.contains(item) ? 0 : item).toList()));
+                }
+                return;
+            }
+        }
+        throw new java.util.ConcurrentModificationException("Player changed during committed-result refresh");
+    }
+
+    public synchronized void setPlayerStatistic(PlayerStatisticView statistic) {
+        playerStatistic = statistic;
+        snapshotRevision++;
+    }
+
+    public synchronized void setSpecialSlots(EquippedSpecialSlots slots) {
+        specialSlots = slots;
+        snapshotRevision++;
+    }
+
     private void handleLoadType() {
         switch (loadType) {
             case FULL_EQUIPMENT -> {
                 loadItemParts(getPlayer());
                 quickSlots = EquippedQuickSlots.of(getPlayer());
                 toolSlots = EquippedToolSlots.of(getPlayer());
-                specialSlots = EquippedSpecialSlots.of(getPlayer());
+                loadSpecialSlots();
                 cardSlots = EquippedCardSlots.of(getPlayer());
                 petSlots = EquippedPetSlots.of(getPlayer());
             }
             case EQUIPPED_ITEM_PARTS -> loadItemParts(getPlayer());
             case EQUIPPED_QUICK_SLOTS -> quickSlots = EquippedQuickSlots.of(getPlayer());
             case EQUIPPED_TOOL_SLOTS -> toolSlots = EquippedToolSlots.of(getPlayer());
-            case EQUIPPED_SPECIAL_SLOTS -> specialSlots = EquippedSpecialSlots.of(getPlayer());
+            case EQUIPPED_SPECIAL_SLOTS -> loadSpecialSlots();
             case EQUIPPED_CARD_SLOTS -> cardSlots = EquippedCardSlots.of(getPlayer());
         }
     }
@@ -284,14 +346,22 @@ public class FTPlayer {
     }
 
     public void loadSpecialSlots() {
-        SpecialSlotEquipment eq = sm.getSpecialSlotEquipmentService().findById(getSpecialSlots().id());
-        this.specialSlots = new EquippedSpecialSlots(
-                eq.getId(),
-                eq.getSlot1(),
-                eq.getSlot2(),
-                eq.getSlot3(),
-                eq.getSlot4()
-        );
+        for (int attempt = 0; attempt < 4; attempt++) {
+            long revision;
+            long equipmentId;
+            synchronized (this) {
+                revision = snapshotRevision;
+                equipmentId = specialSlots.id();
+            }
+            SpecialSlotEquipment eq = sm.getSpecialSlotEquipmentService().findById(equipmentId);
+            EquippedSpecialSlots loaded = new EquippedSpecialSlots(eq.getId(), eq.getSlot1(), eq.getSlot2(), eq.getSlot3(), eq.getSlot4());
+            synchronized (this) {
+                if (snapshotRevision != revision) continue;
+                setSpecialSlots(loaded);
+                return;
+            }
+        }
+        throw new java.util.ConcurrentModificationException("Player changed during special-slot refresh");
     }
 
     public void loadCardSlots() {
@@ -339,7 +409,7 @@ public class FTPlayer {
         syncDetails(player);
     }
 
-    private void syncDetails(Player player) {
+    private synchronized void syncDetails(Player player) {
         this.entity = player;
         this.lastUpdateTime = Time.getNSTime();
 
@@ -354,35 +424,40 @@ public class FTPlayer {
         this.dexterity = this.entity.getDexterity();
         this.willpower = this.entity.getWillpower();
         this.statusPoints = this.entity.getStatusPoints();
+        snapshotRevision++;
     }
 
-    public void syncGold(int newGold) {
+    public synchronized void syncGold(int newGold) {
         this.gold = newGold;
         this.entity.setGold(newGold);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncExpPoints(int newExpPoints) {
+    public synchronized void syncExpPoints(int newExpPoints) {
         this.expPoints = newExpPoints;
         this.entity.setExpPoints(newExpPoints);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncLevel(int newLevel) {
+    public synchronized void syncLevel(int newLevel) {
         this.level = newLevel;
         this.entity.setLevel((byte) newLevel);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncLevelAndExpPoints(int newLevel, int newExpPoints) {
+    public synchronized void syncLevelAndExpPoints(int newLevel, int newExpPoints) {
         this.level = newLevel;
         this.expPoints = newExpPoints;
         this.entity.setLevel((byte) newLevel);
         this.entity.setExpPoints(newExpPoints);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncStats(int strength, int stamina, int dexterity, int willpower, int statusPoints) {
+    public synchronized void syncStats(int strength, int stamina, int dexterity, int willpower, int statusPoints) {
         this.strength = strength;
         this.stamina = stamina;
         this.dexterity = dexterity;
@@ -394,17 +469,20 @@ public class FTPlayer {
         this.entity.setWillpower((byte) willpower);
         this.entity.setStatusPoints((byte) statusPoints);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncStatusPoints(int statusPoints) {
+    public synchronized void syncStatusPoints(int statusPoints) {
         this.statusPoints = statusPoints;
         this.entity.setStatusPoints((byte) statusPoints);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 
-    public void syncCouplePoints(int newCouplePoints) {
+    public synchronized void syncCouplePoints(int newCouplePoints) {
         this.couplePoints = newCouplePoints;
         this.entity.setCouplePoints(newCouplePoints);
         this.lastUpdateTime = Time.getNSTime();
+        snapshotRevision++;
     }
 }

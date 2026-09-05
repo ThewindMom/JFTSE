@@ -1,6 +1,5 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
-import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -11,13 +10,11 @@ import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemCountPac
 import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemsPlacePacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
-import com.jftse.entities.database.model.item.Product;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
-import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.item.EItemUseType;
-import com.jftse.server.core.service.PocketService;
+import com.jftse.server.core.protocol.IPacket;
 import com.jftse.server.core.shared.packets.matchplay.CMSGPickupItemReward;
 import com.jftse.server.core.shared.packets.matchplay.SMSGPickupItemReward;
 import com.jftse.server.core.thread.ThreadManager;
@@ -26,140 +23,115 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @PacketId(CMSGPickupItemReward.PACKET_ID)
 public class MatchplayItemRewardPickHandler implements PacketHandler<FTConnection, CMSGPickupItemReward> {
-    private final PocketService pocketService;
-
-    public MatchplayItemRewardPickHandler() {
-        pocketService = ServiceManager.getInstance().getPocketService();
-    }
-
     @Override
     public void handle(FTConnection connection, CMSGPickupItemReward packet) {
         FTClient client = connection.getClient();
-        if (!client.hasPlayer()) {
-            connection.close(); // ??
-            return;
-        }
-
-        FTPlayer player = client.getPlayer();
-        Room room = client.getActiveRoom();
-        RoomPlayer roomPlayer = client.getRoomPlayer();
-        if (room == null  || roomPlayer == null) { // shouldn't happen
-            connection.close();
-            return;
-        }
-
-        int roomId = room.getRoomId();
-
-        byte requestingSlot = packet.getSlot();
-
-        final MatchplayReward matchplayReward = GameSessionManager.getInstance().getMatchplayReward(roomId);
-        if (matchplayReward != null) {
-            final MatchplayReward.ItemReward itemReward = matchplayReward.getSlotReward(requestingSlot);
-            if (itemReward == null) return;
-            if (matchplayReward.tryClaim(requestingSlot, roomPlayer.getPosition())) {
-
-                SMSGPickupItemReward response = SMSGPickupItemReward.builder()
-                        .playerPos((byte) roomPlayer.getPosition())
-                        .slot(requestingSlot)
-                        .type((byte) 0) // 0 = product, 1 = material
-                        .productIndex(itemReward.getProductIndex())
-                        .quantity(itemReward.getProductAmount())
-                        .build();
-                connection.sendTCP(response);
-
-                notifyOtherPlayersOfNewClaim(roomPlayer, room, requestingSlot, itemReward);
-
-                // add reward to player pocket
-                int productIndex = itemReward.getProductIndex();
-                int productAmount = itemReward.getProductAmount();
-                if (itemReward.getProductIndex() > 0) {
-                    Product product = ServiceManager.getInstance().getProductService().findProductByProductItemIndex(productIndex);
-                    if (product == null)
-                        return;
-
-                    Pocket pocket = pocketService.findById(player.getPocketId());
-                    PlayerPocket playerPocket = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(product.getItem0(), product.getCategory(), pocket);
-                    boolean existingItem = false;
-
-                    if (playerPocket != null && !playerPocket.getUseType().equals("N/A")) {
-                        existingItem = true;
-                    } else {
-                        playerPocket = new PlayerPocket();
-                    }
-
-                    playerPocket.setCategory(product.getCategory());
-                    playerPocket.setItemIndex(product.getItem0());
-                    playerPocket.setUseType(product.getUseType());
-
-                    // no idea how itemCount can be null here, but ok
-                    playerPocket.setItemCount((playerPocket.getItemCount() == null ? 0 : playerPocket.getItemCount()) + productAmount);
-
-                    if (playerPocket.getUseType().equalsIgnoreCase(EItemUseType.TIME.getName())) {
-                        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-                        cal.add(Calendar.DAY_OF_MONTH, playerPocket.getItemCount());
-
-                        playerPocket.setCreated(cal.getTime());
-                        playerPocket.setItemCount(1);
-                    }
-                    playerPocket.setPocket(pocket);
-
-                    ServiceManager.getInstance().getPlayerPocketService().save(playerPocket);
-                    if (!existingItem)
-                        ServiceManager.getInstance().getPocketService().incrementPocketBelongings(pocket);
-
-                    if (!existingItem) {
-                        S2CInventoryItemsPlacePacket inventoryDataPacket = new S2CInventoryItemsPlacePacket(List.of(playerPocket));
-                        connection.sendTCP(inventoryDataPacket);
-                    } else {
-                        S2CInventoryItemCountPacket inventoryDataPacket = new S2CInventoryItemCountPacket(playerPocket);
-                        connection.sendTCP(inventoryDataPacket);
-                    }
-                }
-            } else if (itemReward.getClaimed().get()) {
-                SMSGPickupItemReward response = SMSGPickupItemReward.builder()
-                        .playerPos((byte) itemReward.getClaimedPlayerPosition())
-                        .slot(requestingSlot)
-                        .type((byte) 0) // 0 = product, 1 = material
-                        .productIndex(itemReward.getProductIndex())
-                        .quantity(itemReward.getProductAmount())
-                        .build();
-                connection.sendTCP(response);
-            }
-
-            long claimedRewardCount = matchplayReward.getSlotRewards().values().stream().filter(ir -> ir.getClaimed().get()).count();
-            long activePlayerCount = room.getRoomPlayerList().stream().filter(rp -> rp.getPosition() < 4).count();
-
-            // check if all rewards are claimed
-            if (matchplayReward.getSlotRewards().values().stream().allMatch(ir -> ir.getClaimed().get()) || claimedRewardCount == activePlayerCount) {
-                GameSessionManager.getInstance().removeMatchplayReward(roomId, matchplayReward);
+        Room room;
+        RoomPlayer seat;
+        long generation;
+        synchronized (client) {
+            room = client.getActiveRoom();
+            seat = client.getRoomPlayer();
+            generation = client.getGameSessionGeneration();
+            if (!client.hasPlayer() || room == null || seat == null) {
+                connection.close();
+                return;
             }
         }
+        MatchplayReward reward = GameSessionManager.getInstance().getMatchplayReward(room.getRoomId());
+        if (reward != null) claim(client, room, seat, generation, reward, packet.getSlot());
     }
 
-    private void notifyOtherPlayersOfNewClaim(RoomPlayer roomPlayer, Room room, byte requestingSlot, MatchplayReward.ItemReward itemReward) {
-        final List<FTClient> clientsInRoom = GameManager.getInstance().getClientsInRoom(room.getRoomId());
-        SMSGPickupItemReward response = SMSGPickupItemReward.builder()
-                    .playerPos((byte) itemReward.getClaimedPlayerPosition())
-                    .slot(requestingSlot)
-                    .type((byte) 0) // 0 = product, 1 = material
-                    .productIndex(itemReward.getProductIndex())
-                    .quantity(itemReward.getProductAmount())
-                    .build();
-        for (FTClient recipient : clientsInRoom) {
-            RoomPlayer seat = recipient.getRoomPlayer();
-            long generation = recipient.getGameSessionGeneration();
-            if (seat == null || seat.getPosition() == roomPlayer.getPosition()) continue;
-            ThreadManager.getInstance().schedule(() -> {
-                synchronized (recipient) {
-                    if (recipient.getActiveRoom() == room && recipient.getRoomPlayer() == seat &&
-                            recipient.getGameSessionGeneration() == generation && recipient.getConnection() != null) {
-                        recipient.getConnection().sendTCP(response);
-                    }
-                }
-            }, 20, TimeUnit.MILLISECONDS);
+    public boolean claim(FTClient client, Room room, RoomPlayer seat, long generation, MatchplayReward reward, byte slot) {
+        var itemReward = reward.getSlotReward(slot);
+        if (itemReward == null) return false;
+        long pocketId;
+        short position;
+        int productIndex = itemReward.getProductIndex();
+        int quantity = itemReward.getProductAmount();
+        synchronized (client) {
+            if (!client.hasPlayer() || client.getActiveRoom() != room || client.getRoomPlayer() != seat ||
+                    client.getGameSessionGeneration() != generation ||
+                    GameSessionManager.getInstance().getMatchplayReward(room.getRoomId()) != reward) return false;
+            position = seat.getPosition();
+            if (!reward.tryClaim(slot, position)) return false;
+            pocketId = client.getPlayer().getPocketId();
         }
+        AtomicReference<IPacket> inventory = new AtomicReference<>();
+        record Recipient(FTClient client, RoomPlayer seat, long generation) {}
+        var recipients = GameManager.getInstance().getClientsInRoom(room.getRoomId()).stream().map(recipient -> {
+            synchronized (recipient) {
+                return new Recipient(recipient, recipient.getRoomPlayer(), recipient.getGameSessionGeneration());
+            }
+        }).toList();
+        ServiceManager services = ServiceManager.getInstance();
+        try {
+            services.getMatchResultService().executeOnce(itemReward.getResultId(), () -> {
+                if (productIndex <= 0) return;
+                var product = services.getProductService().findProductByProductItemIndex(productIndex);
+                if (product == null) throw new IllegalStateException("Reward product is unavailable");
+                var pocket = services.getPocketService().findById(pocketId);
+                PlayerPocket item = services.getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(
+                        product.getItem0(), product.getCategory(), pocket);
+                boolean existing = item != null && !"N/A".equals(item.getUseType());
+                if (!existing) item = new PlayerPocket();
+                item.setCategory(product.getCategory());
+                item.setItemIndex(product.getItem0());
+                item.setUseType(product.getUseType());
+                item.setItemCount((item.getItemCount() == null ? 0 : item.getItemCount()) + quantity);
+                if (EItemUseType.TIME.getName().equalsIgnoreCase(item.getUseType())) {
+                    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                    calendar.add(Calendar.DAY_OF_MONTH, item.getItemCount());
+                    item.setCreated(calendar.getTime());
+                    item.setItemCount(1);
+                }
+                item.setPocket(pocket);
+                services.getPlayerPocketService().save(item);
+                if (!existing) services.getPocketService().incrementPocketBelongings(pocket);
+                inventory.set(existing ? new S2CInventoryItemCountPacket(item) : new S2CInventoryItemsPlacePacket(List.of(item)));
+            });
+        } catch (RuntimeException failure) {
+            reward.releaseClaim(slot, position, itemReward);
+            throw failure;
+        }
+        itemReward.getCommitted().set(true);
+        var response = SMSGPickupItemReward.builder().playerPos((byte) position).slot(slot)
+                .type((byte) 0).productIndex(productIndex).quantity(quantity).build();
+        try {
+            synchronized (client) {
+                if (client.getActiveRoom() == room && client.getRoomPlayer() == seat &&
+                        GameSessionManager.getInstance().getMatchplayReward(room.getRoomId()) == reward &&
+                        client.getGameSessionGeneration() == generation && client.getConnection() != null) {
+                    client.getConnection().sendTCP(response);
+                    if (inventory.get() != null) client.getConnection().sendTCP(inventory.get());
+                }
+            }
+            for (Recipient endpoint : recipients) {
+                FTClient recipient = endpoint.client();
+                RoomPlayer recipientSeat = endpoint.seat();
+                long recipientGeneration = endpoint.generation();
+                if (recipientSeat == null || recipientSeat.getPosition() == position) continue;
+                ThreadManager.getInstance().schedule(() -> {
+                    synchronized (recipient) {
+                        MatchplayReward current = GameSessionManager.getInstance().getMatchplayReward(room.getRoomId());
+                        if (recipient.getActiveRoom() == room && recipient.getRoomPlayer() == recipientSeat &&
+                                (current == null || current == reward) &&
+                                recipient.getGameSessionGeneration() == recipientGeneration && recipient.getConnection() != null) {
+                            recipient.getConnection().sendTCP(response);
+                        }
+                    }
+                }, 20, TimeUnit.MILLISECONDS);
+            }
+        } finally {
+            long committed = reward.getSlotRewards().values().stream().filter(item -> item.getCommitted().get()).count();
+            long players = room.getRoomPlayerList().stream().filter(player -> player.getPosition() < 4).count();
+            if (committed == reward.getSlotRewards().size() || committed == players)
+                GameSessionManager.getInstance().removeMatchplayReward(room.getRoomId(), reward);
+        }
+        return true;
     }
 }

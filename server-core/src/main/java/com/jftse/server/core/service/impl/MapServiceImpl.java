@@ -17,4 +17,9 @@ public class MapServiceImpl implements MapService {
     public Optional<SMaps> findByMap(Integer map) {
         return mapsRepository.findByMap(map);
     }
+
+    @Override
+    public boolean isGuardianMapAvailable(Integer map) {
+        return mapsRepository.countAvailableGuardianMaps(map) > 0;
+    }
 }

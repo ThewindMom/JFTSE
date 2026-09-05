@@ -35,31 +35,37 @@ public class MatchRallyStatsConsumer {
                 || message.getHitAct() == null) {
             return;
         }
-
-        RallyState state = rallyStateMap.computeIfAbsent(message.getGameSessionId(), k -> new RallyState());
-
-        synchronized (state) {
-            updateRallyState(state, message);
-        }
-
-        if (isPositionPlayer(message.getPlayerPos())) {
-            Map<Integer, PlayerStats> playerMap = playerStatsMap.computeIfAbsent(message.getGameSessionId(), k -> new ConcurrentHashMap<>());
-            PlayerStats stats = playerMap.computeIfAbsent(message.getPlayerId(), k -> new PlayerStats());
-
-            synchronized (stats) {
-                updatePlayerStats(stats, message);
-            }
-
-            GameEventBus.call(GameEventType.MP_BALL_HIT, message);
-        }
-    }
-
-    private void updateRallyState(RallyState state, MatchBallSyncMessage message) {
         GameSession session = gameSessionManager.getGameSessionBySessionId(message.getGameSessionId());
         if (session == null) {
             return;
         }
 
+        RallyState accepted = rallyStateMap.compute(message.getGameSessionId(), (id, previous) -> {
+            if (gameSessionManager.getGameSessionBySessionId(id) != session || session.getCompletionHandled().get()) {
+                return previous;
+            }
+            RallyState state = previous == null ? new RallyState() : previous;
+            synchronized (state) {
+                updateRallyState(state, message, session);
+            }
+            if (isPositionPlayer(message.getPlayerPos())) {
+                Map<Integer, PlayerStats> playerMap = playerStatsMap.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
+                PlayerStats stats = playerMap.computeIfAbsent(message.getPlayerId(), k -> new PlayerStats());
+                synchronized (stats) {
+                    updatePlayerStats(stats, message);
+                }
+            }
+            return state;
+        });
+
+        if (accepted != null && !session.getCompletionHandled().get() &&
+                gameSessionManager.getGameSessionBySessionId(message.getGameSessionId()) == session &&
+                isPositionPlayer(message.getPlayerPos())) {
+            GameEventBus.call(GameEventType.MP_BALL_HIT, message);
+        }
+    }
+
+    private void updateRallyState(RallyState state, MatchBallSyncMessage message, GameSession session) {
         int playerPos = message.getPlayerPos();
         BallHitAction hitAct = message.getHitAct();
 
@@ -175,7 +181,9 @@ public class MatchRallyStatsConsumer {
     }
 
     public void clearSession(int gameSessionId) {
-        rallyStateMap.remove(gameSessionId);
-        playerStatsMap.remove(gameSessionId);
+        rallyStateMap.compute(gameSessionId, (id, state) -> {
+            playerStatsMap.remove(id);
+            return null;
+        });
     }
 }

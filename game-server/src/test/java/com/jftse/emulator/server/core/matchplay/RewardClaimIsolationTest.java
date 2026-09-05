@@ -41,6 +41,12 @@ class RewardClaimIsolationTest {
         ReflectionTestUtils.setField(GameManager.class, "instance", mock(GameManager.class));
         ReflectionTestUtils.setField(ServiceManager.class, "instance", mock(ServiceManager.class));
         ReflectionTestUtils.setField(ThreadManager.class, "instance", mock(ThreadManager.class));
+        var results = mock(com.jftse.emulator.server.core.service.MatchResultService.class);
+        when(ServiceManager.getInstance().getMatchResultService()).thenReturn(results);
+        when(results.executeOnce(anyString(), any())).thenAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return true;
+        });
         sessions = new GameSessionManager();
         sessions.init();
         client = new FTClient();

@@ -6,6 +6,7 @@ import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
@@ -73,6 +74,7 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         FTPlayer player = ftClient.getPlayer();
         RoomPlayer roomPlayer = ftClient.getRoomPlayer();
         GameSession gameSession = ftClient.getActiveGameSession();
+        Room room = ftClient.getActiveRoom();
 
         MatchplayGame game = gameSession.getMatchplayGame();
         if (game == null || game.getFinished().get()) return;
@@ -190,7 +192,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
                     .build();
             gameSession.getClients().forEach(c -> {
                 if (c.getConnection().getId() != connection.getId()) {
-                    c.getConnection().sendTCP(response);
+                    FTClient.MatchMembership membership = c.matchMembership();
+                    if (membership.session() == gameSession && membership.room() == room) {
+                        c.sendMatchPacket(membership, response);
+                    }
                 }
             });
         }

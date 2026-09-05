@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 
 class GuardianScriptPublicationTest {
     @ParameterizedTest
-    @ValueSource(strings = {"live", "replacement", "cancelled", "finished"})
+    @ValueSource(strings = {"live", "replacement", "cancelled", "finished", "phase-replaced"})
     void actualAbyssalScriptPublishesLatestHealthOnlyInOwningMatch(String state) throws Exception {
         Object previousGame = ReflectionTestUtils.getField(GameManager.class, "instance");
         Object previousScripts = ReflectionTestUtils.getField(ScriptManagerV2.class, "instance");
@@ -97,6 +97,7 @@ class GuardianScriptPublicationTest {
                 case "replacement" -> when(client.getActiveGameSession()).thenReturn(new GameSession());
                 case "cancelled" -> event.setCancelled(true);
                 case "finished" -> game.getFinished().set(true);
+                case "phase-replaced" -> phaseManager.getCurrentPhase().set(mock(PhaseScript.class));
             }
             List<Short> published = new ArrayList<>();
             doAnswer(invocation -> {

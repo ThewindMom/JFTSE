@@ -42,6 +42,8 @@ public class FTClient extends Client<FTConnection> {
     private volatile Integer gameSessionId;
     @Setter(lombok.AccessLevel.NONE)
     private volatile long gameSessionGeneration;
+    @Getter(lombok.AccessLevel.NONE)
+    private final Object matchPublicationLock = new Object();
 
     private FruitManager fruitManager = new FruitManager();
 
@@ -161,10 +163,12 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public synchronized void setActiveGameSession(Integer gameSessionId) {
-        if (gameSessionId != null && !gameSessionId.equals(this.gameSessionId)) {
-            gameSessionGeneration++;
+        synchronized (matchPublicationLock) {
+            if (gameSessionId != null && !gameSessionId.equals(this.gameSessionId)) {
+                gameSessionGeneration++;
+            }
+            this.gameSessionId = gameSessionId;
         }
-        this.gameSessionId = gameSessionId;
     }
 
     public void setGameSessionId(Integer gameSessionId) {
@@ -172,13 +176,34 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public synchronized boolean clearActiveGameSession(GameSession expected) {
-        if (getActiveGameSession() != expected) return false;
-        gameSessionId = null;
-        return true;
+        synchronized (matchPublicationLock) {
+            if (getActiveGameSession() != expected) return false;
+            gameSessionId = null;
+            return true;
+        }
     }
 
     public synchronized void setActiveRoom(Room room) {
-        this.activeRoom = room;
+        synchronized (matchPublicationLock) {
+            this.activeRoom = room;
+        }
+    }
+
+    public record MatchMembership(GameSession session, Room room, long generation) {}
+
+    public MatchMembership matchMembership() {
+        synchronized (matchPublicationLock) {
+            return new MatchMembership(getActiveGameSession(), getActiveRoom(), getGameSessionGeneration());
+        }
+    }
+
+    public void sendMatchPacket(MatchMembership expected, com.jftse.server.core.protocol.IPacket packet) {
+        synchronized (matchPublicationLock) {
+            if (expected.session() != null && getActiveGameSession() == expected.session() && getActiveRoom() == expected.room() &&
+                    getGameSessionGeneration() == expected.generation() && getConnection() != null) {
+                getConnection().sendTCP(packet);
+            }
+        }
     }
 
     public void setActivePet(Pet pet) {

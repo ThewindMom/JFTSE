@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.matchplay.event;
 import com.jftse.emulator.server.core.constants.PacketEventType;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
+import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.protocol.Packet;
@@ -56,9 +57,14 @@ public class EventHandler {
         GameSession session = client.getActiveGameSession();
         if (session == null) return;
         MatchplayGame game = session.getMatchplayGame();
+        var phaseManager = game instanceof MatchplayGuardianGame guardian ? guardian.getPhaseManager() : null;
+        var phase = phaseManager == null ? null : phaseManager.getCurrentPhase().get();
         Runnable callback = event.getRunnable();
         event.setRunnable(() -> {
             synchronized (game) {
+                if (phaseManager != null && (!phaseManager.getIsRunning().get() ||
+                        ((MatchplayGuardianGame) game).getPhaseManager() != phaseManager ||
+                        phaseManager.getCurrentPhase().get() != phase)) return;
                 if (!event.isCancelled() && client.getActiveGameSession() == session &&
                         session.getMatchplayGame() == game && !game.getFinished().get()) {
                     callback.run();
@@ -110,7 +116,11 @@ public class EventHandler {
             }
 
             if (fireable.shouldFire(now)) {
-                fireable.fire();
+                try {
+                    fireable.fire();
+                } catch (RuntimeException exception) {
+                    log.error("Failed to execute queued match event", exception);
+                }
             } else {
                 fireableDeque.offer(fireable);
             }
