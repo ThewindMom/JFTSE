@@ -15,6 +15,8 @@ public class PacketEvent extends AbstractFireableEvent {
     private FTClient client;
     private Packet packet;
     private PacketEventType packetEventType; // unused as of current state, might be useful later on
+    private final Long matchGeneration;
+    private final com.jftse.emulator.server.core.life.room.Room room;
 
     @Builder
     public PacketEvent(FTConnection sender, FTClient client, Packet packet, PacketEventType packetEventType, long currentTime, long delayMS) {
@@ -24,10 +26,19 @@ public class PacketEvent extends AbstractFireableEvent {
         this.client = client;
         this.packet = packet;
         this.packetEventType = packetEventType;
+        synchronized (client) {
+            this.matchGeneration = client.getGameSessionId() == null ? null : client.getGameSessionGeneration();
+            this.room = client.getActiveRoom();
+        }
     }
 
     @Override
     protected void execute() {
-        sender.sendTCP(packet);
+        synchronized (client) {
+            if (matchGeneration == null ||
+                    client.getGameSessionGeneration() == matchGeneration && client.getActiveRoom() == room) {
+                sender.sendTCP(packet);
+            }
+        }
     }
 }

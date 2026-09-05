@@ -27,24 +27,30 @@ public class DefeatTimerTask extends AbstractTask {
 
     @Override
     public void run() {
+        if (connection.getClient() == null || gameSession == null) return;
         final MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
-        final SMaps map = game.getMap();
-        final MScenarios scenario = game.getScenario();
+        synchronized (game) {
+            synchronized (connection.getClient()) {
+                if (connection.getClient().getActiveGameSession() != gameSession || game.getFinished().get()) return;
+                final SMaps map = game.getMap();
+                final MScenarios scenario = game.getScenario();
 
-        int playTime = -1;
-        if (scenario.getGameMode() == MScenarios.GameMode.GUARDIAN && map.getPlayTime() != null) {
-            playTime = map.getPlayTime();
-        }
-        if ((scenario.getGameMode() == MScenarios.GameMode.BOSS_BATTLE || scenario.getGameMode() == MScenarios.GameMode.BOSS_BATTLE_V2) && map.getBossPlayTime() != null) {
-            playTime = map.getBossPlayTime();
-        }
+                int playTime = -1;
+                if (scenario.getGameMode() == MScenarios.GameMode.GUARDIAN && map.getPlayTime() != null) {
+                    playTime = map.getPlayTime();
+                }
+                if ((scenario.getGameMode() == MScenarios.GameMode.BOSS_BATTLE || scenario.getGameMode() == MScenarios.GameMode.BOSS_BATTLE_V2) && map.getBossPlayTime() != null) {
+                    playTime = map.getBossPlayTime();
+                }
 
-        if (playTime > -1) {
-            RunnableEvent runnableEvent = eventHandler.createRunnableEvent(new FinishGameTask(connection), TimeUnit.MINUTES.toMillis(playTime));
+                if (playTime > -1) {
+                    RunnableEvent runnableEvent = eventHandler.createRunnableEvent(new FinishGameTask(connection), TimeUnit.MINUTES.toMillis(playTime));
 
-            gameSession.getFireables().push(runnableEvent);
-            eventHandler.offer(runnableEvent);
-            gameSession.setCountDownRunnable(runnableEvent);
+                    gameSession.getFireables().push(runnableEvent);
+                    eventHandler.offer(runnableEvent);
+                    gameSession.setCountDownRunnable(runnableEvent);
+                }
+            }
         }
     }
 }

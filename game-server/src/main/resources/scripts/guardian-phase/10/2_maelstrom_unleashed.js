@@ -224,7 +224,7 @@ var phase = {
                 const event = eventHandler.createRunnableEvent(function () {
                     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
                 }, 1250);
-                eventHandler.offerJS(event);
+                eventHandler.offerJS(event, connection);
             }
         }
     },

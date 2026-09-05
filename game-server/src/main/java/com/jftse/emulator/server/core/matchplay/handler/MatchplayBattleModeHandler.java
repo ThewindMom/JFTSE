@@ -141,7 +141,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
     @Override
     public void onEnd(FTClient ftClient) {
         GameSession gameSession = ftClient.getActiveGameSession();
-        if (gameSession == null)
+        if (gameSession == null || gameSession.getMatchplayGame() != game)
             return;
 
         final Integer gameSessionId = ftClient.getGameSessionId();
@@ -158,6 +158,11 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         if (!enhancedActorSession)
             activeRoom.setStatus(RoomStatus.NotRunning);
 
+        Map<FTClient, RoomPlayer> originalSeats = new IdentityHashMap<>();
+        gameSession.getClients().stream().filter(FTClient::hasPlayer)
+                .forEach(client -> originalSeats.put(client, client.getRoomPlayer()));
+        AutoItemRewardPickerTask autoPicker = new AutoItemRewardPickerTask(
+                new ConcurrentLinkedDeque<>(gameSession.getClients()), activeRoom, game.getMatchRewards());
         boolean completionSucceeded = false;
         try {
         Runnable completion = () -> {
@@ -192,9 +197,15 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                 .map(FTClient::getPlayer)
                 .collect(Collectors.toList());
 
-        game.addBonusesToRewards(activeRoom.getRoomPlayerList(), matchplayReward.getPlayerRewards());
+        game.addBonusesToRewards(new ConcurrentLinkedDeque<>(originalSeats.values().stream()
+                .filter(Objects::nonNull).toList()), matchplayReward.getPlayerRewards());
 
-        GameSessionManager.getInstance().addMatchplayReward(activeRoom.getRoomId(), matchplayReward);
+        synchronized (activeRoom) {
+            if (clients.stream().anyMatch(client -> client.getActiveGameSession() == gameSession) &&
+                    !GameSessionManager.getInstance().hasMatchplayReward(activeRoom.getRoomId())) {
+                GameSessionManager.getInstance().addMatchplayReward(activeRoom.getRoomId(), matchplayReward);
+            }
+        }
 
         List<MatchFinishedMessage.PlayerDto> playerDtoList = new ArrayList<>();
 
@@ -202,7 +213,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
             if (!client.hasPlayer())
                 continue;
 
-            RoomPlayer rp = client.getRoomPlayer();
+            RoomPlayer rp = originalSeats.get(client);
             if (rp == null)
                 continue;
 
@@ -290,19 +301,23 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
 
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 
-                rp.setReady(false);
-                int playerLevel = player.getLevel();
-                byte resultTitle = (byte) (wonGame ? 1 : 0);
-                if (playerLevel != oldLevel) {
-                    S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player);
-                    eventHandler.offer(eventHandler.createPacketEvent(client, gameEndLevelUpPlayerStatsPacket, PacketEventType.DEFAULT, 0));
+                synchronized (client) {
+                    if (client.getActiveGameSession() == gameSession && client.getRoomPlayer() == rp) {
+                        rp.setReady(false);
+                        int playerLevel = player.getLevel();
+                        byte resultTitle = (byte) (wonGame ? 1 : 0);
+                        if (playerLevel != oldLevel) {
+                            S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player);
+                            eventHandler.offer(eventHandler.createPacketEvent(client, gameEndLevelUpPlayerStatsPacket, PacketEventType.DEFAULT, 0));
+                        }
+
+                        S2CMatchplayItemRewardsPacket itemRewardsPacket = new S2CMatchplayItemRewardsPacket(matchplayReward);
+                        client.getConnection().sendTCP(itemRewardsPacket);
+
+                        S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, (int) Math.ceil((double) game.getTimeNeeded() / 1000), playerReward, (byte) playerLevel, rp);
+                        eventHandler.offer(eventHandler.createPacketEvent(client, setExperienceGainInfoData, PacketEventType.DEFAULT, 0));
+                    }
                 }
-
-                S2CMatchplayItemRewardsPacket itemRewardsPacket = new S2CMatchplayItemRewardsPacket(matchplayReward);
-                client.getConnection().sendTCP(itemRewardsPacket);
-
-                S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, (int) Math.ceil((double) game.getTimeNeeded() / 1000), playerReward, (byte) playerLevel, rp);
-                eventHandler.offer(eventHandler.createPacketEvent(client, setExperienceGainInfoData, PacketEventType.DEFAULT, 0));
             } else {
                 gameLogContent.append("spec: ").append(rp.getName()).append(" acc: ").append(rp.getAccountId()).append("; ");
 
@@ -311,14 +326,17 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                 }
             }
 
-            S2CMatchplaySetGameResultData setGameResultData = enhancedActorSession
-                    ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats())
-                    : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
-            eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
+            synchronized (client) {
+                if (client.getActiveGameSession() != gameSession || client.getRoomPlayer() != rp) continue;
+                S2CMatchplaySetGameResultData setGameResultData = enhancedActorSession
+                        ? new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards(), gameSession.getOwnedPetSeats())
+                        : new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
+                eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
 
-            S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
-            eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
-            client.setActiveGameSession(null);
+                S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
+                eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
+                client.clearActiveGameSession(gameSession);
+            }
         }
 
         GameEventBus.call(GameEventType.MP_MATCH_END, game, activeRoom, clients);
@@ -326,7 +344,7 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
         if (!enhancedActorSession)
             matchRallyStatsConsumer.clearSession(gameSessionId);
 
-        eventHandler.offer(eventHandler.createRunnableEvent(new AutoItemRewardPickerTask(new ConcurrentLinkedDeque<>(clients), activeRoom.getRoomId()), TimeUnit.SECONDS.toMillis(9)));
+        eventHandler.offer(eventHandler.createRunnableEvent(autoPicker, TimeUnit.SECONDS.toMillis(9)));
 
         gameLogContent.append("playtime: ").append(TimeUnit.MILLISECONDS.toSeconds(game.getTimeNeeded())).append("s");
 
@@ -364,14 +382,14 @@ public class MatchplayBattleModeHandler implements MatchplayHandleable {
                 log.error("Match result transaction failed for session {}; closing clients to discard rolled-back in-memory state",
                         gameSessionId, exception);
                 gameSession.getClients().forEach(client -> {
-                    if (client.getConnection() != null)
+                    if (client.getActiveGameSession() == gameSession && client.getConnection() != null)
                         client.getConnection().close();
                 });
             }
             throw exception;
         } finally {
             if (enhancedActorSession && !completionSucceeded) {
-                GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId());
+                GameSessionManager.getInstance().removeMatchplayReward(activeRoom.getRoomId(), game.getMatchRewards());
             }
             if (enhancedActorSession)
                 GameManager.getInstance().cleanupFinishedGameSession(gameSessionId, gameSession, activeRoom);

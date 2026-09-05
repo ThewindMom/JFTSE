@@ -82,6 +82,11 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private AtomicReference<Date> stageStartTime;
     private AtomicInteger expPot;
     private AtomicInteger goldPot;
+    @Getter(lombok.AccessLevel.NONE)
+    @Setter(lombok.AccessLevel.NONE)
+    private int pendingLootUpdates;
+    @Getter(lombok.AccessLevel.NONE)
+    private final List<Runnable> deferredLootActions = new ArrayList<>();
     private AtomicBoolean isHardMode;
     private AtomicBoolean isRandomGuardiansMode;
     private AtomicInteger spiderMineIdentifier;
@@ -858,5 +863,34 @@ public class MatchplayGuardianGame extends MatchplayGame {
                 .filter(x -> x.getPosition() == position)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public synchronized void beginLootUpdate() {
+        pendingLootUpdates++;
+    }
+
+    public synchronized boolean deferUntilLootComplete(Runnable action) {
+        if (pendingLootUpdates == 0) return false;
+        deferredLootActions.add(action);
+        return true;
+    }
+
+    public synchronized void failLootUpdates() {
+        getFinished().set(true);
+        deferredLootActions.clear();
+    }
+
+    public void completeLootUpdate() {
+        List<Runnable> actions;
+        synchronized (this) {
+            if (--pendingLootUpdates != 0) return;
+            if (getFinished().get()) {
+                deferredLootActions.clear();
+                return;
+            }
+            actions = new ArrayList<>(deferredLootActions);
+            deferredLootActions.clear();
+        }
+        actions.forEach(action -> com.jftse.server.core.thread.ThreadManager.getInstance().newTask(action));
     }
 }

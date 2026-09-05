@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Getter
 @Setter
@@ -42,10 +43,10 @@ public class FTConnection extends Connection<FTClient> {
     private final static int MAX_PROCESSED_PACKETS_PER_UPDATE = 3;
 
     private final MetricsService metrics;
+    private final AtomicBoolean castInFlight = new AtomicBoolean();
 
     private final static List<Integer> THREAD_HANDLED_PACKETS = List.of(
             CMSGLoginData.PACKET_ID,
-            CMSGPlayerUseSkill.PACKET_ID,
             CMSGCombineNowRecipe.PACKET_ID,
             CMSGEnchantRequest.PACKET_ID,
             CMSGAddFriendApproval.PACKET_ID,
@@ -81,12 +82,12 @@ public class FTConnection extends Connection<FTClient> {
         return THREAD_HANDLED_PACKETS.contains(packetId);
     }
 
-    public boolean update(long diff) {
+    public synchronized boolean update(long diff) {
         final FTClient client = getClient();
         int processedPackets = 0;
 
         while (!getIsClosingConnection().get()) {
-            if (processedPackets >= MAX_PROCESSED_PACKETS_PER_UPDATE || recvQueue.isEmpty()) {
+            if (castInFlight.get() || processedPackets >= MAX_PROCESSED_PACKETS_PER_UPDATE || recvQueue.isEmpty()) {
                 break;
             }
 
@@ -96,7 +97,27 @@ public class FTConnection extends Connection<FTClient> {
 
             PacketHandler<FTConnection, IPacket> handler = PacketRegistry.getHandler(packet.getPacketId());
             if (handler != null) {
-                if (isThreadedPacket(packet.getPacketId())) {
+                if (packet.getPacketId() == CMSGPlayerUseSkill.PACKET_ID) {
+                    castInFlight.set(true);
+                    var session = client == null ? null : client.getActiveGameSession();
+                    try {
+                        ThreadManager.getInstance().newTask(() -> {
+                            try {
+                                if (!getIsClosingConnection().get() && getClient() == client &&
+                                        (client == null || client.getActiveGameSession() == session)) {
+                                    runHandler(handler, packet);
+                                }
+                            } finally {
+                                castInFlight.set(false);
+                            }
+                        });
+                    } catch (RuntimeException e) {
+                        castInFlight.set(false);
+                        getIsClosingConnection().set(true);
+                        log.error("Unable to dispatch skill cast", e);
+                    }
+                    break;
+                } else if (isThreadedPacket(packet.getPacketId())) {
                     ThreadManager.getInstance().newTask(() -> runHandler(handler, packet));
                 } else {
                     runHandler(handler, packet);

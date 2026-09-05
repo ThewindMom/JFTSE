@@ -18,6 +18,7 @@ public class DespawnCrystalTask extends AbstractTask {
     private final FTConnection connection;
     private final SkillCrystal skillCrystal;
     private final short gameFieldSide;
+    private final GameSession gameSession;
 
     private final EventHandler eventHandler;
 
@@ -25,47 +26,43 @@ public class DespawnCrystalTask extends AbstractTask {
         this.connection = connection;
         this.skillCrystal = skillCrystal;
         this.gameFieldSide = gameFieldSide;
+        this.gameSession = connection.getClient() == null ? null : connection.getClient().getActiveGameSession();
 
         eventHandler = GameManager.getInstance().getEventHandler();
     }
 
     public DespawnCrystalTask(FTConnection connection, SkillCrystal skillCrystal) {
-        this.connection = connection;
-        this.skillCrystal = skillCrystal;
-        this.gameFieldSide = -1;
-
-        eventHandler = GameManager.getInstance().getEventHandler();
+        this(connection, skillCrystal, (short) -1);
     }
 
     @Override
     public void run() {
         if (connection.getClient() == null) return;
 
-        GameSession gameSession = connection.getClient().getActiveGameSession();
-        if (gameSession == null) return;
+        if (gameSession == null || connection.getClient().getActiveGameSession() != gameSession) return;
 
         MatchplayGame game = gameSession.getMatchplayGame();
-        boolean isBattleGame = gameSession.getMatchplayGame() instanceof MatchplayBattleGame;
+        synchronized (game) {
+            synchronized (connection.getClient()) {
+                if (connection.getClient().getActiveGameSession() != gameSession || game.getFinished().get()) return;
+                boolean isBattleGame = game instanceof MatchplayBattleGame;
 
-        boolean isCrystalStillAvailable =
-                isBattleGame && (((MatchplayBattleGame) game).getSkillCrystals().stream().anyMatch(x -> x.getId() == skillCrystal.getId())) ||
-                !isBattleGame && (((MatchplayGuardianGame) game).getSkillCrystals().stream().anyMatch(x -> x.getId() == skillCrystal.getId()));
+                ConcurrentLinkedDeque<SkillCrystal> skillCrystals = isBattleGame ? ((MatchplayBattleGame) game).getSkillCrystals() : ((MatchplayGuardianGame) game).getSkillCrystals();
 
-        if (isCrystalStillAvailable) {
-            S2CMatchplayLetCrystalDisappear letCrystalDisappearPacket = new S2CMatchplayLetCrystalDisappear((short) skillCrystal.getId());
-            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(letCrystalDisappearPacket, connection);
+                if (skillCrystals.remove(skillCrystal)) {
+                    S2CMatchplayLetCrystalDisappear letCrystalDisappearPacket = new S2CMatchplayLetCrystalDisappear((short) skillCrystal.getId());
+                    GameManager.getInstance().sendPacketToAllClientsInSameGameSession(letCrystalDisappearPacket, connection);
 
-            ConcurrentLinkedDeque<SkillCrystal> skillCrystals = isBattleGame ? ((MatchplayBattleGame) game).getSkillCrystals() : ((MatchplayGuardianGame) game).getSkillCrystals();
-            skillCrystals.removeIf(sc -> sc.getId() == skillCrystal.getId());
+                    RunnableEvent runnableEvent;
+                    if (isBattleGame)
+                        runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection, gameFieldSide), ((MatchplayBattleGame) game).getCrystalSpawnInterval().get());
+                    else
+                        runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), ((MatchplayGuardianGame) game).getCrystalSpawnInterval().get());
 
-            RunnableEvent runnableEvent;
-            if (isBattleGame)
-                runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection, gameFieldSide), ((MatchplayBattleGame) game).getCrystalSpawnInterval().get());
-            else
-                runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), ((MatchplayGuardianGame) game).getCrystalSpawnInterval().get());
-
-            gameSession.getFireables().push(runnableEvent);
-            eventHandler.offer(runnableEvent);
+                    gameSession.getFireables().push(runnableEvent);
+                    eventHandler.offer(runnableEvent);
+                }
+            }
         }
     }
 }

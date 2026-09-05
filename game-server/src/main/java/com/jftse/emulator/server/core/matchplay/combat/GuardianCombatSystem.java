@@ -105,18 +105,9 @@ public class GuardianCombatSystem implements GuardianCombatable {
 
         percentage = game.getGuardianHealPercentage();
 
-        int currentHealth = targetGuardian.getCurrentHealth().get();
         short healthToHeal = (short) (targetGuardian.getMaxHealth() * (percentage / 100f));
-        currentHealth = Math.max(currentHealth, 0);
-        short newGuardianHealth = (short) (currentHealth + healthToHeal);
-        if (newGuardianHealth > targetGuardian.getMaxHealth()) {
-            newGuardianHealth = (short) targetGuardian.getMaxHealth();
-        }
-
-        if (targetGuardian.getCurrentHealth().compareAndSet(currentHealth, newGuardianHealth))
-            return newGuardianHealth;
-        else
-            return (short) currentHealth;
+        return (short) targetGuardian.getCurrentHealth().updateAndGet(current ->
+                Math.min((short) (Math.max(current, 0) + healthToHeal), targetGuardian.getMaxHealth()));
     }
 
     @Override
@@ -202,31 +193,18 @@ public class GuardianCombatSystem implements GuardianCombatable {
 
     @Override
     public short updateHealthByDamage(GuardianBattleState targetGuardian, int dmg) {
-        int currentHealth = targetGuardian.getCurrentHealth().get();
-        currentHealth = Math.max(currentHealth, 0);
-        short newGuardianHealth = (short) (currentHealth + dmg);
-        newGuardianHealth = newGuardianHealth < 0 ? 0 : newGuardianHealth;
-
-        if (targetGuardian.getCurrentHealth().compareAndSet(currentHealth, newGuardianHealth))
-            return newGuardianHealth;
-        else
-            return (short) currentHealth;
+        return (short) targetGuardian.getCurrentHealth().updateAndGet(current ->
+                Math.max(0, (short) (Math.max(current, 0) + dmg)));
     }
 
     @Override
     public short updateHealthByDamage(PlayerBattleState targetPlayer, int dmg) {
-        int currentHealth = targetPlayer.getCurrentHealth().get();
-        currentHealth = Math.max(currentHealth, 0);
-        short newPlayerHealth = (short) (currentHealth + dmg);
+        short newPlayerHealth = (short) targetPlayer.getCurrentHealth().updateAndGet(current ->
+                Math.max(0, (short) (Math.max(current, 0) + dmg)));
         if (newPlayerHealth < 1) {
             targetPlayer.setDead(true);
         }
-        newPlayerHealth = newPlayerHealth < 0 ? 0 : newPlayerHealth;
-
-        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth))
-            return newPlayerHealth;
-        else
-            return (short) currentHealth;
+        return newPlayerHealth;
     }
 
     @Override

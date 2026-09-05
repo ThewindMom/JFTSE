@@ -75,7 +75,7 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         GameSession gameSession = ftClient.getActiveGameSession();
 
         MatchplayGame game = gameSession.getMatchplayGame();
-        if (game == null) return;
+        if (game == null || game.getFinished().get()) return;
 
         byte attackerPosition = anyoneUsesSkill.getAttackerPosition();
         byte targetPosition = anyoneUsesSkill.getTargetPosition();
@@ -151,7 +151,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
 
         if (attackerIsGuardian && game instanceof MatchplayGuardianGame guardianGame) {
             if (skill != null) {
-                this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, guardianGame, skill);
+                synchronized (game) {
+                    if (ftClient.getActiveGameSession() != gameSession || game.getFinished().get()) return;
+                    this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, guardianGame, skill);
+                }
             }
         } else if (attackerIsPlayer) {
             if (roomPlayer != null) {
@@ -169,25 +172,28 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
             }
         }
 
-        if (enhancedActorSession && skill != null) {
-            gameSession.authorizeSkillHits(attackerPosition, attackerIsGuardian ? -1 : targetPosition,
-                    skill.getId().byteValue(), Time.getNSTime());
-        }
-
-        SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()
-                .attacker(attackerPosition)
-                .target(targetPosition)
-                .skillId(anyoneUsesSkill.getSkillIndex())
-                .seed(anyoneUsesSkill.getSeed())
-                .xTarget(anyoneUsesSkill.getXTarget())
-                .zTarget(anyoneUsesSkill.getZTarget())
-                .yTarget(anyoneUsesSkill.getYTarget())
-                .build();
-        gameSession.getClients().forEach(c -> {
-            if (c.getConnection().getId() != connection.getId()) {
-                c.getConnection().sendTCP(response);
+        synchronized (game) {
+            if (ftClient.getActiveGameSession() != gameSession || game.getFinished().get()) return;
+            if (enhancedActorSession && skill != null) {
+                gameSession.authorizeSkillHits(attackerPosition, attackerIsGuardian ? -1 : targetPosition,
+                        skill.getId().byteValue(), Time.getNSTime());
             }
-        });
+
+            SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()
+                    .attacker(attackerPosition)
+                    .target(targetPosition)
+                    .skillId(anyoneUsesSkill.getSkillIndex())
+                    .seed(anyoneUsesSkill.getSeed())
+                    .xTarget(anyoneUsesSkill.getXTarget())
+                    .zTarget(anyoneUsesSkill.getZTarget())
+                    .yTarget(anyoneUsesSkill.getYTarget())
+                    .build();
+            gameSession.getClients().forEach(c -> {
+                if (c.getConnection().getId() != connection.getId()) {
+                    c.getConnection().sendTCP(response);
+                }
+            });
+        }
     }
 
     private boolean isQsUseValid(FTConnection connection, long skillUseTimestamp, FTPlayer player, Skill skill, SkillUse skillUse, MatchplayGame game, byte attackerPosition, CMSGPlayerUseSkill anyoneUsesSkill) {
@@ -334,9 +340,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
     }
 
     private void validateSkillCrystal(Queue<SkillCrystal> skillCrystals, int crystalId, int skillIndex) throws ValidationException {
-        SkillCrystal skillCrystal = skillCrystals.poll();
+        SkillCrystal skillCrystal = skillCrystals.peek();
         if (skillCrystal == null || skillCrystal.getId() != crystalId || skillCrystal.getSkillIndex() != skillIndex) {
             throw new ValidationException("Player tried to use a skill crystal they do not possess");
         }
+        skillCrystals.poll();
     }
 }

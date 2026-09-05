@@ -3,7 +3,9 @@ package com.jftse.emulator.server.core.matchplay.guardian;
 import com.jftse.emulator.common.exception.ValidationException;
 import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.server.core.constants.PacketEventType;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
@@ -25,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Log4j2
 public class PhaseManager {
     private FTConnection hostConnection;
+    private GameSession gameSession;
 
     private AtomicReference<PhaseScript> currentPhase;
     private List<PhaseScript> phases;
@@ -64,7 +67,7 @@ public class PhaseManager {
 
                     ThreadManager.getInstance().newTask(new GuardianAttackTask(connection));
                 }, TimeUnit.SECONDS.toMillis(5));
-                eventHandler.offer(runnableEvent);
+                eventHandler.offerJS(runnableEvent, connection);
             } else {
                 isChangingPhase.set(false);
                 onPhaseEnd(connection);
@@ -106,12 +109,23 @@ public class PhaseManager {
         final PhaseScript current = currentPhase.get();
         if (current != null) {
             this.hostConnection = connection;
+            this.gameSession = connection.getClient().getActiveGameSession();
             current.start();
             isRunning.set(true);
         }
     }
 
     public void update(long diff) {
+        if (gameSession == null) return;
+        MatchplayGame game = gameSession.getMatchplayGame();
+        synchronized (game) {
+            if (hostConnection.getClient().getActiveGameSession() == gameSession && !game.getFinished().get()) {
+                updatePhase(diff);
+            }
+        }
+    }
+
+    private void updatePhase(long diff) {
         if (!getIsRunning().get() || getIsChangingPhase().get() || getIsPhaseEnding().get())
             return;
 

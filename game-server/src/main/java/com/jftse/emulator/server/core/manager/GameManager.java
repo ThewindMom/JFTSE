@@ -159,6 +159,10 @@ public class GameManager implements ServerLoopHandler {
                 !(gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats())) {
             return;
         }
+        cleanupGameSession(gameSessionId, gameSession, room);
+    }
+
+    public void cleanupGameSession(Integer gameSessionId, GameSession gameSession, Room room) {
         boolean removed = false;
         try {
             gameSession.clearCountDownRunnable();
@@ -170,24 +174,24 @@ public class GameManager implements ServerLoopHandler {
                 game.getScheduledFutures().clear();
             }
 
-            gameSession.getClients().forEach(client -> {
-                if (client.getActiveGameSession() == gameSession) {
-                    client.setActiveGameSession(null);
-                }
-            });
+            gameSession.getClients().forEach(client -> client.clearActiveGameSession(gameSession));
             if (gameSessionManager.getGameSessionBySessionId(gameSessionId) == gameSession) {
                 matchRallyStatsConsumer.clearSession(gameSessionId);
             }
             removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
             if (removed && room != null) {
                 synchronized (room) {
-                    room.setStatus(RoomStatus.NotRunning);
-                    room.getRoomPlayerList().forEach(roomPlayer -> {
-                        roomPlayer.setReady(false);
-                        roomPlayer.setGameAnimationSkipReady(false);
-                        roomPlayer.getConnectedToRelay().set(false);
-                        roomPlayer.getPickedUpSkillCrystals().clear();
-                    });
+                    boolean replacementRunning = getClientsInRoom(room.getRoomId()).stream()
+                            .anyMatch(client -> client.getActiveRoom() == room && client.getGameSessionId() != null);
+                    if (!replacementRunning) {
+                        room.setStatus(RoomStatus.NotRunning);
+                        room.getRoomPlayerList().forEach(roomPlayer -> {
+                            roomPlayer.setReady(false);
+                            roomPlayer.setGameAnimationSkipReady(false);
+                            roomPlayer.getConnectedToRelay().set(false);
+                            roomPlayer.getPickedUpSkillCrystals().clear();
+                        });
+                    }
                 }
             }
         } finally {

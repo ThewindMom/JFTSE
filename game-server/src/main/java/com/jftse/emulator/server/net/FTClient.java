@@ -37,9 +37,11 @@ public class FTClient extends Client<FTConnection> {
     private ChallengeGame activeChallengeGame;
     private TutorialGame activeTutorialGame;
 
-    private Room activeRoom;
+    private volatile Room activeRoom;
     private RoomPlayer roomPlayer;
-    private Integer gameSessionId;
+    private volatile Integer gameSessionId;
+    @Setter(lombok.AccessLevel.NONE)
+    private volatile long gameSessionGeneration;
 
     private FruitManager fruitManager = new FruitManager();
 
@@ -152,13 +154,31 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public GameSession getActiveGameSession() {
-        if (this.gameSessionId == null)
+        Integer sessionId = this.gameSessionId;
+        if (sessionId == null)
             return null;
-        return GameSessionManager.getInstance().getGameSessionBySessionId(this.gameSessionId);
+        return GameSessionManager.getInstance().getGameSessionBySessionId(sessionId);
     }
 
-    public void setActiveGameSession(Integer gameSessionId) {
+    public synchronized void setActiveGameSession(Integer gameSessionId) {
+        if (gameSessionId != null && !gameSessionId.equals(this.gameSessionId)) {
+            gameSessionGeneration++;
+        }
         this.gameSessionId = gameSessionId;
+    }
+
+    public void setGameSessionId(Integer gameSessionId) {
+        setActiveGameSession(gameSessionId);
+    }
+
+    public synchronized boolean clearActiveGameSession(GameSession expected) {
+        if (getActiveGameSession() != expected) return false;
+        gameSessionId = null;
+        return true;
+    }
+
+    public synchronized void setActiveRoom(Room room) {
+        this.activeRoom = room;
     }
 
     public void setActivePet(Pet pet) {

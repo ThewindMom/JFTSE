@@ -1,7 +1,10 @@
 package com.jftse.emulator.server.core.matchplay.event;
 
 import com.jftse.emulator.server.core.constants.PacketEventType;
+import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.net.FTClient;
+import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.util.GameTime;
 import lombok.Getter;
@@ -46,6 +49,24 @@ public class EventHandler {
     public void offerJS(Fireable fireable) {
         fireable.setExecutionMode(ExecutionMode.JS_INLINE);
         fireableDeque.offer(fireable);
+    }
+
+    public void offerJS(RunnableEvent event, FTConnection connection) {
+        FTClient client = connection.getClient();
+        GameSession session = client.getActiveGameSession();
+        if (session == null) return;
+        MatchplayGame game = session.getMatchplayGame();
+        Runnable callback = event.getRunnable();
+        event.setRunnable(() -> {
+            synchronized (game) {
+                if (!event.isCancelled() && client.getActiveGameSession() == session &&
+                        session.getMatchplayGame() == game && !game.getFinished().get()) {
+                    callback.run();
+                }
+            }
+        });
+        session.getFireables().push(event);
+        offerJS(event);
     }
 
     /**

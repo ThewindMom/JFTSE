@@ -96,15 +96,15 @@ var phase = {
                         g.getCurrentHealth().set(g.getMaxHealth());
 
                         const packet = new S2CMatchplayUseSkill(pos, posG, rebirth.getId() - 1, Math.floor(Math.random() * 127), 0, 0, 0);
-                        const dmgPacket = new S2CMatchplayDealDamage(posG, g.getCurrentHealth().get(), 4, rebirth.getId(), 0.0, 0.0);
 
                         abyss.resurrectedGuardians.add(posG);
 
                         const event = eventHandler.createRunnableEvent(function () {
                             //gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
+                            const dmgPacket = new S2CMatchplayDealDamage(posG, g.getCurrentHealth().get(), 4, rebirth.getId(), 0.0, 0.0);
                             gameManager.sendPacketToAllClientsInSameGameSession(dmgPacket, connection);
                         }, 3000);
-                        eventHandler.offerJS(event);
+                        eventHandler.offerJS(event, connection);
                     }
                 }
 
@@ -246,7 +246,7 @@ var phase = {
                 const event = eventHandler.createRunnableEvent(function () {
                     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
                 }, 1250);
-                eventHandler.offerJS(event);
+                eventHandler.offerJS(event, connection);
             }
         }
     },

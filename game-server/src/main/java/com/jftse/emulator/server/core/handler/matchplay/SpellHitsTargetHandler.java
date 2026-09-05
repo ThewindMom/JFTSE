@@ -4,6 +4,7 @@ import com.jftse.emulator.common.exception.ValidationException;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
@@ -77,14 +78,65 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         if (!ftClient.hasPlayer() || ftClient.getActiveGameSession() == null || ftClient.getActiveRoom() == null)
             return;
 
-        GameSession gameSession = ftClient.getActiveGameSession();
-        if (gameSession == null)
-            return;
+        GameSession gameSession;
+        Integer gameSessionId;
+        Room room;
+        synchronized (ftClient) {
+            gameSession = ftClient.getActiveGameSession();
+            if (gameSession == null) return;
+            gameSessionId = ftClient.getGameSessionId();
+            room = ftClient.getActiveRoom();
+        }
 
         MatchplayGame game = gameSession.getMatchplayGame();
         if (game == null)
             return;
 
+        GuardianBattleState defeatedGuardian = null;
+        synchronized (game) {
+            if (ftClient.getActiveGameSession() != gameSession || game.getFinished().get() ||
+                    !handleHit(connection, spellHitsTarget, ftClient, gameSession, game)) return;
+            if (game instanceof MatchplayGuardianGame guardianGame) {
+                defeatedGuardian = guardianGame.getGuardianBattleStates().stream()
+                        .filter(state -> state.getPosition() == spellHitsTarget.getTargetPosition() &&
+                                state.getCurrentHealth().get() < 1 && state.getLooted().compareAndSet(false, true))
+                        .findFirst().orElse(null);
+                if (defeatedGuardian != null) guardianGame.beginLootUpdate();
+            }
+        }
+        if (defeatedGuardian != null) {
+            MatchplayGuardianGame guardianGame = (MatchplayGuardianGame) game;
+            boolean lootApplied = false;
+            try {
+                try {
+                    handlePotsIncrease(guardianGame, defeatedGuardian);
+                    lootApplied = true;
+                } finally {
+                    if (!lootApplied) guardianGame.failLootUpdates();
+                    guardianGame.completeLootUpdate();
+                }
+            } catch (RuntimeException exception) {
+                guardianGame.failLootUpdates();
+                gameSession.getClients().forEach(client -> {
+                    synchronized (client) {
+                        if (client.getActiveGameSession() == gameSession) client.getConnection().close();
+                    }
+                });
+                GameManager.getInstance().cleanupGameSession(gameSessionId, gameSession, room);
+                throw exception;
+            }
+        }
+        if (ftClient.getActiveGameSession() != gameSession) return;
+        if (game instanceof MatchplayBattleGame battleGame) {
+            this.handleAnyTeamDead(connection, battleGame);
+        } else if (game instanceof MatchplayGuardianGame guardianGame) {
+            this.handleAllGuardiansDead(connection, guardianGame);
+            this.handleAllPlayersDead(connection, guardianGame);
+        }
+    }
+
+    private boolean handleHit(FTConnection connection, CMSGSpellHitsTarget spellHitsTarget,
+                           FTClient ftClient, GameSession gameSession, MatchplayGame game) {
         CMSGSpellHitsTargetExtended spellHitsTargetExt = new CMSGSpellHitsTargetExtended(spellHitsTarget);
         boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() ||
                 game instanceof MatchplayGuardianGame || gameSession.hasOwnedPetSeats();
@@ -97,11 +149,11 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             boolean ownedAttacker = gameSession.isActorOwnedBy(ftClient.getRoomPlayer(), attackerPosition);
             if (!gameSession.isGameplayEndpoint(ftClient) ||
                     !guardianEffect && (!liveAttacker || !ownedAttacker)) {
-                return;
+                return false;
             }
         } else if (enhancedActorSession && game instanceof MatchplayGuardianGame guardianGame) {
-            if (!gameSession.isGameplayEndpoint(ftClient)) {
-                return;
+            if (!gameSession.isGameplayEndpoint(ftClient) || guardianGame.getStageChangingToBoss().get()) {
+                return false;
             }
             short attackerPosition = spellHitsTargetExt.getAttackerPosition();
             short targetPosition = spellHitsTargetExt.getTargetPosition();
@@ -120,16 +172,16 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                     (hostReport || targetOwnedByReporter);
             if (!livePlayerAttacker && !authorizedGuardianReport &&
                     !(servingGuardian && hostReport)) {
-                return;
+                return false;
             }
             if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
                     .noneMatch(state -> state.getPosition() == targetPosition) &&
                     guardianGame.getGuardianBattleStates().stream()
                             .noneMatch(state -> state.getPosition() == targetPosition)) {
-                return;
+                return false;
             }
         } else if (enhancedActorSession) {
-            return;
+            return false;
         }
 
         byte skillId = spellHitsTargetExt.getSkillId();
@@ -137,40 +189,34 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         Skill skill = skillService.findSkillById((long) skillId);
         if (skill == null && skillId != 0) {
             log.warn("Skill not found for skillId: {}", skillId);
-            return;
+            return false;
         }
         if (enhancedActorSession && skillId != 0 && !gameSession.tryConsumeSkillHit(
                 spellHitsTargetExt.getAttackerPosition(), spellHitsTargetExt.getTargetPosition(),
                 skillId, System.nanoTime())) {
-            return;
+            return false;
         }
 
         if (skill != null && this.isUniqueSkill(skill)) {
             GameEventBus.call(GameEventType.MP_PLAYER_HITS_TARGET, ftClient, game, skill);
 
             this.handleUniqueSkill(ftClient.getConnection(), game, skill, spellHitsTargetExt);
-            return;
+            return false;
         }
         if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame && battleGame.getPlayerBattleStates().stream()
                 .noneMatch(state -> state.getPosition() == spellHitsTargetExt.getTargetPosition())) {
-            return;
+            return false;
         }
 
         boolean denyDamage = spellHitsTargetExt.getDamageType() == 1;
         if (skillId == 0 && !denyDamage) {
             if (!this.handleBallLossDamage(ftClient.getConnection(), game, spellHitsTargetExt))
-                return;
+                return false;
         } else {
             if (!this.handleSkillDamage(ftClient.getConnection(), spellHitsTargetExt.getTargetPosition(), game, skill, spellHitsTargetExt))
-                return;
+                return false;
         }
-
-        if (game instanceof MatchplayBattleGame battleGame) {
-            this.handleAnyTeamDead(ftClient.getConnection(), battleGame);
-        } else if (game instanceof MatchplayGuardianGame guardianGame) {
-            this.handleAllGuardiansDead(ftClient.getConnection(), guardianGame);
-            this.handleAllPlayersDead(ftClient.getConnection(), guardianGame);
-        }
+        return true;
     }
 
     private boolean isUniqueSkill(Skill skill) {
@@ -254,7 +300,10 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                     }
                 } else {
                     if (!spellHitsTargetExt.getApplySkillEffect()) {
-                        newHealth = guardianGame.getPlayerCombatSystem().getPlayerCurrentHealth(receiverPosition);
+                        GuardianBattleState target = guardianGame.getGuardianBattleStates().stream()
+                                .filter(state -> state.getPosition() == receiverPosition).findFirst().orElse(null);
+                        if (target == null) return false;
+                        newHealth = (short) target.getCurrentHealth().get();
                     } else {
                         if (isAdvancedBossGuardianModeActive) {
                             newHealth = (short) guardianGame.getPhaseManager().onDealDamageOnBallLoss(attackerPosition, receiverPosition, attackerHasWillBuff);
@@ -263,9 +312,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                         }
                     }
 
-                    if (newHealth < 1) {
-                        this.increasePotsFromGuardiansDeath((MatchplayGuardianGame) game, receiverPosition);
-                    }
                 }
             }
         } catch (ValidationException ve) {
@@ -408,9 +454,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                     return false;
                 }
 
-                if (newHealth < 1) {
-                    this.increasePotsFromGuardiansDeath((MatchplayGuardianGame) game, targetPosition);
-                }
             }
         }
 
@@ -421,18 +464,6 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 new S2CMatchplayDealDamage(targetPosition, newHealth, attackerPosition, skillToApply.getId().byteValue(), spellHitsTargetExt.getHitDirX(), spellHitsTargetExt.getHitDirY());
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(damageToPlayerPacket, connection);
         return true;
-    }
-
-    private void increasePotsFromGuardiansDeath(MatchplayGuardianGame game, int guardianPos) {
-        GuardianBattleState guardianBattleState = game.getGuardianBattleStates().stream()
-                .filter(x -> x.getPosition() == guardianPos)
-                .findFirst()
-                .orElse(null);
-        if (guardianBattleState != null) {
-            if (guardianBattleState.getLooted().compareAndSet(false, true)) {
-                handlePotsIncrease(game, guardianBattleState);
-            }
-        }
     }
 
     private void handlePotsIncrease(MatchplayGuardianGame game, GuardianBattleState guardianBattleState) {
@@ -560,6 +591,14 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
     }
 
     private void handleAllGuardiansDead(FTConnection connection, MatchplayGuardianGame game) {
+        FTClient client = connection.getClient();
+        if (client == null) return;
+        GameSession gameSession = client.getActiveGameSession();
+        synchronized (game) {
+            if (gameSession == null || client.getActiveGameSession() != gameSession ||
+                    gameSession.getMatchplayGame() != game || game.getFinished().get()) return;
+            if (game.deferUntilLootComplete(() -> handleAllGuardiansDead(connection, game))) return;
+        }
         final boolean isHardMode = game.getIsHardMode().get();
         boolean stageChangingToBoss = game.getStageChangingToBoss().get();
         final boolean hasBossGuardianStage = game.getMap().getIsBossStage();
@@ -570,13 +609,14 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
 
         final boolean canEnterBossBattle = (hasBossGuardianStage || isHardMode) && allGuardiansDead && triggerBossBattle && !isBossBattleActive && !stageChangingToBoss;
         if (canEnterBossBattle) {
-            if (!game.getStageChangingToBoss().compareAndSet(false, true))
-                return;
+            synchronized (game) {
+                if (client.getActiveGameSession() != gameSession || game.getFinished().get() || game.getGuardianBattleStates().stream()
+                        .anyMatch(state -> state.getCurrentHealth().get() > 0)) return;
+                if (game.deferUntilLootComplete(() -> handleAllGuardiansDead(connection, game))) return;
+                if (!game.getStageChangingToBoss().compareAndSet(false, true)) return;
+                if (!game.getBossBattleActive().compareAndSet(false, true)) return;
+            }
 
-            if (!game.getBossBattleActive().compareAndSet(false, true))
-                return;
-
-            GameSession gameSession = connection.getClient().getActiveGameSession();
             gameSession.clearCountDownRunnable();
             gameSession.getFireables().forEach(f -> f.setCancelled(true));
             gameSession.getFireables().clear();
@@ -683,30 +723,35 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
                 game.getGuardianBattleStates().add(guardianBattleState);
             }
 
-            S2CMatchplaySpawnBossBattle matchplaySpawnBossBattle = new S2CMatchplaySpawnBossBattle(guardians.get(0), guardians.get(1), guardians.get(2));
-            S2CRoomSetBossGuardiansStats setBossGuardiansStats = new S2CRoomSetBossGuardiansStats(game.getGuardianBattleStates(), guardians);
-            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(matchplaySpawnBossBattle, connection);
-            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setBossGuardiansStats, connection);
+            synchronized (game) {
+                synchronized (client) {
+                    if (client.getActiveGameSession() != gameSession || game.getFinished().get()) return;
+                    S2CMatchplaySpawnBossBattle matchplaySpawnBossBattle = new S2CMatchplaySpawnBossBattle(guardians.get(0), guardians.get(1), guardians.get(2));
+                    S2CRoomSetBossGuardiansStats setBossGuardiansStats = new S2CRoomSetBossGuardiansStats(game.getGuardianBattleStates(), guardians);
+                    GameManager.getInstance().sendPacketToAllClientsInSameGameSession(matchplaySpawnBossBattle, connection);
+                    GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setBossGuardiansStats, connection);
 
-            RunnableEvent runnableEvent = eventHandler.createRunnableEvent(new GuardianServeTask(connection), TimeUnit.SECONDS.toMillis(18));
-            gameSession.getFireables().push(runnableEvent);
-            eventHandler.offer(runnableEvent);
-
-            final int activePlayerCount = game.getPlayerBattleStates().size();
-            switch (activePlayerCount) {
-                case 1, 2 -> {
-                    runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(18));
-                    gameSession.getFireables().push(runnableEvent);
-                    eventHandler.offer(runnableEvent);
-                }
-                case 3, 4 -> {
-                    runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(18));
+                    RunnableEvent runnableEvent = eventHandler.createRunnableEvent(new GuardianServeTask(connection), TimeUnit.SECONDS.toMillis(18));
                     gameSession.getFireables().push(runnableEvent);
                     eventHandler.offer(runnableEvent);
 
-                    runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(36));
-                    gameSession.getFireables().push(runnableEvent);
-                    eventHandler.offer(runnableEvent);
+                    final int activePlayerCount = game.getPlayerBattleStates().size();
+                    switch (activePlayerCount) {
+                        case 1, 2 -> {
+                            runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(18));
+                            gameSession.getFireables().push(runnableEvent);
+                            eventHandler.offer(runnableEvent);
+                        }
+                        case 3, 4 -> {
+                            runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(18));
+                            gameSession.getFireables().push(runnableEvent);
+                            eventHandler.offer(runnableEvent);
+
+                            runnableEvent = eventHandler.createRunnableEvent(new PlaceCrystalRandomlyTask(connection), TimeUnit.SECONDS.toMillis(36));
+                            gameSession.getFireables().push(runnableEvent);
+                            eventHandler.offer(runnableEvent);
+                        }
+                    }
                 }
             }
         } else {

@@ -67,6 +67,10 @@ public class GameSessionManager {
         matchplayRewardList.remove(roomId);
     }
 
+    public void removeMatchplayReward(int roomId, MatchplayReward expected) {
+        matchplayRewardList.remove(roomId, expected);
+    }
+
     public boolean hasMatchplayReward(int roomId) {
         return matchplayRewardList.containsKey(roomId);
     }

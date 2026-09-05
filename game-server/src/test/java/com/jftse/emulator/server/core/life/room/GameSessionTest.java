@@ -215,6 +215,36 @@ class GameSessionTest {
     }
 
     @Test
+    void recastReplacesConsumedTargetsAndPriorTargetRestriction() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, 0, 7, 1_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        session.authorizeSkillHits(2, 1, 7, 3_000L);
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 4_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 4_000L));
+        session.authorizeSkillHits(2, 1, 7, 5_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 6_000L));
+    }
+
+    @Test
+    void hitGrantAcceptsExactDeadlineButRejectsOneNanosecondLater() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 15_000_001_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 1, 7, 15_000_001_001L));
+    }
+
+    @Test
+    void concurrentDuplicateReportsConsumeTargetOnlyOnce() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+        long accepted = java.util.stream.IntStream.range(0, 100).parallel()
+                .filter(ignored -> session.tryConsumeSkillHit(2, 0, 7, 2_000L)).count();
+        assertEquals(1, accepted);
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+    }
+
+    @Test
     void serverGrantedSkillCastCanBeConsumedExactlyOnce() {
         GameSession session = new GameSession();
         session.authorizeSkillCast(10, 8, 1_000L);
