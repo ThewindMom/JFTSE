@@ -39,71 +39,80 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
             if (ftClient == null) {
                 return;
             }
-
             Room room = ftClient.getActiveRoom();
-            if (room == null) {
-                return;
-            }
-
             RoomPlayer roomPlayer = ftClient.getRoomPlayer();
-            if (roomPlayer == null) {
+            if (room == null || roomPlayer == null) {
                 return;
             }
 
             boolean dedicatedBattlemon = room.getRoomType() == RoomType.BATTLEMON;
-            boolean guardianOwnedPetFeature = room.getMode() == GameMode.GUARDIAN &&
-                    room.getAllowBattlemon() != 0;
-            boolean enhanced = dedicatedBattlemon || guardianOwnedPetFeature;
-            if (!enhanced) {
+            boolean guardianOwnedPet = room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+            if (!dedicatedBattlemon && !guardianOwnedPet) {
                 handleOrdinaryRoom(connection, ftClient, room, roomPlayer, requestedSlot);
+                return;
+            }
+
+            slot = (byte) roomPlayer.getPosition();
+            int petPosition = roomPlayer.getPosition() + 2;
+            PetView detached;
+            synchronized (room) {
+                if (room.getStatus() != RoomStatus.NotRunning || roomPlayer.isReady()
+                        || requestedSlot != roomPlayer.getPosition()) {
+                    connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
+                    return;
+                }
+                detached = roomPlayer.getPet();
+                if (detached != null) {
+                    if (dedicatedBattlemon) {
+                        connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
+                        return;
+                    }
+                    roomPlayer.setPet(null);
+                    if (petPosition < room.getPositions().size()
+                            && room.getPositions().get(petPosition) == RoomPositionState.InUse
+                            && !isSeatOccupied(room, petPosition)) {
+                        room.getPositions().set(petPosition, RoomPositionState.Free);
+                    }
+                } else if (!isPetSeatFree(room, roomPlayer, petPosition)) {
+                    connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.NO_FREE_SLOT, false, slot, null));
+                    return;
+                }
+            }
+            if (detached != null) {
+                broadcast(connection, answer(S2CPetRequestRoomAnswerPacket.SUCCESS, false, slot, detached));
                 return;
             }
 
             PetView selectedPetView = ftClient.getActivePet();
             if (selectedPetView == null) {
-                connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                        S2CPetRequestRoomAnswerPacket.NO_PET_SELECTED, false, slot, null));
+                connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.NO_PET_SELECTED, false, slot, null));
                 return;
             }
-
             Pet selectedPet = petService.findByIdAndPlayerId(selectedPetView.id(), ftClient.getPlayer().getId());
-            if (selectedPet == null || !Boolean.TRUE.equals(selectedPet.getAlive()) ||
-                    selectedPet.getValidUntil() == null || selectedPet.getValidUntil().before(new Date())) {
-                connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                        S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
+            if (selectedPet == null || !Boolean.TRUE.equals(selectedPet.getAlive())
+                    || selectedPet.getValidUntil() == null || selectedPet.getValidUntil().before(new Date())) {
+                connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
                 return;
             }
 
-            PetView pet;
+            PetView attached;
             synchronized (room) {
                 PetView currentSelectedPet = ftClient.getActivePet();
-                int petPosition = roomPlayer.getPosition() + 2;
-                if (ftClient.getActiveRoom() != room || room.getStatus() != RoomStatus.NotRunning ||
-                        requestedSlot != roomPlayer.getPosition() || roomPlayer.getPet() != null ||
-                        !dedicatedBattlemon && !(room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0) ||
-                        roomPlayer.getPosition() < 0 || roomPlayer.getPosition() > 1 ||
-                        petPosition >= room.getPositions().size() ||
-                        room.getPositions().get(petPosition) != RoomPositionState.Free ||
-                        room.getRoomPlayerList().stream()
-                                .anyMatch(player -> player.getPosition() == petPosition) ||
-                        currentSelectedPet == null || currentSelectedPet.id() != selectedPet.getId()) {
-                    connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                            S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
+                if (ftClient.getActiveRoom() != room || room.getStatus() != RoomStatus.NotRunning
+                        || requestedSlot != roomPlayer.getPosition() || roomPlayer.getPet() != null
+                        || !isPetSeatFree(room, roomPlayer, petPosition)
+                        || currentSelectedPet == null || currentSelectedPet.id() != selectedPet.getId()) {
+                    connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
                     return;
                 }
                 ftClient.setActivePet(selectedPet);
                 room.getPositions().set(petPosition, RoomPositionState.InUse);
-                roomPlayer.setPet(PetView.of(selectedPet));
-                pet = roomPlayer.getPet();
+                attached = PetView.of(selectedPet);
+                roomPlayer.setPet(attached);
             }
-
-            S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
-                    S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet);
-            GameManager.getInstance().sendPacketToAllClientsInSameRoom(answer, connection);
+            broadcast(connection, answer(S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, attached));
         } catch (Exception e) {
-            S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
-                    S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null);
-            connection.sendTCP(answer);
+            connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.CAN_NOT_ADD_PET, false, slot, null));
             log.error("Error in RoomRequestPetPacketHandler", e);
         }
     }
@@ -111,33 +120,38 @@ public class RoomRequestPetPacketHandler implements PacketHandler<FTConnection, 
     private void handleOrdinaryRoom(FTConnection connection, FTClient ftClient, Room room,
                                     RoomPlayer roomPlayer, byte requestedSlot) {
         if (room.getAllowBattlemon() == 0) {
-            connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                    S2CPetRequestRoomAnswerPacket.PET_NOT_ALLOWED, false, requestedSlot, null));
+            connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.PET_NOT_ALLOWED, false, requestedSlot, null));
             return;
         }
         if (ftClient.getActivePet() == null) {
-            connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                    S2CPetRequestRoomAnswerPacket.NO_PET_SELECTED, false, requestedSlot, null));
+            connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.NO_PET_SELECTED, false, requestedSlot, null));
             return;
         }
-        boolean slotNotFree = room.getRoomPlayerList().stream()
-                .anyMatch(player -> player.getPosition() == requestedSlot + 2);
-        if (slotNotFree) {
-            connection.sendTCP(new S2CPetRequestRoomAnswerPacket(
-                    S2CPetRequestRoomAnswerPacket.NO_FREE_SLOT, false, requestedSlot, null));
+        if (isSeatOccupied(room, requestedSlot + 2)) {
+            connection.sendTCP(answer(S2CPetRequestRoomAnswerPacket.NO_FREE_SLOT, false, requestedSlot, null));
             return;
         }
-        boolean isAdd = false;
-        PetView ordinaryPet = roomPlayer.getPet();
-        if (ordinaryPet != null) {
-            roomPlayer.setPet(null);
-        } else {
-            roomPlayer.setPet(ftClient.getActivePet());
-            ordinaryPet = roomPlayer.getPet();
-            isAdd = true;
-        }
-        S2CPetRequestRoomAnswerPacket answer = new S2CPetRequestRoomAnswerPacket(
-                S2CPetRequestRoomAnswerPacket.SUCCESS, isAdd, requestedSlot, ordinaryPet);
+        boolean isAdd = roomPlayer.getPet() == null;
+        roomPlayer.setPet(isAdd ? ftClient.getActivePet() : null);
+        broadcast(connection, answer(S2CPetRequestRoomAnswerPacket.SUCCESS, isAdd, requestedSlot, roomPlayer.getPet()));
+    }
+
+    private static boolean isPetSeatFree(Room room, RoomPlayer roomPlayer, int petPosition) {
+        return roomPlayer.getPosition() >= 0 && roomPlayer.getPosition() <= 1
+                && petPosition < room.getPositions().size()
+                && room.getPositions().get(petPosition) == RoomPositionState.Free
+                && !isSeatOccupied(room, petPosition);
+    }
+
+    private static boolean isSeatOccupied(Room room, int position) {
+        return room.getRoomPlayerList().stream().anyMatch(player -> player.getPosition() == position);
+    }
+
+    private static S2CPetRequestRoomAnswerPacket answer(byte result, boolean isAdd, byte slot, PetView pet) {
+        return new S2CPetRequestRoomAnswerPacket(result, isAdd, slot, pet);
+    }
+
+    private static void broadcast(FTConnection connection, S2CPetRequestRoomAnswerPacket answer) {
         GameManager.getInstance().sendPacketToAllClientsInSameRoom(answer, connection);
     }
 }
