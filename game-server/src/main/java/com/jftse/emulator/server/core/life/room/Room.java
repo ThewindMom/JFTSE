@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Setter
 public class Room {
     public Room() {
+        clubMatchState = new ClubMatchState();
         bannedPlayers = new ConcurrentLinkedDeque<>();
         invitedPlayerIds = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
@@ -52,6 +53,8 @@ public class Room {
 
     private Long tournamentMatchId;
     private boolean tournamentSpectatorsAllowed;
+    private final ClubMatchState clubMatchState;
+    private int clubMatchMaxPlayTimeMinutes;
 
     private byte previousMap = 0;
 

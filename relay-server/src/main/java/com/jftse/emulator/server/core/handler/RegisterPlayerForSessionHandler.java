@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.handler;
 import com.jftse.emulator.server.core.manager.RelayManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.codec.PacketDecoderV2;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.relay.CMSGPlayerJoinSession;
@@ -35,6 +36,8 @@ public class RegisterPlayerForSessionHandler implements PacketHandler<FTConnecti
             RelayManager.getInstance().addClientToSession(sessionId, client);
 
             sessionResultBuilder.result((byte) 0);
+            // The native client consumes one C2S serial between relay registration and gameplay.
+            connection.getChannelHandlerContext().pipeline().get(PacketDecoderV2.class).advanceReceiveIndicator();
         } else {
             sessionResultBuilder.result((byte) 1);
         }

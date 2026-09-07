@@ -1,0 +1,62 @@
+2026-08-12 10:11:26,374 [epollEventLoopGroup-3-3] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+B5 5E E5 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:27,469 [epollEventLoopGroup-3-4] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+4D 63 95 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:31,415 [epollEventLoopGroup-3-3] PacketLogger [encode] DEBUG SEND [16 bytes]
+SMSGServerTimeSync { "id": "0x1452", "len": 8, "data": { "currentTime": 134310030914140000 } }
+--- Hex Dump ---
+3B 7F 5B 07 52 14 08 00    60 B7 68 F2 42 2A DD 01 
+===
+2026-08-12 10:11:31,512 [epollEventLoopGroup-3-3] PacketLogger [decode] DEBUG RECV [32 bytes]
+CMSGServerTimeSync { "id": "0x1453", "len": 24, "data": { "syncDelta": 48 } }
+--- Hex Dump ---
+1A 5F 2B 07 53 14 18 00    30 00 00 00 00 00 00 00 
+37 AA 74 F5 9F 01 00 00    FA 03 4E 02 00 00 00 00 
+===
+2026-08-12 10:11:32,184 [epollEventLoopGroup-3-4] PacketLogger [encode] DEBUG SEND [16 bytes]
+SMSGServerTimeSync { "id": "0x1452", "len": 8, "data": { "currentTime": 134310030921830000 } }
+--- Hex Dump ---
+EC 52 DF 07 52 14 08 00    70 0E DE F2 42 2A DD 01 
+===
+2026-08-12 10:11:32,301 [epollEventLoopGroup-3-4] PacketLogger [decode] DEBUG RECV [32 bytes]
+CMSGServerTimeSync { "id": "0x1453", "len": 24, "data": { "syncDelta": 58 } }
+--- Hex Dump ---
+F4 CB 71 08 53 14 18 00    3A 00 00 00 00 00 00 00 
+4C AD 74 F5 9F 01 00 00    0F 07 4E 02 00 00 00 00 
+===
+2026-08-12 10:11:36,429 [epollEventLoopGroup-3-3] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+B1 5A DD 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:37,545 [epollEventLoopGroup-3-4] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+BD 81 23 08 A3 0F 00 00                            
+===
+2026-08-12 10:11:46,488 [epollEventLoopGroup-3-3] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+8A 37 93 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:47,584 [epollEventLoopGroup-3-4] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+4E 7E B1 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:56,548 [epollEventLoopGroup-3-3] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+B5 53 ED 07 A3 0F 00 00                            
+===
+2026-08-12 10:11:57,622 [epollEventLoopGroup-3-4] PacketLogger [decode] DEBUG RECV [8 bytes]
+CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+--- Hex Dump ---
+B5 5E E5 07 A3 0F 00 00                            
+===

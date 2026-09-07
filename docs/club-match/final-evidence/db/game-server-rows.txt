@@ -1,0 +1,5 @@
+id	name	host	port	gameServerTypeId	isCustomChannel
+5	NULL	94.130.239.34	5897	1	0
+6	NULL	94.130.239.34	5895	2	0
+7	NULL	94.130.239.34	5901	7	0
+8	NULL	94.130.239.34	5895	8	0

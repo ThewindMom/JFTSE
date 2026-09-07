@@ -1,0 +1,10 @@
+tutorials	11
+guardians	72
+products	10266
+cmhost	0	NULL
+cmguest	0	NULL
+94.130.249.34	5895	1	Free
+94.130.249.34	5895	8	Tournament
+94.130.249.34	5896	NULL	Relay
+94.130.249.34	5897	0	Chat
+94.130.249.34	5901	7	Club

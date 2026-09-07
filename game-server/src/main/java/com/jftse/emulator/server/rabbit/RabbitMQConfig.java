@@ -4,6 +4,7 @@ import com.jftse.server.core.rabbit.AbstractRabbitMQConfiguration;
 import com.jftse.server.core.rabbit.RabbitQueueDefinition;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
@@ -13,6 +14,9 @@ import java.util.List;
 @Getter
 @Log4j2
 public class RabbitMQConfig extends AbstractRabbitMQConfiguration {
+    @Value("${jftse.rabbitmq.match-queue:match-queue}")
+    private String matchQueueName;
+
    @PostConstruct
     public void init() {
          log.info("RabbitMQ configuration initialized");
@@ -28,6 +32,6 @@ public class RabbitMQConfig extends AbstractRabbitMQConfiguration {
      */
     @Override
     protected List<RabbitQueueDefinition> getAdditionalQueues() {
-        return List.of(new RabbitQueueDefinition("match-queue", List.of("game.stats.match.rally")));
+        return List.of(new RabbitQueueDefinition(matchQueueName, List.of("game.stats.match.rally")));
     }
 }

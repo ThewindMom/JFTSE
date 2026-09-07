@@ -29,14 +29,22 @@ public class PacketDecoderV2 extends ByteToMessageDecoder {
     private final Logger log;
 
     public PacketDecoderV2(int decryptKey, Logger log) {
-        this.decryptKey = decryptKey;
-
-        this.logAllPackets = ConfigService.getInstance().getValue("logging.packets.all.enabled", true);
+        this(decryptKey, log,
+                ConfigService.getInstance().getValue("logging.packets.all.enabled", true),
+                ConfigService.getInstance().getValue("logging.packets.pretty-print.enabled", false));
         final boolean logPacketsToConsole = ConfigService.getInstance().getValue("logging.packets.console-output.enabled", true);
-        this.prettyPrintEnabled = ConfigService.getInstance().getValue("logging.packets.pretty-print.enabled", false);
         LogConfigurator.setConsoleOutput("PacketLogger", logPacketsToConsole);
+    }
 
+    PacketDecoderV2(int decryptKey, Logger log, boolean logAllPackets, boolean prettyPrintEnabled) {
+        this.decryptKey = decryptKey;
+        this.logAllPackets = logAllPackets;
+        this.prettyPrintEnabled = prettyPrintEnabled;
         this.log = log;
+    }
+
+    public void advanceReceiveIndicator() {
+        this.receiveIndicator = (this.receiveIndicator + 1) % 60;
     }
 
     @Override
@@ -86,7 +94,7 @@ public class PacketDecoderV2 extends ByteToMessageDecoder {
                     BitKit.toString8x2(data, 0, data.length));
         }
 
-        this.receiveIndicator = (this.receiveIndicator + 1) % 60;
+        advanceReceiveIndicator();
         return packet;
     }
 

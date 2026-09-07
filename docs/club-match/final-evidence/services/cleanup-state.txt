@@ -1,0 +1,42 @@
+cleanup_started_utc=2026-08-12T10:23:07,064050543+00:00
+
+Task-owned containers before cleanup:
+jftse-cm-final-client-b	Up About an hour
+jftse-cm-final-client-a	Up About an hour
+jftse-cm-final-capture	Exited (0) 7 minutes ago
+jftse-cm-final-emulator	Up 3 hours
+jftse-cm-final-mysql	Up 3 hours (healthy)
+jftse-cm-final-rabbit	Up 3 hours (healthy)
+
+Stopping isolated native clients:
+jftse-cm-final-client-a
+jftse-cm-final-client-b
+
+Disposable state after native disconnect, before explicit reset:
+username	status	loggedInServer	player	playerOnline	tutorialCount	completedCount
+cmhost	0	NONE	CMHostA	0	11	11
+cmguest	0	NONE	CMGuestB	0	11	11
+
+Explicit task-local stale-state reset applied:
+
+Disposable state after reset:
+username	gameMaster	status	loggedInServer	player	playerOnline	guild	allowedCharacterTypeHex
+cmhost	0	0	NULL	CMHostA	0	CMHostGuild	000102030405060708
+cmguest	0	0	NULL	CMGuestB	0	CMGuestGuild	000102030405060708
+player	tutorialCount	completedCount
+CMHostA	11	11
+CMGuestB	11	11
+
+Removing only containers/networks labeled amp.task=jftse-club-match-final.
+fe3a89b55a85
+e0e640b96b9d
+0782f216a355
+58cadf672db6
+bfe0bd156a71
+60d4aeb3e8c6
+5abd0c0d2f40
+
+Task-owned containers after cleanup:
+Task-owned networks after cleanup:
+cleanup_finished_utc=2026-08-12T10:23:29,997678012+00:00
+cleanup_verdict=no labeled containers or networks remain

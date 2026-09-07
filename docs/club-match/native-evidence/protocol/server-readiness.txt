@@ -1,0 +1,12 @@
+ac-server                        RUNNING   pid 13, uptime 0:02:36
+auth-server                      RUNNING   pid 14, uptime 0:02:36
+chat-server                      RUNNING   pid 19, uptime 0:02:36
+club-game-server                 RUNNING   pid 16, uptime 0:02:36
+game-server                      RUNNING   pid 15, uptime 0:02:36
+relay-server                     RUNNING   pid 18, uptime 0:02:36
+* ac-server successfully started!     *
+* auth-server successfully started!   *
+* chat-server successfully started!   *
+* game-server successfully started!   *
+* game-server successfully started!   *
+* relay-server successfully started!  *

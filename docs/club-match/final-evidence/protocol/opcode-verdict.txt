@@ -1,0 +1,28 @@
+Corrected non-GM run packet verdict
+===================================
+
+Authoritative create timestamp: 2026-08-12 10:09:29Z
+Calibrated guest click timestamp: 2026-08-12 10:11:35Z
+
+Observed after native host BasicMode click:
+- C2S 0x138F payload 00000000 (roomType=0, mode=0, players=0)
+- S2C 0x138A payload 0000060000000000 (success, roomType=6, mode=0)
+- S2C 0x177A room type 6, mode 0
+- S2C 0x138E room type 6, mode 0
+- S2C 0x26FF payload 05000000 (max play time 5)
+
+Observed after visually calibrated native guest room-row click:
+- Guest UI: The Club Match is over.
+- C2S 0x138B: 0 occurrences
+- Host room: remained alive with CMHostA only
+
+Not reached in this corrected run:
+- C2S 0x26F7 and legacy 0x1775 Ready comparison
+- S2C 0x26F8 countdown
+- C2S 0x26F9, relay setup, S2C 0x26FA
+- C2S 0x26FB, non-tied S2C 0x26FC, return to room
+
+Absence of Ready/lifecycle opcodes is a barrier result, not proof of their
+runtime semantics. The click was blocked in the unmodified client before any
+room-join request reached the server, so this run does not establish a server
+join defect.

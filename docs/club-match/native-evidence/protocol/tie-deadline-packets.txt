@@ -1,0 +1,6 @@
+266:2026-08-13 06:26:41,296 [main] PacketRegistry [register] INFO  com.jftse.server.core.shared.packets.matchplay.CMSGClubMatchTimeExpired 0x26FB(9979)
+420:2026-08-13 06:26:41,384 [main] PacketRegistry [lambda$registerHandlers$5] INFO  com.jftse.emulator.server.core.handler.matchplay.ClubMatchTimeExpiredPacketHandler 0x26FB(9979)
+7320:2026-08-13 07:33:55,707 [ThreadManager-VT-Scheduled-1] MatchplayBasicModeHandler [finishExpiredClubMatch] WARN  Club Match session 73447 expired with tied sets 1-1; the original tie-break rule is not yet proven, so no result was sent
+7321:2026-08-13 07:33:55,711 [ThreadManager-VT-Scheduled-1] MatchplayBasicModeHandler [finishClubMatch] INFO  Club Match session 73447 ended without a proven tie result; ordinary Basic rewards, rankings, player statistics, and guild records were not changed
+7349:CMSGClubMatchTimeExpired { "id": "0x26FB", "len": 0, "data": { } }
+7354:CMSGClubMatchTimeExpired { "id": "0x26FB", "len": 0, "data": { } }

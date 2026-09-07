@@ -27,12 +27,21 @@ public class MatchRallyStatsConsumer {
     private final Map<Integer, Map<Integer, PlayerStats>> playerStatsMap = new ConcurrentHashMap<>();
     private final GameSessionManager gameSessionManager;
 
-    @RabbitListener(queues = "match-queue")
+    @RabbitListener(queues = "${jftse.rabbitmq.match-queue:match-queue}")
     public void receiveMessage(MatchBallSyncMessage message) {
         if (message == null
                 || message.getGameSessionId() == null
+                || message.getPlayerId() == null
                 || message.getPlayerPos() == null
                 || message.getHitAct() == null) {
+            return;
+        }
+
+        GameSession session = gameSessionManager.getGameSessionBySessionId(message.getGameSessionId());
+        if (session == null || session.getClients().stream().noneMatch(client -> client.hasPlayer()
+                && client.getPlayer().getId() == message.getPlayerId()
+                && client.getRoomPlayer() != null
+                && client.getRoomPlayer().getPosition() == message.getPlayerPos())) {
             return;
         }
 
