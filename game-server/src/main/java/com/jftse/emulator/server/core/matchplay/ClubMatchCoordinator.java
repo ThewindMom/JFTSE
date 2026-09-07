@@ -166,7 +166,7 @@ public final class ClubMatchCoordinator {
                 if (client.getConnection() != null) {
                     client.getConnection().sendTCP(new S2CMatchplayBackToRoom());
                 }
-                client.clearActiveGameSession(gameSessionId);
+                client.clearActiveGameSession(gameSession);
             });
             GameManager.getInstance().getMatchRallyStatsConsumer().clearSession(gameSessionId);
             GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);

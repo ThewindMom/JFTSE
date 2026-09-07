@@ -57,6 +57,8 @@ public class RoomManager {
 
     @Autowired
     private SocialService socialService;
+    @Autowired
+    private ConfigService configService;
 
     @PostConstruct
     public void init() {
@@ -225,24 +227,14 @@ public class RoomManager {
     }
 
     private int clubMatchMaxPlayTimeMinutes() {
-        ConfigService config = ConfigService.getInstance();
-        if (config == null) {
-            return 5;
-        }
-        return Math.max(1, config.getValue("club.match.max-play-time.minutes", 5));
+        return Math.max(1, configService.getValue("club.match.max-play-time.minutes", 5));
     }
 
     private byte gameServerTypeOf(FTClient client) {
-        if (client.getConnection() == null) {
-            return 1;
-        }
         return client.getConnection().getGameServerType();
     }
 
     private void updatePlayerRelationship(FTPlayer player) {
-        if (socialService == null) {
-            return;
-        }
         Friend couple = socialService.getRelationshipWithFriend(player.getPlayerRef());
         if (couple != null) {
             player.setCoupleId(couple.getFriend().getId());
@@ -321,7 +313,7 @@ public class RoomManager {
             return RoomJoinResult.of((char) 1, activeRoom, client.getRoomPlayer());
         }
 
-        if ((room.isHardMode() || room.isArcade()) && player.getLevel() < ConfigService.getInstance().getValue("command.room.mode.change.player.level", 60)) {
+        if ((room.isHardMode() || room.isArcade()) && player.getLevel() < configService.getValue("command.room.mode.change.player.level", 60)) {
             return RoomJoinResult.of((char) -10, room, null);
         }
 
@@ -395,26 +387,24 @@ public class RoomManager {
     }
 
     private RoomJoinResult joinClubMatch(FTClient client, Room room, FTPlayer player) {
-        ClubMatchRules.JoinDecision decision;
+        updatePlayerRelationship(player);
         synchronized (room) {
-            decision = room.getStatus() == RoomStatus.NotRunning
+            ClubMatchRules.JoinDecision decision = room.getStatus() == RoomStatus.NotRunning
                     ? ClubMatchRules.decideJoin(room, player.getGuild())
                     : ClubMatchRules.JoinDecision.rejected(-1);
-            if (decision.allowed()
-                    && ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
-                room.getPositions().set(decision.position(), RoomPositionState.InUse);
-                updatePlayerRelationship(player);
-                createPlayer(room, client, player, decision.position());
-                client.setActiveRoom(room);
-                client.setInLobby(false);
-                handleRoomUponJoin(room, client, false);
-                return RoomJoinResult.of((char) 0, room, client.getRoomPlayer());
+            if (!decision.allowed()) {
+                return RoomJoinResult.of((char) decision.result(), room, null);
             }
-            if (decision.allowed()) {
-                decision = ClubMatchRules.JoinDecision.rejected(-1);
+            if (!ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                return RoomJoinResult.of((char) -1, room, null);
             }
+            room.getPositions().set(decision.position(), RoomPositionState.InUse);
+            createPlayer(room, client, player, decision.position());
+            client.setActiveRoom(room);
+            client.setInLobby(false);
+            handleRoomUponJoin(room, client, false);
+            return RoomJoinResult.of((char) 0, room, client.getRoomPlayer());
         }
-        return RoomJoinResult.of((char) decision.result(), room, null);
     }
 
     private void handleRoomUponJoin(final Room room, final FTClient client, boolean existingRoom) {
