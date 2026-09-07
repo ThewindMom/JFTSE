@@ -16,7 +16,9 @@ import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.item.EItemUseType;
+import com.jftse.server.core.service.EmblemQuestService;
 import com.jftse.server.core.service.PlayerPocketService;
+import com.jftse.server.core.service.PlayerStatisticService;
 import com.jftse.server.core.service.PocketService;
 import com.jftse.server.core.shared.packets.chat.house.CMSGShakeTreeSuccess;
 import com.jftse.server.core.shared.packets.chat.house.SMSGShakeTreeFail;
@@ -29,10 +31,14 @@ import java.util.TimeZone;
 public class ShakeTreeSuccessHandler implements PacketHandler<FTConnection, CMSGShakeTreeSuccess> {
     private final PlayerPocketService playerPocketService;
     private final PocketService pocketService;
+    private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
 
     public ShakeTreeSuccessHandler() {
         this.playerPocketService = ServiceManager.getInstance().getPlayerPocketService();
         this.pocketService = ServiceManager.getInstance().getPocketService();
+        this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
     }
 
     @Override
@@ -126,6 +132,13 @@ public class ShakeTreeSuccessHandler implements PacketHandler<FTConnection, CMSG
 
             S2CHousingRewardItemPacket housingRewardItemPacket = new S2CHousingRewardItemPacket(playerPocket);
             connection.sendTCP(housingRewardItemPacket);
+
+            var statistic = playerStatisticService.incrementHousingCollections(roomPlayer.getPlayerStatisticId(), 0, quantity);
+            if (statistic != null) {
+                emblemQuestService.increment(roomPlayer.getPlayerId(), "Fruits", quantity);
+                emblemQuestService.setBaseline(roomPlayer.getPlayerId(), EmblemQuestService.TOTAL_FRUITS,
+                        statistic.getFruitsCollected());
+            }
         }
 
         SMSGShakeTreeSuccess success = SMSGShakeTreeSuccess.builder()

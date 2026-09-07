@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.packets.matchplay;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.entities.database.model.player.EquippedItemStats;
+import com.jftse.server.core.item.CardStats;
 import com.jftse.server.core.item.SpecialItemEffects;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
@@ -57,10 +58,10 @@ public class S2CMatchplaySetExperienceGainInfoData extends Packet {
         this.write(equippedItemStats.getSpecialDexterity().byteValue());
         this.write(equippedItemStats.getSpecialWillpower().byteValue());
         // cards added status points
-        this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
+        this.write(roomPlayer.getCardStats().hp());
+        this.write((byte) CardStats.saturateByte(roomPlayer.getCardStats().strength()));
+        this.write((byte) CardStats.saturateByte(roomPlayer.getCardStats().stamina()));
+        this.write((byte) CardStats.saturateByte(roomPlayer.getCardStats().dexterity()));
+        this.write((byte) CardStats.saturateByte(roomPlayer.getCardStats().willpower()));
     }
 }

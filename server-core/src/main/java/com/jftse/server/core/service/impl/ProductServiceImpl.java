@@ -37,6 +37,7 @@ public class ProductServiceImpl implements ProductService {
     private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final PlayerEmblemEquipmentService playerEmblemEquipmentService;
     private final ItemCharService itemCharService;
 
     @Override
@@ -255,6 +256,8 @@ public class ProductServiceImpl implements ProductService {
         playerStatistic = playerStatisticService.save(playerStatistic);
         player.setPlayerStatistic(playerStatistic);
 
-        return playerService.save(player);
+        player = playerService.save(player);
+        playerEmblemEquipmentService.createIfAbsent(player);
+        return player;
     }
 }

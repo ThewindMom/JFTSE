@@ -39,6 +39,8 @@ public class ServiceManager {
     @Autowired
     private CardSlotEquipmentService cardSlotEquipmentService;
     @Autowired
+    private PlayerEmblemEquipmentService playerEmblemEquipmentService;
+    @Autowired
     private BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     @Autowired
     private PocketService pocketService;

@@ -42,6 +42,10 @@ public class PlayerStatistic extends AbstractBaseModel {
     private Integer chargeShot = 0;
     private Integer skillShot = 0;
 
+    private Integer perfectGames = 0;
+    private Integer fishesCaught = 0;
+    private Integer fruitsCollected = 0;
+
     @NotAudited
     @Formula("basicRecordWin + basicRecordLoss + battleRecordWin + battleRecordLoss")
     private Integer totalGames;

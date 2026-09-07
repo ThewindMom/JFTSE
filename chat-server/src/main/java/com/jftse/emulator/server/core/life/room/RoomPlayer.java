@@ -2,9 +2,11 @@ package com.jftse.emulator.server.core.life.room;
 
 import com.jftse.emulator.server.core.client.*;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.pet.Pet;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.CardStats;
 import com.jftse.server.core.item.EItemCategory;
 import lombok.Getter;
 import lombok.Setter;
@@ -187,6 +189,14 @@ public class RoomPlayer {
 
     public EquippedItemStats getEquippedItemStats() {
         return player.getItemStats();
+    }
+
+    public CardStats getCardStats() {
+        return player.getCardStats();
+    }
+
+    public PlayerEmblemEquipment getEmblemEquipment() {
+        return player.getEmblemEquipment();
     }
 
     public EquippedSpecialSlots getEquippedSpecialSlots() {

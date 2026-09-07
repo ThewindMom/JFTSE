@@ -46,6 +46,8 @@ public class ServiceManager {
     @Autowired
     private CardSlotEquipmentService cardSlotEquipmentService;
     @Autowired
+    private PlayerEmblemEquipmentService playerEmblemEquipmentService;
+    @Autowired
     private BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     @Autowired
     private PocketService pocketService;
@@ -91,6 +93,8 @@ public class ServiceManager {
     private ChallengeService challengeService;
     @Autowired
     private TutorialService tutorialService;
+    @Autowired
+    private EmblemQuestService emblemQuestService;
     @Autowired
     private LotteryServiceV2 lotteryServiceV2;
     @Autowired

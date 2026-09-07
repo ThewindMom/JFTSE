@@ -25,10 +25,13 @@ public class InventoryWearCardPacketHandler implements PacketHandler<FTConnectio
             return;
 
         FTPlayer player = client.getPlayer();
-        cardSlotEquipmentService.updateCardSlots(player.getPlayer(), packet.getCardSlotList());
-        player.loadCardSlots();
+        boolean accepted = packet.getDataLength() == 16
+                && cardSlotEquipmentService.tryUpdateCardSlots(player.getPlayer(), packet.getCardSlotList());
+        if (accepted)
+            player.loadCardSlots();
 
-        S2CInventoryWearCardAnswerPacket inventoryWearCardAnswerPacket = new S2CInventoryWearCardAnswerPacket(packet.getCardSlotList());
+        S2CInventoryWearCardAnswerPacket inventoryWearCardAnswerPacket = new S2CInventoryWearCardAnswerPacket(
+                cardSlotEquipmentService.getEquippedCardSlots(player.getPlayer()));
         connection.sendTCP(inventoryWearCardAnswerPacket);
     }
 }

@@ -47,14 +47,8 @@ public class S2CPlayerStatusPointChangePacket extends Packet {
         this.write((byte) 0);
         this.write((byte) 0);
         this.write((byte) 0);
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
+        // cards added status points and elements
+        this.writeCardStats(player.getCardStats());
 
         this.write((byte) player.getStatusPoints());
     }

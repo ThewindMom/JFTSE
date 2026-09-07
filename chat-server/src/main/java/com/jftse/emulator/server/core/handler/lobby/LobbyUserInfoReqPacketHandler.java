@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.handler.lobby;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserInfoAnswerPacket;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.messenger.Friend;
@@ -10,6 +11,7 @@ import com.jftse.entities.database.model.player.Player;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.GuildMemberService;
+import com.jftse.server.core.service.PlayerEmblemEquipmentService;
 import com.jftse.server.core.service.PlayerService;
 import com.jftse.server.core.service.SocialService;
 import com.jftse.server.core.shared.packets.lobby.CMSGLobbyUserInfo;
@@ -19,11 +21,13 @@ public class LobbyUserInfoReqPacketHandler implements PacketHandler<FTConnection
     private final PlayerService playerService;
     private final GuildMemberService guildMemberService;
     private final SocialService socialService;
+    private final PlayerEmblemEquipmentService playerEmblemEquipmentService;
 
     public LobbyUserInfoReqPacketHandler() {
         playerService = ServiceManager.getInstance().getPlayerService();
         guildMemberService = ServiceManager.getInstance().getGuildMemberService();
         socialService = ServiceManager.getInstance().getSocialService();
+        playerEmblemEquipmentService = ServiceManager.getInstance().getPlayerEmblemEquipmentService();
     }
 
     @Override
@@ -32,14 +36,16 @@ public class LobbyUserInfoReqPacketHandler implements PacketHandler<FTConnection
         char result = (char) (player == null ? 1 : 0);
 
         Guild guild = null;
+        PlayerEmblemEquipment emblemEquipment = null;
         if (player != null) {
             GuildMember guildMember = guildMemberService.getByPlayer(player.getId());
             if (guildMember != null && !guildMember.getWaitingForApproval() && guildMember.getGuild() != null)
                 guild = guildMember.getGuild();
+            emblemEquipment = playerEmblemEquipmentService.findByPlayerId(player.getId());
         }
 
         Friend couple = socialService.getRelationshipWithFriend(player);
-        S2CLobbyUserInfoAnswerPacket lobbyUserInfoAnswerPacket = new S2CLobbyUserInfoAnswerPacket(result, player, guild, couple);
+        S2CLobbyUserInfoAnswerPacket lobbyUserInfoAnswerPacket = new S2CLobbyUserInfoAnswerPacket(result, player, guild, couple, emblemEquipment);
         connection.sendTCP(lobbyUserInfoAnswerPacket);
     }
 }
