@@ -1,12 +1,2 @@
 message CMSG_RelayObjectType5 (0x3332) {
-    byte field0 = 1;
-    byte field1 = 2;
-    byte field2 = 3;
-    byte field3 = 4;
-    float field4 = 5;
-    int16 field8 = 6;
-    byte field10 = 7;
-    int16 field11 = 8;
-    int16 field13 = 9;
-    int16 field15 = 10;
 }
