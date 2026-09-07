@@ -21,6 +21,9 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
         if (client.getActiveRoom() != null || !client.hasPlayer())
             return;
 
+        if (packet.getRoomType() == 1 && packet.getMode() == 3) {
+            return;
+        }
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
             return;
         }

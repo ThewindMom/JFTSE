@@ -13,19 +13,24 @@ public class RoomLeaveRequestPacketHandler implements PacketHandler<FTConnection
     @Override
     public void handle(FTConnection connection, CMSGRoomLeave packet) {
         FTClient client = connection.getClient();
+        if (client == null) {
+            return;
+        }
 
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
             return;
         }
 
-        client.setLobbyCurrentRoomListPage(-1);
+        try {
+            client.setLobbyCurrentRoomListPage(-1);
 
-        GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
+            GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
 
-        SMSGRoomLeave answer = SMSGRoomLeave.builder().result((short) 0).build();
-        connection.sendTCP(answer);
-
-        client.getIsJoiningOrLeavingRoom().set(false);
+            SMSGRoomLeave answer = SMSGRoomLeave.builder().result((short) 0).build();
+            connection.sendTCP(answer);
+        } finally {
+            client.getIsJoiningOrLeavingRoom().set(false);
+        }
 
         //GameManager.getInstance().handleChatLobbyJoin(client);
     }

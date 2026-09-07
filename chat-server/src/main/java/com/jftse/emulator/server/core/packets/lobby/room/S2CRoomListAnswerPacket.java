@@ -32,6 +32,14 @@ public class S2CRoomListAnswerPacket extends Packet {
             this.write(room.getMap());
             this.write(room.isSkillFree());
             this.write(room.isQuickSlot());
+            if (room.getRoomType() == 1 && room.getMode() == 3) {
+                if (!room.isClubHouse() || room.getCastleGuildName() == null) {
+                    throw new IllegalStateException("Mode 3 social room is missing Club House metadata");
+                }
+                this.write(room.getCastleGuildName());
+                this.write(room.getCastleAccessLimit());
+                this.write(room.getCastleAdmissionFee());
+            }
             this.write(BitKit.fromUnsignedInt(playerCount));
             this.write((byte) 0); // ?
             this.write((byte) 0); // ?

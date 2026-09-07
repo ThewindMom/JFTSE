@@ -1,0 +1,48 @@
+JFTSE Club Castle packet capture summary
+Capture: runtime-client-server.pcap
+Date range: 2026-08-11 10:33:27 UTC to 2026-08-11 14:23:29 UTC
+Interface: loopback Ethernet capture
+Capture filter: tcp ports 5894, 5895, 5896, and 5897
+Packets: 3655
+File size: 338824 bytes
+Captured data: 280 kB
+SHA-256: 8627a774be257b28f854431ce1cedad185252a1a84c29910b071f9b749ade45f
+
+Header interpretation follows the wiki's fixed 8-byte JFTSE header. In the
+hex examples below the packet ID is little-endian at bytes 4..5 and payload
+length is little-endian at bytes 6..7.
+
+Castle info request and successful response (chat connection):
+  C2S: a82d5907 4420 0000
+       packet=0x2044, payload length=0
+  S2C: c256ab07 4520 0e00 000000000000000000000300000000
+       packet=0x2045, payload length=14
+       result=0, opaque0=0, opaque1=0, access=3, fee=0
+
+Castle settings request and successful response:
+  C2S: f73fc907 4620 0d00 000000000000000003e8030000
+       packet=0x2046, payload length=13
+       opaque0=0, opaque1=0, access=3, fee=1000
+  S2C: be63a907 4720 0100 00
+       packet=0x2047, payload length=1, result=0
+
+Successful Club House join:
+  C2S packet 0x138B, roomId=1
+  S2C packet 0x138C, result=0, roomType=1, mode=3, mapId=5
+
+Rejected Club House joins:
+  S2C packet 0x138C payload begins f6ff (unsigned log form 65526, signed -10)
+  remaining fields are zero
+
+Movement:
+  C2S packet 0x18A5, payload length=8
+  S2C packet 0x18A6, payload length=10
+  Captured examples include coordinates (20,15), (17,27), and (20,29).
+
+Leave:
+  C2S packet 0x1771, payload length=0
+  S2C packet 0x1772, payload length=2, result=0
+
+The pcap is retained as primary binary evidence. The accompanying runtime log
+excerpts provide decoded packet names and fields produced by the server's
+packet logger.

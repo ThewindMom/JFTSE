@@ -24,6 +24,11 @@ public interface GuildRepository extends JpaRepository<Guild, Long> {
 
     List<Guild> findAllByOrderByClubPointsDescIdAsc(Pageable pageable);
     List<Guild> findAllByOrderByLeaguePointsDescIdAsc(Pageable pageable);
+    List<Guild> findAllByCastleOwnerTrueOrderByIdAsc();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT g FROM Guild g WHERE g.id = :id")
+    Optional<Guild> findByIdForUpdate(Long id);
 
     @Query("""
               SELECT DISTINCT g

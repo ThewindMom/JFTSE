@@ -1,0 +1,21 @@
+JFTSE client provenance used for Club Castle reverse engineering
+
+Download source:
+  https://www.jftse.com/client/FantaTennis.7z
+
+FantaTennis.7z SHA-256:
+  c19ca21b8e2ab091953b2f631e48853b6477400f4d7000682ac7440f9994f12e
+
+FantaTennis.exe SHA-256:
+  5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31
+
+Runtime:
+  Wine 8.0
+  32-bit Wine prefix
+  Xvfb display :99
+  Unmodified client data files were used for static analysis.
+
+Encrypted MapSet resource procedure:
+  Skip the one-byte file prefix.
+  Decrypt the remainder with AES-128-ECB.
+  Key bytes: TIMOTEI_ZION followed by four NUL bytes.

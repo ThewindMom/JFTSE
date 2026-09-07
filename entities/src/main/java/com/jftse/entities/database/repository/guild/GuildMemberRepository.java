@@ -19,5 +19,12 @@ public interface GuildMemberRepository extends JpaRepository<GuildMember, Long> 
     @Query(value = "SELECT gm FROM GuildMember gm JOIN FETCH gm.guild g WHERE gm.player.id = :playerId")
     Optional<GuildMember> findByPlayerId(Long playerId);
 
+    @Query("SELECT gm.guild.id FROM GuildMember gm WHERE gm.player.id = :playerId")
+    Optional<Long> findGuildIdByPlayerId(Long playerId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT gm FROM GuildMember gm JOIN FETCH gm.guild g WHERE gm.player.id = :playerId")
+    Optional<GuildMember> findByPlayerIdForUpdate(Long playerId);
+
     Optional<GuildMember> findByPlayerIdAndWaitingForApprovalTrue(Long playerId);
 }

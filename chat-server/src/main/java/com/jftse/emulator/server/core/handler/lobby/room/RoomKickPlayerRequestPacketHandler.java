@@ -25,7 +25,7 @@ public class RoomKickPlayerRequestPacketHandler implements PacketHandler<FTConne
 
         final Room room = ftClient.getActiveRoom();
 
-        if (room != null) {
+        if (room != null && !room.isClubHouse()) {
             RoomPlayer playerToKick = room.getRoomPlayerList().stream()
                     .filter(rp -> rp.getPosition() == packet.getPosition())
                     .findAny()

@@ -24,10 +24,12 @@ public class RoomCreateQuickRequestPacketHandler implements PacketHandler<FTConn
             return;
 
         if (packet.getRoomType() == RoomType.BATTLEMON) {
-            //GameManager.getInstance().handleChatLobbyJoin(client);
             return;
         }
 
+        if (packet.getRoomType() == 1 && packet.getMode() == 3) {
+            return;
+        }
         if (!client.getIsJoiningOrLeavingRoom().compareAndSet(false, true)) {
             return;
         }
