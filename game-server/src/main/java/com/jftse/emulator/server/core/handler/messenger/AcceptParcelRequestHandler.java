@@ -16,6 +16,7 @@ import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
+import com.jftse.server.core.messenger.ParcelItemPlacement;
 import com.jftse.server.core.service.GameLogService;
 import com.jftse.server.core.service.ParcelService;
 import com.jftse.server.core.service.PlayerPocketService;
@@ -103,23 +104,8 @@ public class AcceptParcelRequestHandler implements PacketHandler<FTConnection, C
         }
 
         Pocket receiverPocket = receiver.getPocket();
-        PlayerPocket item = playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(parcel.getItemIndex(), parcel.getCategory(), receiverPocket);
-        if (item == null) {
-            item = new PlayerPocket();
-            item.setCategory(parcel.getCategory());
-            item.setItemCount(parcel.getItemCount());
-            item.setItemIndex(parcel.getItemIndex());
-            item.setUseType(parcel.getUseType());
-            item.setPocket(receiverPocket);
-            item.setEnchantStr(parcel.getEnchantStr());
-            item.setEnchantSta(parcel.getEnchantSta());
-            item.setEnchantDex(parcel.getEnchantDex());
-            item.setEnchantWil(parcel.getEnchantWil());
-            item.setEnchantElement(parcel.getEnchantElement());
-            item.setEnchantLevel(parcel.getEnchantLevel());
-        } else {
-            item.setItemCount(item.getItemCount() + parcel.getItemCount());
-        }
+        PlayerPocket existing = playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(parcel.getItemIndex(), parcel.getCategory(), receiverPocket);
+        PlayerPocket item = ParcelItemPlacement.toPocketItem(existing, parcel, receiverPocket);
 
         item = playerPocketService.save(item);
         parcelService.remove(parcel.getId());
