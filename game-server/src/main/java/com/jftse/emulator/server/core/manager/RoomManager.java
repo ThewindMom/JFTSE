@@ -8,9 +8,13 @@ import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
 import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomCreateResult;
 import com.jftse.emulator.server.core.life.room.RoomJoinResult;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
+import com.jftse.emulator.server.core.packets.matchplay.S2CClubMatchMaxPlayTimePacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
@@ -103,16 +107,31 @@ public class RoomManager {
         }
     }
 
-    public Room createRoom(CMSGRoomCreate roomCreatePacket, final FTClient client) {
+    public RoomCreateResult createRoom(CMSGRoomCreate roomCreatePacket, final FTClient client) {
+        byte gameServerType = gameServerTypeOf(client);
+        int validation = ClubMatchRules.validateCreation(
+                gameServerType,
+                roomCreatePacket.getRoomType(),
+                roomCreatePacket.getMode(),
+                roomCreatePacket.getPlayers(),
+                client.getPlayer().getGuild());
+        if (validation != ClubMatchRules.SUCCESS) {
+            return RoomCreateResult.of((char) validation, null);
+        }
+
         final FTPlayer player = client.getPlayer();
+        boolean clubRequest = ClubMatchRules.isClubRoomRequest(gameServerType, roomCreatePacket.getRoomType());
 
         Room room = new Room();
+        room.setGameServerType(gameServerType);
         room.setRoomName(roomCreatePacket.getRoomName());
-        room.setRoomType(roomCreatePacket.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+        room.setRoomType(clubRequest
+                ? ClubMatchRules.roomTypeForWireMode(roomCreatePacket.getMode())
+                : roomCreatePacket.getRoomType());
+        room.setAllowBattlemon(room.getRoomType() == RoomType.BATTLEMON ? (byte) 1 : (byte) 0);
         room.setMode(roomCreatePacket.getMode());
         room.setRule(roomCreatePacket.getRule());
-        room.setPlayers(roomCreatePacket.getPlayers());
+        room.setPlayers(roomCreatePacket.getRoomType() == RoomType.BATTLEMON ? (byte) 4 : roomCreatePacket.getPlayers());
         room.setPrivate(roomCreatePacket.getIsPrivate());
         room.setPassword(roomCreatePacket.getPassword());
         room.setSkillFree(roomCreatePacket.getSkillFree());
@@ -123,6 +142,9 @@ public class RoomManager {
         room.setBettingAmount(roomCreatePacket.getBettingAmount());
         room.setBall(roomCreatePacket.getBall());
         room.setMap(roomCreatePacket.getMapId());
+        if (clubRequest) {
+            room.setClubMatchMaxPlayTimeMinutes(clubMatchMaxPlayTimeMinutes());
+        }
 
         room.getPositions().set(0, RoomPositionState.InUse);
 
@@ -130,16 +152,35 @@ public class RoomManager {
         updatePlayerRelationship(player);
         createMaster(room, client, player);
 
-        return registerRoom(room);
+        Room registered = registerRoom(room);
+        if (registered == null) {
+            return RoomCreateResult.of((char) -10, null);
+        }
+        return RoomCreateResult.of((char) ClubMatchRules.SUCCESS, registered);
     }
 
-    public Room createRoom(CMSGRoomCreateQuick roomCreateQuickPacket, final FTClient client) {
+    public RoomCreateResult createRoom(CMSGRoomCreateQuick roomCreateQuickPacket, final FTClient client) {
+        byte gameServerType = gameServerTypeOf(client);
+        int validation = ClubMatchRules.validateCreation(
+                gameServerType,
+                roomCreateQuickPacket.getRoomType(),
+                roomCreateQuickPacket.getMode(),
+                roomCreateQuickPacket.getPlayers(),
+                client.getPlayer().getGuild());
+        if (validation != ClubMatchRules.SUCCESS) {
+            return RoomCreateResult.of((char) validation, null);
+        }
+
         final FTPlayer player = client.getPlayer();
+        boolean clubRequest = ClubMatchRules.isClubRoomRequest(gameServerType, roomCreateQuickPacket.getRoomType());
 
         Room room = new Room();
+        room.setGameServerType(gameServerType);
         room.setRoomName(String.format("%s's room", player.getName()));
-        room.setRoomType(roomCreateQuickPacket.getRoomType());
-        room.setAllowBattlemon(room.getRoomType() == 2 ? (byte) 1 : (byte) 0);
+        room.setRoomType(clubRequest
+                ? ClubMatchRules.roomTypeForWireMode(roomCreateQuickPacket.getMode())
+                : roomCreateQuickPacket.getRoomType());
+        room.setAllowBattlemon(room.getRoomType() == RoomType.BATTLEMON ? (byte) 1 : (byte) 0);
 
         if (roomCreateQuickPacket.getMode() == -1) {
             roomCreateQuickPacket.setMode((byte) RandomUtils.random.nextInt(2));
@@ -156,6 +197,9 @@ public class RoomManager {
 
         if (room.getRoomType() == RoomType.BATTLEMON)
             room.setPlayers((byte) 4);
+        if (clubRequest) {
+            room.setClubMatchMaxPlayTimeMinutes(clubMatchMaxPlayTimeMinutes());
+        }
 
         room.setPrivate(false);
         room.setSkillFree(true);
@@ -173,10 +217,32 @@ public class RoomManager {
         updatePlayerRelationship(player);
         createMaster(room, client, player);
 
-        return registerRoom(room);
+        Room registered = registerRoom(room);
+        if (registered == null) {
+            return RoomCreateResult.of((char) -10, null);
+        }
+        return RoomCreateResult.of((char) ClubMatchRules.SUCCESS, registered);
+    }
+
+    private int clubMatchMaxPlayTimeMinutes() {
+        ConfigService config = ConfigService.getInstance();
+        if (config == null) {
+            return 5;
+        }
+        return Math.max(1, config.getValue("club.match.max-play-time.minutes", 5));
+    }
+
+    private byte gameServerTypeOf(FTClient client) {
+        if (client.getConnection() == null) {
+            return 1;
+        }
+        return client.getConnection().getGameServerType();
     }
 
     private void updatePlayerRelationship(FTPlayer player) {
+        if (socialService == null) {
+            return;
+        }
         Friend couple = socialService.getRelationshipWithFriend(player.getPlayerRef());
         if (couple != null) {
             player.setCoupleId(couple.getFriend().getId());
@@ -227,6 +293,11 @@ public class RoomManager {
             return RoomJoinResult.of((char) -1, room, null);
         }
 
+        if (ClubMatchRules.isClubServerRoom(room)
+                && !ClubMatchRules.isImplementedWireMode(room.getMode())) {
+            return RoomJoinResult.of((char) ClubMatchRules.UNSUPPORTED_MODE, room, null);
+        }
+
         FTPlayer player = client.getPlayer();
         if (!client.isGameMaster() && room.isPrivate() && (StringUtils.isEmpty(password) || !room.getPassword().equals(password))) {
             return RoomJoinResult.of((char) -5, room, null);
@@ -239,7 +310,7 @@ public class RoomManager {
             anyPositionAvailable = room.getPositions().stream().anyMatch(x -> x == RoomPositionState.Free);
         }
 
-        if (!anyPositionAvailable && !client.isGameMaster()) {
+        if (!anyPositionAvailable && !client.isGameMaster() && !ClubMatchRules.isClubMatch(room)) {
             return RoomJoinResult.of((char) -10, room, null);
         }
 
@@ -284,6 +355,10 @@ public class RoomManager {
             return RoomJoinResult.of((char) -10, room, null);
         }
 
+        if (ClubMatchRules.isClubMatch(room) && !client.isGameMaster()) {
+            return joinClubMatch(client, room, player);
+        }
+
         int newPosition = -1;
         if (!isTownSquare) {
             Optional<Short> num = room.getPositions().stream().filter(x -> x == RoomPositionState.Free).findFirst();
@@ -317,6 +392,29 @@ public class RoomManager {
         handleRoomUponJoin(room, client, false);
 
         return RoomJoinResult.of((char) 0, room, client.getRoomPlayer());
+    }
+
+    private RoomJoinResult joinClubMatch(FTClient client, Room room, FTPlayer player) {
+        ClubMatchRules.JoinDecision decision;
+        synchronized (room) {
+            decision = room.getStatus() == RoomStatus.NotRunning
+                    ? ClubMatchRules.decideJoin(room, player.getGuild())
+                    : ClubMatchRules.JoinDecision.rejected(-1);
+            if (decision.allowed()
+                    && ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+                room.getPositions().set(decision.position(), RoomPositionState.InUse);
+                updatePlayerRelationship(player);
+                createPlayer(room, client, player, decision.position());
+                client.setActiveRoom(room);
+                client.setInLobby(false);
+                handleRoomUponJoin(room, client, false);
+                return RoomJoinResult.of((char) 0, room, client.getRoomPlayer());
+            }
+            if (decision.allowed()) {
+                decision = ClubMatchRules.JoinDecision.rejected(-1);
+            }
+        }
+        return RoomJoinResult.of((char) decision.result(), room, null);
     }
 
     private void handleRoomUponJoin(final Room room, final FTClient client, boolean existingRoom) {
@@ -368,6 +466,9 @@ public class RoomManager {
 
         S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
         connection.sendTCP(roomInformationPacket);
+        if (ClubMatchRules.isClubMatch(room)) {
+            connection.sendTCP(new S2CClubMatchMaxPlayTimePacket(room.getClubMatchMaxPlayTimeMinutes()));
+        }
 
         List<RoomPlayer> filteredRoomPlayerList = roomPlayer.getPosition() == MiscConstants.InvisibleGmSlot
                 ? room.getRoomPlayerList().stream().toList()

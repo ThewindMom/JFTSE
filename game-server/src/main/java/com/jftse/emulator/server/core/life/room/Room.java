@@ -29,6 +29,7 @@ public class Room {
     }
 
     private short roomId;
+    private byte gameServerType = 1;
     private String roomName;
     private byte roomType;
     private byte allowBattlemon;

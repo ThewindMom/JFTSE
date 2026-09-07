@@ -1,8 +1,11 @@
 package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomCreateResult;
 import com.jftse.emulator.server.core.manager.GameManager;
+import com.jftse.emulator.server.core.manager.RoomManager;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.constants.GameMode;
@@ -16,7 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,12 +27,14 @@ import static org.mockito.Mockito.when;
 class RoomCreateQuickRequestPacketHandlerTest {
     private Object previousGameManager;
     private GameManager gameManager;
+    private RoomManager roomManager;
 
     @BeforeEach
     void setUpGameManager() {
         previousGameManager = ReflectionTestUtils.getField(GameManager.class, "instance");
         gameManager = mock(GameManager.class);
-        when(gameManager.getRoomId()).thenReturn((short) 7);
+        roomManager = mock(RoomManager.class);
+        when(gameManager.getRoomManager()).thenReturn(roomManager);
         ReflectionTestUtils.setField(GameManager.class, "instance", gameManager);
     }
 
@@ -52,6 +57,14 @@ class RoomCreateQuickRequestPacketHandlerTest {
         when(client.getPlayer()).thenReturn(player);
         when(client.getIsJoiningOrLeavingRoom()).thenReturn(new AtomicBoolean(false));
 
+        Room room = new Room();
+        room.setPlayers((byte) 4);
+        room.setAllowBattlemon((byte) 0);
+        room.setRoomType((byte) RoomType.MATCH);
+        room.setMode((byte) GameMode.GUARDIAN);
+        when(roomManager.createRoom(any(CMSGRoomCreateQuick.class), any(FTClient.class)))
+                .thenReturn(RoomCreateResult.of((char) 0, room));
+
         CMSGRoomCreateQuick packet = CMSGRoomCreateQuick.builder()
                 .roomType((byte) 0)
                 .mode((byte) GameMode.GUARDIAN)
@@ -60,9 +73,9 @@ class RoomCreateQuickRequestPacketHandlerTest {
 
         new RoomCreateQuickRequestPacketHandler().handle(connection, packet);
 
-        ArgumentCaptor<Room> roomCaptor = ArgumentCaptor.forClass(Room.class);
-        verify(gameManager).internalHandleRoomCreate(eq(connection), roomCaptor.capture());
-        assertEquals(4, roomCaptor.getValue().getPlayers());
-        assertEquals(1, roomCaptor.getValue().getAllowBattlemon());
+        ArgumentCaptor<CMSGRoomCreateQuick> packetCaptor = ArgumentCaptor.forClass(CMSGRoomCreateQuick.class);
+        verify(roomManager).createRoom(packetCaptor.capture(), any(FTClient.class));
+        assertEquals(GameMode.GUARDIAN, packetCaptor.getValue().getMode());
+        verify(client).setActiveRoom(room);
     }
 }

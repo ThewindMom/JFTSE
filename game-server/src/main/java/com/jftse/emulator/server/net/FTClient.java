@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.net;
 
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.life.housing.FruitManager;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
@@ -69,7 +70,7 @@ public class FTClient extends Client<FTConnection> {
 
     private int sceneId = -1;
 
-    private Pet activePet;
+    private PetView activePet;
 
     private int textMode = 0;
 
@@ -194,6 +195,10 @@ public class FTClient extends Client<FTConnection> {
         synchronized (matchPublicationLock) {
             return new MatchMembership(getActiveGameSession(), getActiveRoom(), getGameSessionGeneration());
         }
+    }
+
+    public void setActivePet(Pet pet) {
+        this.activePet = pet == null ? null : PetView.of(pet);
     }
 
     public void sendMatchPacket(MatchMembership expected, com.jftse.server.core.protocol.IPacket packet) {

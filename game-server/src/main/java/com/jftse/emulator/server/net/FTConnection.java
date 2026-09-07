@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 @Log4j2
 public class FTConnection extends Connection<FTClient> {
     private String hwid;
+    private final byte gameServerType;
 
     private ConcurrentLinkedQueue<IPacket> recvQueue = new ConcurrentLinkedQueue<>();
 
@@ -69,7 +70,12 @@ public class FTConnection extends Connection<FTClient> {
     private long lastSteadyClockMs = 0L;
 
     public FTConnection(final int decryptionKey, final int encryptionKey, final ServerType serverType) {
+        this(decryptionKey, encryptionKey, serverType, (byte) 1);
+    }
+
+    public FTConnection(final int decryptionKey, final int encryptionKey, final ServerType serverType, final byte gameServerType) {
         super(decryptionKey, encryptionKey, serverType);
+        this.gameServerType = gameServerType;
         this.metrics = ServiceManager.getInstance().getMetricsService();
     }
 

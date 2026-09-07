@@ -5,7 +5,7 @@ import com.jftse.server.core.protocol.PacketOperations;
 
 public class S2CClubMatchResultPacket extends Packet {
     public S2CClubMatchResultPacket(byte result) {
-        super(PacketOperations.S2CClubMatchResult);
+        super(PacketOperations.S2CMatchplayEndBasicGame);
         write(result);
     }
 }
