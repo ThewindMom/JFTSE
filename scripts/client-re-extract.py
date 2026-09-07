@@ -6,6 +6,8 @@ import hashlib
 import json
 import re
 import struct
+import subprocess
+import tempfile
 import zipfile
 from collections import Counter
 from pathlib import Path
@@ -377,6 +379,353 @@ def xrefs_call_iat(text: bytes, text_va: int, iat_va: int) -> list[str]:
     return hits
 
 
+def find_push_imm32_then_iat(text: bytes, text_va: int, imm32: int, iat_va: int, window: int = 32) -> int | None:
+    push = struct.pack("<BI", 0x68, imm32)
+    iat = b"\xff\x15" + struct.pack("<I", iat_va)
+    start = 0
+    while True:
+        off = text.find(push, start)
+        if off < 0:
+            return None
+        if iat in text[off : off + window]:
+            return text_va + off
+        start = off + 1
+
+
+WRITE_U8 = 0x4204D0
+WRITE_U16 = 0x454670
+WRITE_U32 = 0x4A5CB0
+WRITE_U64 = 0x4662B0
+WRITE_BYTES = 0x420480
+WRITE_UTF16Z = 0x4546A0
+CPACKET_DTOR = 0x627B10
+FIXED_WRITERS = {
+    WRITE_U8: 1,
+    WRITE_U16: 2,
+    WRITE_U32: 4,
+    WRITE_U64: 8,
+}
+
+# Curated leftover C2S/C2C bodies from ctor-site stores. "var" and "mixed"
+# are not a single scalar. Extract fails if a pinned scalar changes.
+EXPECTED_LEFTOVER_BODIES = {
+    0x0401: 1,
+    0x0405: 22,
+    0x0C95: "mixed",
+    0x1007: 4,
+    0x13A6: 4,
+    0x1451: 8,
+    0x1453: 8,
+    0x1454: 8,
+    0x170D: "var",
+    0x170F: 0,
+    0x1711: 1,
+    0x17D7: "var",
+    0x17DB: 0,
+    0x17E9: 1,
+    0x17F2: 0,
+    0x1850: 0,
+    0x18A4: 5,
+    0x18A7: 6,
+    0x18AE: 2,
+    0x18B0: 4,
+    0x18B1: "mixed",
+    0x1B77: 1,
+    0x1D0B: 8,
+    0x1DB0: 2,
+    0x1DB2: 0,
+    0x1DE3: 4,
+    0x1F58: 4,
+    0x2033: 0,
+    0x2038: 4,
+    0x203E: 0,
+    0x213E: 0,
+    0x213F: 0,
+    0x2288: "var",
+    0x237B: 0,
+    0x238E: 16,
+    0x238F: "var",
+    0x23F2: "var",
+    0x23F4: 4,
+    0x240E: 0,
+    0x2411: 0,
+    0x2416: 8,
+    0x2528: "mixed",
+    0x2648: 4,
+    0x264A: 0,
+    0x264C: 7,
+    0x2650: 1,
+    0x26B1: 4,
+    0x26B3: 4,
+    0x26B5: 16,
+    0x26B7: 8,
+    0x26BE: 4,
+    0x26C0: 6,
+    0x26C2: 6,
+    0x26C6: 4,
+    0x26C8: 1,
+    0x26DF: 40,
+    0x26F2: 4,
+    0x2702: 0,
+    0x270F: 0,
+    0x2EE2: 6,
+    0x32CB: "var",
+    0x3330: 4,
+    0x3392: 3,
+    0x3393: 2,
+    0x3394: 2,
+    0x3395: 2,
+    0x3396: 12,
+    0x33A4: 6,
+}
+
+
+def _parse_imm(tok: str) -> int | None:
+    tok = tok.strip().rstrip(",")
+    if tok.startswith("0x"):
+        return int(tok, 16)
+    if re.fullmatch(r"-?\d+", tok):
+        return int(tok)
+    return None
+
+
+def _disasm_window(text_bin: Path, text_va: int, start: int, stop: int) -> list[tuple[int, str]]:
+    r = subprocess.run(
+        [
+            "objdump",
+            "-D",
+            "-b",
+            "binary",
+            "-m",
+            "i386",
+            "--adjust-vma",
+            hex(text_va),
+            "-M",
+            "intel",
+            f"--start-address={start}",
+            f"--stop-address={stop}",
+            str(text_bin),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    rows = []
+    for line in r.stdout.splitlines():
+        m = re.match(r"\s*([0-9a-f]+):\s+[0-9a-f]{2}(?:\s+[0-9a-f]{2})*\s+(.*)", line)
+        if m:
+            rows.append((int(m.group(1), 16), m.group(2).strip()))
+    return rows
+
+
+def ctor_body_width(text_bin: Path, text_va: int, call_va: int, ctor_va: int) -> int | str:
+    width = 0
+    variable = False
+    wrote = False
+    last_imm: dict[str, int] = {}
+    for va, op in _disasm_window(text_bin, text_va, call_va, call_va + 0x300):
+        if va == call_va:
+            continue
+        compact = op.replace(" ", "")
+        mmov = re.match(r"mov(?:zx|sx)?\s+(e?[abcd]x),([^\[]+)$", compact)
+        if mmov:
+            val = _parse_imm(mmov.group(2))
+            if val is not None:
+                last_imm[mmov.group(1)] = val
+                if mmov.group(1).startswith("e"):
+                    last_imm[mmov.group(1)[1:]] = val
+        if op.startswith("call"):
+            m = re.search(r"0x([0-9a-f]+)", op)
+            if not m:
+                continue
+            tgt = int(m.group(1), 16)
+            if tgt in (ctor_va, CPACKET_DTOR, 0x465B20, 0x465B30):
+                break
+            if tgt in FIXED_WRITERS:
+                width += FIXED_WRITERS[tgt]
+                wrote = True
+            elif tgt in (WRITE_BYTES, WRITE_UTF16Z, 0x528610):
+                variable = True
+                wrote = True
+            continue
+        madd = re.match(
+            r"add\s+WORD PTR \[esp(?:\+0x[0-9a-f]+)?\],\s*(0x[0-9a-f]+|\d+|cx|dx|ax)",
+            op,
+        )
+        if madd:
+            rhs = madd.group(1)
+            n = _parse_imm(rhs)
+            if n is None:
+                n = last_imm.get(rhs) or last_imm.get("e" + rhs)
+            if n is not None and 1 <= n <= 0x200:
+                width += n
+                wrote = True
+            elif n is None:
+                variable = True
+                wrote = True
+    if variable and width:
+        return "var"
+    if variable:
+        return "var"
+    if not wrote:
+        return 0
+    return width
+
+
+def leftover_bodies(text: bytes, text_va: int, ctor_va: int, sites: list[int]) -> dict[int, int | str]:
+    by_id: dict[int, list[int]] = {}
+    for va in sites:
+        pid = last_inband_push(text, text_va, va)
+        if pid is None or pid not in EXPECTED_LEFTOVER_BODIES:
+            continue
+        by_id.setdefault(pid, []).append(va)
+    for va in (0x5C575B, 0x5C5A59, 0x5C5CE0):
+        by_id.setdefault(0x26C2, []).append(va)
+    with tempfile.TemporaryDirectory() as tmp:
+        text_bin = Path(tmp) / "text.bin"
+        text_bin.write_bytes(text)
+        out: dict[int, int | str] = {}
+        for pid, vas in by_id.items():
+            widths: list[int | str] = []
+            for va in sorted(set(vas)):
+                w = ctor_body_width(text_bin, text_va, va, ctor_va)
+                if w not in widths:
+                    widths.append(w)
+            out[pid] = "mixed" if len(widths) > 1 else widths[0]
+        return out
+
+
+UNLABELED_NAME = re.compile(r"Unknown|Extra(?:[0-9A-Fa-f]+)?$|Client[0-9A-Fa-f]{3,}$")
+PACKET_DIR = FRE / "server-core/src/main/packets"
+
+
+def unlabeled_ops(ops: list[dict]) -> list[str]:
+    unlabeled = []
+    for o in ops:
+        name = o["name"]
+        if UNLABELED_NAME.search(name):
+            unlabeled.append(f"{name} {o['hex']}")
+    return unlabeled
+
+
+def packet_verbs(packet_dir: Path = PACKET_DIR) -> dict[int, list[str]]:
+    verbs: dict[int, list[str]] = {}
+    for path in sorted(packet_dir.rglob("*.packet")):
+        text = path.read_text(errors="replace")
+        for name, hx in re.findall(r"message\s+((?:CMSG|SMSG)_[A-Za-z0-9_]+)\s*\((0x[0-9A-Fa-f]+)\)", text):
+            verbs.setdefault(int(hx, 16), []).append(f"{name} {path.relative_to(FRE)}")
+    return verbs
+
+
+def unlabeled_packet_collisions(ops: list[dict], verbs: dict[int, list[str]]) -> list[str]:
+    hits = []
+    for o in ops:
+        if UNLABELED_NAME.search(o["name"]) and o["value"] in verbs:
+            hits.append(f"{o['name']} {o['hex']} -> {', '.join(verbs[o['value']])}")
+    return hits
+
+
+def _printable_ascii(raw: bytes, off: int) -> str | None:
+    if off < 0 or off >= len(raw):
+        return None
+    end = raw.find(b"\0", off)
+    if end < 0 or end - off < 4 or end - off > 96:
+        return None
+    try:
+        s = raw[off:end].decode("ascii")
+    except UnicodeDecodeError:
+        return None
+    if not all(32 <= ord(c) < 127 for c in s):
+        return None
+    return s
+
+
+def _printable_utf16(raw: bytes, off: int) -> str | None:
+    if off < 0 or off + 8 > len(raw):
+        return None
+    chars = []
+    i = off
+    while i + 2 <= len(raw):
+        w = struct.unpack_from("<H", raw, i)[0]
+        if w == 0:
+            break
+        if w < 32 or w > 126:
+            return None
+        chars.append(chr(w))
+        i += 2
+        if len(chars) > 48:
+            return None
+    if len(chars) < 4:
+        return None
+    return "".join(chars)
+
+
+def va_strings(raw: bytes, pe: dict, va: int) -> list[str]:
+    off = va_to_off(pe, va)
+    if off is None:
+        return []
+    found = []
+    ascii_s = _printable_ascii(raw, off)
+    if ascii_s:
+        found.append(ascii_s)
+    utf = _printable_utf16(raw, off)
+    if utf and utf not in found:
+        found.append(utf)
+    return found
+
+
+def leftover_name_evidence(
+    raw: bytes,
+    pe: dict,
+    text: bytes,
+    text_va: int,
+    sites: list[int],
+    unlabeled: list[dict],
+) -> list[dict]:
+    want = {o["value"] for o in unlabeled}
+    by_id: dict[int, list[int]] = {}
+    for va in sites:
+        pid = last_inband_push(text, text_va, va)
+        if pid in want:
+            by_id.setdefault(pid, []).append(va)
+    rows = []
+    with tempfile.TemporaryDirectory() as tmp:
+        text_bin = Path(tmp) / "text.bin"
+        text_bin.write_bytes(text)
+        for o in unlabeled:
+            pid = o["value"]
+            vas = sorted(set(by_id.get(pid, [])))
+            strings: list[str] = []
+            disasm: list[str] = []
+            for call_va in vas:
+                off = call_va - text_va
+                blob = text[max(0, off - 0x280) : off + 0x80]
+                for j in range(len(blob) - 4):
+                    if blob[j] != 0x68:
+                        continue
+                    imm = struct.unpack_from("<I", blob, j + 1)[0]
+                    for s in va_strings(raw, pe, imm):
+                        if s not in strings:
+                            strings.append(s)
+                if len(disasm) < 3:
+                    rows_d = _disasm_window(text_bin, text_va, call_va - 0x30, call_va + 0x50)
+                    disasm.append(
+                        f"{hex(call_va)}\n"
+                        + "\n".join(f"  {hex(va)} {op}" for va, op in rows_d)
+                    )
+            rows.append(
+                {
+                    "name": o["name"],
+                    "hex": o["hex"],
+                    "id": pid,
+                    "sites": [hex(v) for v in vas],
+                    "nearbyStrings": strings[:24],
+                    "disasm": disasm,
+                }
+            )
+    return rows
+
+
 def scan_known_opcode_bytes(text: bytes, ops: list[dict]) -> dict[int, int]:
     counts = {}
     for op in ops:
@@ -486,7 +835,12 @@ def main() -> None:
     recv_iat = iat_entry_va(raw, pe, "WS2_32.dll", "recv")
     sendto_callers = xrefs_call_iat(text, text_va, sendto_iat) if sendto_iat else []
     recvfrom_callers = xrefs_call_iat(text, text_va, recvfrom_iat) if recvfrom_iat else []
-    htons_15000 = text.find(b"\x68\x98\x3a\x00\x00")
+    htons_iat = iat_entry_va(raw, pe, "WS2_32.dll", "htons")
+    htons_15000 = (
+        find_push_imm32_then_iat(text, text_va, 0x3A98, htons_iat)
+        if htons_iat
+        else None
+    )
 
     report = {
         "generatedFrom": {
@@ -501,6 +855,7 @@ def main() -> None:
         "packetOperations": {
             "total": len(ops),
             "unknownNamed": [o["name"] + " " + o["hex"] for o in ops if "unknown" in o["name"].lower()],
+            "unlabeled": unlabeled_ops(ops),
         },
         "imports": {
             "dlls": [i["dll"] for i in imports],
@@ -515,7 +870,7 @@ def main() -> None:
             "recvfromCallers": recvfrom_callers,
             "sendCallersCount": len(xrefs_call_iat(text, text_va, send_iat)) if send_iat else 0,
             "recvCallersCount": len(xrefs_call_iat(text, text_va, recv_iat)) if recv_iat else 0,
-            "htons15000Va": hex(text_va + htons_15000) if htons_15000 >= 0 else None,
+            "htons15000Va": hex(htons_15000) if htons_15000 else None,
         },
         "rttiNetwork": [n for n in extract_rtti(raw) if re.search(r"Packet|Socket|UDP|TCP|Rak|ClientNet|BlowFish", n)],
         "rttiAllCount": len(extract_rtti(raw)),
@@ -547,6 +902,18 @@ def main() -> None:
     leftover = report["cpacketCtor"]["leftover"]
     if leftover:
         raise SystemExit("CPacket ctor leftovers not in PacketOperations: " + ", ".join(leftover))
+    recovered = leftover_bodies(text, text_va, ctor_va, ctor_sites)
+    missing_bodies = [f"0x{pid:04X}" for pid in EXPECTED_LEFTOVER_BODIES if pid not in recovered]
+    if missing_bodies:
+        raise SystemExit("leftover ctor sites vanished: " + ", ".join(missing_bodies))
+    report["leftoverBodies"] = {f"0x{pid:04X}": recovered[pid] for pid in sorted(recovered)}
+    report["packetOperations"]["unlabeled"] = unlabeled_ops(ops)
+    verbs = packet_verbs()
+    collisions = unlabeled_packet_collisions(ops, verbs)
+    if collisions:
+        raise SystemExit("unlabeled leftover has a .packet verb: " + "; ".join(collisions))
+    unlabeled_rows = [o for o in ops if UNLABELED_NAME.search(o["name"])]
+    report["leftoverNameEvidence"] = leftover_name_evidence(raw, pe, text, text_va, ctor_sites, unlabeled_rows)
     OUT.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(
         {
@@ -558,6 +925,12 @@ def main() -> None:
             "idListed": len(report["packetIdWrites"]["listed"]),
             "ctorLeftover": report["cpacketCtor"]["leftover"],
             "ctorMissed": report["cpacketCtor"]["registerLoaded"],
+            "leftoverBodies": report.get("leftoverBodies", {}),
+            "unlabeled": report["packetOperations"]["unlabeled"],
+            "leftoverNameEvidence": [
+                {k: row[k] for k in ("hex", "name", "sites", "nearbyStrings")}
+                for row in report.get("leftoverNameEvidence", [])
+            ],
             "resArchives": len(report["res"]["archives"]),
             "resTables": len(report["res"]["tableLikeEntries"]),
             "wrote": str(OUT),
