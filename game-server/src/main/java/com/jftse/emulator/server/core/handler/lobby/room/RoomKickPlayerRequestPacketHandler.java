@@ -25,6 +25,9 @@ public class RoomKickPlayerRequestPacketHandler implements PacketHandler<FTConne
 
         final Room room = ftClient.getActiveRoom();
 
+        if (room != null && room.isTournamentRoom()) {
+            return;
+        }
         if (room != null) {
             RoomPlayer playerToKick = room.getRoomPlayerList().stream()
                     .filter(rp -> rp.getPosition() == packet.getPosition())
@@ -39,10 +42,12 @@ public class RoomKickPlayerRequestPacketHandler implements PacketHandler<FTConne
                         .orElse(null);
 
                 if (client != null) {
+                    if (!GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true)) {
+                        return;
+                    }
+
                     SMSGRoomLeave answer = SMSGRoomLeave.builder().result((short) 0).build();
                     client.getConnection().sendTCP(answer);
-
-                    GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
 
                     SMSGRoomJoin roomJoinAnswerPacket = SMSGRoomJoin.builder()
                             .result((char) -4)

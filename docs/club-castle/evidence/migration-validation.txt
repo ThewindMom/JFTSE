@@ -1,0 +1,21 @@
+JFTSE Club Castle migration validation
+Date: 2026-08-11 UTC
+
+Before migration, Guild columns were nullable with NULL defaults:
+  castleAccessLimit  tinyint(4)  NULL  default NULL
+  castleAdmissionFee int(11)     NULL  default NULL
+
+After running scripts/sql/clubcastle.sql twice:
+  castleAccessLimit  tinyint(4)  NOT NULL  default 2
+  castleAdmissionFee int(11)     NOT NULL  default 0
+
+The migration was also run twice against a temporary schema with no Guild_AUD
+table. Both runs succeeded, the Guild columns had the expected constraints,
+and the audit table remained absent. This proves the optional-audit path and
+idempotence.
+
+The repository-wide scripts/import_sql.sh proceeds through clubcastle.sql,
+config.sql, status.sql, maps.sql, scenarios.sql, and map2scenarios.sql. It then
+fails in the pre-existing guardian2maps.sql seed because Guardian id=1 is not
+present. That unrelated seed-data foreign-key failure is not caused by the
+Club Castle migration.

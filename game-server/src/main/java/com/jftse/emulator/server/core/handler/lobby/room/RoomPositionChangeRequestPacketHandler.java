@@ -30,21 +30,14 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
 
         Room room = ftClient.getActiveRoom();
         RoomPlayer requestingSlotChangePlayer = ftClient.getRoomPlayer();
+        if (room != null && room.isTournamentRoom()) {
+            ftClient.getIsChangingSlot().set(false);
+            return;
+        }
         if (room != null) {
             if (requestingSlotChangePlayer != null) {
                 short requestingSlotChangePlayerOldPosition = requestingSlotChangePlayer.getPosition();
                 if (requestingSlotChangePlayerOldPosition == positionToClaim) {
-                    ftClient.getIsChangingSlot().set(false);
-                    return;
-                }
-
-                if (requestingSlotChangePlayer.getPet() != null) {
-                    SMSGChatMessageRoom msg = SMSGChatMessageRoom.builder()
-                            .type((byte) 2)
-                            .sender("Room")
-                            .message("You cannot change your slot while having a pet in room")
-                            .build();
-                    connection.sendTCP(msg);
                     ftClient.getIsChangingSlot().set(false);
                     return;
                 }

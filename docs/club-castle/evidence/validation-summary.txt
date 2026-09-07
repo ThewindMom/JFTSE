@@ -1,0 +1,42 @@
+JFTSE Club Castle validation summary
+Date: 2026-08-11 UTC
+
+RED packet-contract run
+  Tests run: 4, failures: 2
+  GuildCastlePacketContractTest.castleChangeResultIsOneSignedByte
+    expected payload length 1, observed pre-fix length 4
+  ClubHouseRoomListPacketTest.clubHouseEntryAddsGuildAccessAndFeeBeforeListStatusFields
+    expected Club House extension byte, observed ordinary-room byte
+  Result: BUILD FAILURE (expected red state)
+
+FINAL FOCUSED GREEN RUN
+  GuildCastleServiceImplTest                  7 passed
+  GuildCastlePacketContractTest               3 passed
+  ClubHouseRoomListPacketTest                 4 passed
+  ClubHouseWorldContractTest                  1 passed
+  ClubHouseLifecycleTest                      1 passed
+  ClubHouseMutationGuardTest                  1 passed
+  Total                                      17 passed
+
+FINAL REACTOR TEST RUN
+  Command: JAVA_HOME=.amp/tmp/jdk PATH=.amp/tmp/jdk/bin:$PATH mvn test
+  Result: BUILD SUCCESS
+  All 11 reactor modules: SUCCESS
+  Club Castle focused tests: 17 passed, 0 failures, 0 errors, 0 skipped
+  Existing game-server tests: 7 passed, 0 failures, 0 errors, 0 skipped
+  Finished: 2026-08-11T14:30:17Z
+
+FINAL PACKAGE RUN
+  Command: JAVA_HOME=.amp/tmp/jdk PATH=.amp/tmp/jdk/bin:$PATH mvn package -DskipTests
+  Result: BUILD SUCCESS
+  All 11 reactor modules: SUCCESS
+  Finished: 2026-08-11T14:31:30Z
+
+RUNTIME INFRASTRUCTURE
+  MariaDB 10.11.18: active
+  RabbitMQ: active
+  auth-server: 5894
+  game-server: 5895
+  relay-server: 5896
+  chat-server: 5897
+  Real Windows client: FantaTennis.exe under Wine 8.0, 32-bit prefix, Xvfb

@@ -4,6 +4,8 @@ import com.jftse.emulator.common.service.ConfigService;
 import com.jftse.emulator.common.utilities.BitKit;
 import com.jftse.emulator.common.utilities.ResourceUtil;
 import com.jftse.entities.database.model.ImportLog;
+import com.jftse.entities.database.model.emblem.EmblemQuestDefinition;
+import com.jftse.entities.database.model.emblem.EmblemQuestReward;
 import com.jftse.entities.database.model.battle.BossGuardian;
 import com.jftse.entities.database.model.battle.Guardian;
 import com.jftse.entities.database.model.battle.Skill;
@@ -18,6 +20,8 @@ import com.jftse.entities.database.repository.battle.GuardianRepository;
 import com.jftse.entities.database.repository.battle.SkillDropRateRepository;
 import com.jftse.entities.database.repository.battle.SkillRepository;
 import com.jftse.entities.database.repository.challenge.ChallengeRepository;
+import com.jftse.entities.database.repository.emblem.EmblemQuestDefinitionRepository;
+import com.jftse.entities.database.repository.emblem.EmblemQuestRewardRepository;
 import com.jftse.entities.database.repository.item.*;
 import com.jftse.entities.database.repository.level.LevelExpRepository;
 import com.jftse.entities.database.repository.tutorial.TutorialRepository;
@@ -42,7 +46,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -89,6 +95,12 @@ public class DBDataLoader implements CommandLineRunner {
     private ItemCharRepository itemCharRepository;
     @Autowired
     private ImportLogRepository importLogRepository;
+    @Autowired
+    private ItemCardRepository itemCardRepository;
+    @Autowired
+    private EmblemQuestDefinitionRepository emblemQuestDefinitionRepository;
+    @Autowired
+    private EmblemQuestRewardRepository emblemQuestRewardRepository;
 
     @Autowired
     private ConfigService configService;
@@ -159,6 +171,8 @@ public class DBDataLoader implements CommandLineRunner {
         boolean skillDropRateInitialized = isFileUpToDate("res/FieldItem_DropRates_Ini3.xml");
         boolean guardianInitialized = isFileUpToDate("res/GuardianInfo.xml");
         boolean bossGuardianInitialized = isFileUpToDate("res/BossGuardianInfo_Ini3.xml");
+        boolean itemCardInitialized = isFileUpToDate("res/Item_Stat_Cards_Ini3.xml");
+        boolean emblemQuestInitialized = isFileUpToDate("res/EmblemQuest.xml");
 
         List<Future<?>> futures = new ArrayList<>();
         if (!levelExpInitialized) {
@@ -345,6 +359,20 @@ public class DBDataLoader implements CommandLineRunner {
         }
         else
             dataLoaded = false;
+
+        if (!itemCardInitialized) {
+            log.info("Initializing ItemCard...");
+            futures.add(threadManager.submit(() -> {
+                if (loadItemCard()) log.info("ItemCard successfully initialized!");
+            }));
+        } else dataLoaded = false;
+
+        if (!emblemQuestInitialized) {
+            log.info("Initializing EmblemQuest...");
+            futures.add(threadManager.submit(() -> {
+                if (loadEmblemQuest()) log.info("EmblemQuest successfully initialized!");
+            }));
+        } else dataLoaded = false;
 
         futures.forEach(f -> {
             try {
@@ -1266,6 +1294,153 @@ public class DBDataLoader implements CommandLineRunner {
         }
 
         return true;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean loadItemCard() {
+        String filePath = "res/Item_Stat_Cards_Ini3.xml";
+        try (InputStream input = ResourceUtil.getResource(filePath)) {
+            Document document = new SAXReader().read(input);
+            for (Node node : document.selectNodes("/CardList/Card")) {
+                int itemIndex = integer(node, "@Index");
+                ItemCard card = itemCardRepository.findByItemIndex(itemIndex).orElse(new ItemCard());
+                card.setItemIndex(itemIndex);
+                card.setName(node.valueOf("@Name_en"));
+                card.setItemType(node.valueOf("@CardItemType"));
+                card.setAbilityGrade(integer(node, "@CardAbilityGrade"));
+                card.setAbilityPower(integer(node, "@CardAbilityPower"));
+                itemCardRepository.save(card);
+            }
+            saveLastImportTimestamp(filePath, getFileLastModified(filePath));
+            return true;
+        } catch (IOException | DocumentException e) {
+            log.error("Could not import {}", filePath, e);
+            return false;
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean loadEmblemQuest() {
+        String filePath = "res/EmblemQuest.xml";
+        try (InputStream input = ResourceUtil.getResource(filePath)) {
+            Document document = new SAXReader().read(input);
+            Map<String, Node> details = new HashMap<>();
+            for (Node detail : document.selectNodes("/Tables/QuestDetail"))
+                details.put(detail.valueOf("@Index"), detail);
+
+            String[] rewardTags = {"NIKI", "LUNLUN", "DHANPIR", "LUCY", "SHUA", "POCHI"};
+            Map<String, Map<String, Node>> rewards = new HashMap<>();
+            for (String tag : rewardTags) {
+                Map<String, Node> table = new HashMap<>();
+                for (Node reward : document.selectNodes("/Tables/RewardItem_" + tag))
+                    table.put(reward.valueOf("@Index"), reward);
+                rewards.put(tag, table);
+            }
+
+            for (Node quest : document.selectNodes("/Tables/Quest")) {
+                int questIndex = integer(quest, "@Index");
+                if (emblemQuestDefinitionRepository.findByQuestIndex(questIndex).isPresent()) {
+                    continue;
+                }
+
+                EmblemQuestDefinition definition = new EmblemQuestDefinition();
+                Node detail = details.get(quest.valueOf("@QuestDetail"));
+                definition.setQuestIndex(questIndex);
+                definition.setEnabled(integer(quest, "@Enable") != 0);
+                definition.setEvent(integer(quest, "@Event"));
+                definition.setName(nullable(quest, "@_QuestName_"));
+                definition.setIcon(nullable(quest, "@Icon"));
+                definition.setEmblemGrade(integer(quest, "@EmblemGrade"));
+                definition.setQuestNameLabel(nullable(quest, "@QuestNameLabel"));
+                definition.setSuccessConditionLabel(nullable(quest, "@SuccessCondition"));
+                definition.setPrerequisites(zeroAsNull(quest, "@QuestPreReq"));
+                definition.setQuestRepeat(yes(quest, "@QuestRepeat"));
+                definition.setItemRewardRepeat(yes(quest, "@ItemRewardRepeat"));
+                definition.setRewardExp(integer(quest, "@RewardEXP"));
+                definition.setRewardGold(integer(quest, "@RewardGOLD"));
+                definition.setGameMode(null);
+                definition.setLevelRestriction(0);
+                definition.setConditionType1(null);
+                definition.setConditionType2(null);
+                definition.setConditionType3(null);
+                definition.setConditionType4(null);
+                definition.setConditionTarget1(null);
+                definition.setConditionTarget2(null);
+                definition.setConditionTarget3(null);
+                definition.setConditionTarget4(null);
+                definition.setRequiredItem1(0);
+                definition.setRequiredItem2(0);
+                definition.setRequiredItem3(0);
+                definition.setRequiredItem4(0);
+                definition.setRequiredQuantity1(0);
+                definition.setRequiredQuantity2(0);
+                definition.setRequiredQuantity3(0);
+                definition.setRequiredQuantity4(0);
+                if (detail != null) {
+                    definition.setGameMode(nullable(detail, "@GameMode"));
+                    definition.setLevelRestriction(integer(detail, "@LevelRestriction"));
+                    definition.setConditionType1(nullable(detail, "@ConditionType1"));
+                    definition.setConditionType2(nullable(detail, "@ConditionType2"));
+                    definition.setConditionType3(nullable(detail, "@ConditionType3"));
+                    definition.setConditionType4(nullable(detail, "@ConditionType4"));
+                    definition.setConditionTarget1(nullable(detail, "@ConditionCount1"));
+                    definition.setConditionTarget2(nullable(detail, "@ConditionCount2"));
+                    definition.setConditionTarget3(nullable(detail, "@ConditionCount3"));
+                    definition.setConditionTarget4(nullable(detail, "@ConditionCount4"));
+                    definition.setRequiredItem1(integer(detail, "@RequireItem1"));
+                    definition.setRequiredItem2(integer(detail, "@RequireItem2"));
+                    definition.setRequiredItem3(integer(detail, "@RequireItem3"));
+                    definition.setRequiredItem4(integer(detail, "@RequireItem4"));
+                    definition.setRequiredQuantity1(integer(detail, "@Quantity1"));
+                    definition.setRequiredQuantity2(integer(detail, "@Quantity2"));
+                    definition.setRequiredQuantity3(integer(detail, "@Quantity3"));
+                    definition.setRequiredQuantity4(integer(detail, "@Quantity4"));
+                }
+                definition = emblemQuestDefinitionRepository.save(definition);
+                emblemQuestRewardRepository.deleteAllByDefinition(definition);
+                emblemQuestRewardRepository.flush();
+                for (byte playerType = 0; playerType < rewardTags.length; playerType++) {
+                    for (byte slot = 1; slot <= 4; slot++) {
+                        String reference = quest.valueOf("@RewardItem" + slot);
+                        Node rewardNode = rewards.get(rewardTags[playerType]).get(reference);
+                        if (reference.isEmpty() || rewardNode == null) continue;
+                        EmblemQuestReward reward = new EmblemQuestReward();
+                        reward.setDefinition(definition);
+                        reward.setPlayerType(playerType);
+                        reward.setRewardSlot(slot);
+                        reward.setProductIndex(integer(rewardNode, "@ShopIndex"));
+                        reward.setQuantityMin(integer(rewardNode, "@QuantityMin"));
+                        reward.setQuantityMax(integer(rewardNode, "@QuantityMax"));
+                        emblemQuestRewardRepository.save(reward);
+                    }
+                }
+            }
+            saveLastImportTimestamp(filePath, getFileLastModified(filePath));
+            return true;
+        } catch (IOException | DocumentException e) {
+            log.error("Could not import {}", filePath, e);
+            return false;
+        }
+    }
+
+    private int integer(Node node, String attribute) {
+        String value = node.valueOf(attribute);
+        return value.isEmpty() ? 0 : Integer.parseInt(value);
+    }
+
+    private String nullable(Node node, String attribute) {
+        String value = node.valueOf(attribute);
+        return value.isEmpty() ? null : value;
+    }
+
+    private String zeroAsNull(Node node, String attribute) {
+        String value = nullable(node, attribute);
+        return "0".equals(value) ? null : value;
+    }
+
+    private boolean yes(Node node, String attribute) {
+        String value = node.valueOf(attribute);
+        return "Yes".equalsIgnoreCase(value) || "1".equals(value);
     }
 
     private String valueOf(Node node, String propName, String defaultValue) {

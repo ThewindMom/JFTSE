@@ -1,0 +1,18 @@
+2026-08-12T08:29:45Z
+ui-image=sha256:8c7661e38e654b9f9d4bc9907a2c8392cf932260562a1809170084b5999c3250
+=== client-a ===
+name=/jftse-cm-final-client-a image=sha256:8c7661e38e654b9f9d4bc9907a2c8392cf932260562a1809170084b5999c3250 ip=94.130.239.50 mounts=[{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/lab/client/prefix-a","Destination":"/wineprefix","Mode":"","RW":true,"Propagation":"rprivate"},{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/repo/.amp/in/artifacts/club-match/native/client-a","Destination":"/evidence","Mode":"","RW":true,"Propagation":"rprivate"},{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/lab/client/runtime-a","Destination":"/client","Mode":"","RW":true,"Propagation":"rprivate"}]
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  /client/FantaTennis.exe
+display=:121 prefix=/wineprefix
+root          46       1 S     1.1 Xvfb            /usr/bin/Xvfb :121 -screen 0 1280x800x24
+taskcli+      81       1 S     0.1 openbox         openbox
+taskcli+      91       1 Sl   69.8 FantaTennis.exe /client/FantaTennis.exe
+taskcli+      97       1 Ss    1.1 wineserver      /opt/wine-stable/bin/wineserver
+=== client-b ===
+name=/jftse-cm-final-client-b image=sha256:8c7661e38e654b9f9d4bc9907a2c8392cf932260562a1809170084b5999c3250 ip=94.130.239.51 mounts=[{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/lab/client/runtime-b","Destination":"/client","Mode":"","RW":true,"Propagation":"rprivate"},{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/lab/client/prefix-b","Destination":"/wineprefix","Mode":"","RW":true,"Propagation":"rprivate"},{"Type":"bind","Source":"/home/thewind/Projects/jftse-club-match-final/repo/.amp/in/artifacts/club-match/native/client-b","Destination":"/evidence","Mode":"","RW":true,"Propagation":"rprivate"}]
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31  /client/FantaTennis.exe
+display=:122 prefix=/wineprefix
+root          47       1 S     1.1 Xvfb            /usr/bin/Xvfb :122 -screen 0 1280x800x24
+taskcli+      81       1 S     0.1 openbox         openbox
+taskcli+      91       1 Sl   70.2 FantaTennis.exe /client/FantaTennis.exe
+taskcli+      98       1 Ss    1.1 wineserver      /opt/wine-stable/bin/wineserver

@@ -10,13 +10,15 @@ import com.jftse.emulator.server.core.packets.inventory.*;
 import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoPlayStatsPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerLevelExpPacket;
-import com.jftse.emulator.server.core.packets.player.S2CUnknownPlayerInfoDataPacket;
+import com.jftse.emulator.server.core.packets.player.S2CPlayerLifetimeStatisticsPacket;
+import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoDataPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.guild.GuildMember;
 import com.jftse.entities.database.model.home.AccountHome;
 import com.jftse.entities.database.model.pet.Pet;
+import com.jftse.entities.database.model.player.BattlemonSlotEquipment;
 import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.player.PlayerStatistic;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
@@ -25,6 +27,7 @@ import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.PlayerLoadType;
+import com.jftse.server.core.shared.packets.emblem.S2CEmblemEquipmentPacket;
 import com.jftse.server.core.shared.packets.game.CMSGReceiveData;
 import com.jftse.server.core.shared.packets.game.SMSGReceiveData;
 import com.jftse.server.core.shared.packets.player.SMSGSetCouplePoints;
@@ -43,6 +46,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
     private final PlayerService playerService;
+    private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
 
     public GameServerDataRequestPacketHandler() {
         homeService = ServiceManager.getInstance().getHomeService();
@@ -52,6 +56,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
         pocketService = ServiceManager.getInstance().getPocketService();
         playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
         playerService = ServiceManager.getInstance().getPlayerService();
+        battlemonSlotEquipmentService = ServiceManager.getInstance().getBattlemonSlotEquipmentService();
     }
 
     @Override
@@ -97,8 +102,9 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
                 player.setGuild(GuildView.fromEntity(guild));
             }
 
-            S2CUnknownPlayerInfoDataPacket unknownPlayerInfoDataPacket = new S2CUnknownPlayerInfoDataPacket(player, pocket, playerStatistic);
-            connection.sendTCP(unknownPlayerInfoDataPacket);
+            S2CPlayerInfoDataPacket playerInfoDataPacket = new S2CPlayerInfoDataPacket(player, pocket, playerStatistic);
+            connection.sendTCP(playerInfoDataPacket);
+            connection.sendTCP(new S2CEmblemEquipmentPacket(player.getEmblemEquipment()));
 
             S2CPlayerLevelExpPacket playerLevelExpPacket = new S2CPlayerLevelExpPacket((byte) player.getLevel(), player.getExpPoints());
             connection.sendTCP(playerLevelExpPacket);
@@ -118,7 +124,8 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
         } else if (requestType == 3) {
             PlayerStatistic playerStatistic = playerStatisticService.findPlayerStatisticById(player.getPlayerStatisticId());
             player.setPlayerStatistic(PlayerStatisticView.fromEntity(playerStatistic));
-            player.setPetSlots(EquippedPetSlots.defaultSlots());
+            BattlemonSlotEquipment battlemonSlots = battlemonSlotEquipmentService.getOrCreate(player.getPlayer());
+            player.setPetSlots(EquippedPetSlots.of(battlemonSlots));
 
             S2CPlayerInfoPlayStatsPacket playerInfoPlayStatsPacket = new S2CPlayerInfoPlayStatsPacket(playerStatistic);
             S2CInventoryWearClothAnswerPacket inventoryWearClothAnswerPacket = new S2CInventoryWearClothAnswerPacket((char) 0, player);
@@ -127,6 +134,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
             S2CInventoryWearSpecialAnswerPacket inventoryWearSpecialAnswerPacket = new S2CInventoryWearSpecialAnswerPacket(player.getSpecialSlots().toList());
             S2CInventoryWearCardAnswerPacket inventoryWearCardAnswerPacket = new S2CInventoryWearCardAnswerPacket(player.getCardSlots().toList());
             S2CInventoryWearBattlemonAnswerPacket inventoryWearBattlemonAnswerPacket = new S2CInventoryWearBattlemonAnswerPacket(player.getPetSlots().toList());
+            S2CPlayerLifetimeStatisticsPacket lifetimeStatisticsPacket = new S2CPlayerLifetimeStatisticsPacket(playerStatistic);
 
             connection.sendTCP(inventoryWearQuickAnswerPacket);
             connection.sendTCP(inventoryWearToolAnswerPacket);
@@ -134,7 +142,7 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
             connection.sendTCP(inventoryWearCardAnswerPacket);
             connection.sendTCP(inventoryWearBattlemonAnswerPacket);
             connection.sendTCP(inventoryWearClothAnswerPacket);
-            connection.sendTCP(playerInfoPlayStatsPacket);
+            connection.sendTCP(playerInfoPlayStatsPacket, lifetimeStatisticsPacket);
         } else if (requestType == 4) {
             SMSGSetMoney moneyPacket = SMSGSetMoney.builder()
                     .ap(client.getAp().get())

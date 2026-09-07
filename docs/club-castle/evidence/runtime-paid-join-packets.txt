@@ -1,0 +1,40 @@
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: CMSGRoomJoin { "id": "0x138B", "len": 3, "data": { "roomId": 1, "unk0": 0, "password": "" } }
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: --- Hex Dump ---
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 43 57 5B 07 8B 13 03 00    01 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: ===
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 2026-08-11 11:43:48,479 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: SMSGRoomJoin { "id": "0x138C", "len": 8, "data": { "result": 0, "roomType": 1, "mode": 3, "mapId": 5 } }
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: --- Hex Dump ---
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: F4 CB 99 08 8C 13 08 00    00 00 01 03 00 00 00 05
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: ===
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 2026-08-11 11:43:48,479 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [53 bytes]
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: Packet { "id": "0x177A", "len": 45, "data": 01 00 43 00 6C 00 75 00 62 00 20 00 48 00 6F 00 75 00 73 00 65 00 00 00 01 03 00 00 00 00 00 00 00 64 00 00 00 00 05 00 01 00 00 00 00 }
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: --- Hex Dump ---
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: BD 81 2F 08 7A 17 2D 00    01 00 43 00 6C 00 75 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 62 00 20 00 48 00 6F 00    75 00 73 00 65 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 01 03 00 00 00 00 00 00    00 64 00 00 00 00 05 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 01 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: ===
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 2026-08-11 11:43:48,481 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [217 bytes]
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: Packet { "id": "0x1396", "len": 209, "data": 00 00 4D 00 61 00 73 00 74 00 65 00 72 00 00 00 01 01 00 00 00 00 00 00 43 00 61 00 73 00 74 00 6C 00 65 00 43 00 6C 00 75 00 62 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 C8 00 00 00 0F 0F 0F 0F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 41 00 00 00 42 00 00 80 41 00 00 00 42 00 00 00 00 00 }
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: --- Hex Dump ---
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 4E 7E 79 08 96 13 D1 00    00 00 4D 00 61 00 73 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 74 00 65 00 72 00 00 00    01 01 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 43 00 61 00 73 00 74 00    6C 00 65 00 43 00 6C 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 75 00 62 00 00 00 FF FF    FF FF FF FF FF FF FF FF
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: FF FF FF FF FF FF FF FF    FF FF FF FF FF FF 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 C8 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 0F 0F 0F 0F 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 00 00 00 80 41    00 00 00 42 00 00 80 41
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 00 00 00 42 00 00 00 00    00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: ===
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: 2026-08-11 11:43:48,481 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: SMSGSetMoney { "id": "0x1B61", "len": 8, "data": { "ap": 0, "gold": 7735 } }
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: --- Hex Dump ---
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: B5 5E B7 07 61 1B 08 00    00 00 00 00 37 1E 00 00
+2026-08-11T11:43:48+0000 e2b.local amp-svc-jftse-chat[430592]: ===

@@ -1,5 +1,6 @@
 package com.jftse.emulator.server.core.packets.lobby;
 
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.guild.Guild;
 import com.jftse.entities.database.model.messenger.Friend;
 import com.jftse.entities.database.model.player.Player;
@@ -8,7 +9,8 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
 public class S2CLobbyUserInfoAnswerPacket extends Packet {
-    public S2CLobbyUserInfoAnswerPacket(char result, Player player, Guild guild, Friend couple) {
+    public S2CLobbyUserInfoAnswerPacket(char result, Player player, Guild guild, Friend couple,
+                                        PlayerEmblemEquipment emblemEquipment) {
         super(PacketOperations.S2CLobbyUserInfoAnswer);
 
         this.write(result);
@@ -52,10 +54,10 @@ public class S2CLobbyUserInfoAnswerPacket extends Packet {
             this.write(couple != null ? couple.getFriend().getName() : "");
             this.write(0); // charming points
             this.write(0);
-            this.write((short) 0); // emblem slot 1
-            this.write((short) 0); // emblem slot 2
-            this.write((short) 0); // emblem slot 3
-            this.write((short) 0); // emblem slot 4
+            this.write(emblemEquipment != null ? emblemEquipment.getSlot1() : (short) 0);
+            this.write(emblemEquipment != null ? emblemEquipment.getSlot2() : (short) 0);
+            this.write(emblemEquipment != null ? emblemEquipment.getSlot3() : (short) 0);
+            this.write(emblemEquipment != null ? emblemEquipment.getSlot4() : (short) 0);
         }
     }
 }

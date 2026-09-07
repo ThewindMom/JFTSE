@@ -42,7 +42,7 @@ public class GameServerLoginPacketHandler implements PacketHandler<FTConnection,
         if (authToken == null) {
             SMSGLoginData response = SMSGLoginData.builder()
                     .result((char) -1)
-                    .serverType((byte) 1)
+                    .serverType(connection.getGameServerType())
                     .build();
             connection.sendTCP(response);
 
@@ -77,7 +77,7 @@ public class GameServerLoginPacketHandler implements PacketHandler<FTConnection,
 
             SMSGLoginData response = SMSGLoginData.builder()
                     .result((char) 0)
-                    .serverType((byte) 1)
+                    .serverType(connection.getGameServerType())
                     .build();
             connection.sendTCP(response);
 
@@ -92,7 +92,7 @@ public class GameServerLoginPacketHandler implements PacketHandler<FTConnection,
 
             SMSGLoginData response = SMSGLoginData.builder()
                     .result((char) -1)
-                    .serverType((byte) 1)
+                    .serverType(connection.getGameServerType())
                     .build();
             connection.sendTCP(response);
         }

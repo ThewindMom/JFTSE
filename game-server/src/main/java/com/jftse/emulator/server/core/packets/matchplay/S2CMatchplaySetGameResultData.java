@@ -1,12 +1,21 @@
 package com.jftse.emulator.server.core.packets.matchplay;
 
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 public class S2CMatchplaySetGameResultData extends Packet {
+    public S2CMatchplaySetGameResultData(List<PlayerReward> playerRewards,
+                                         Collection<GameplayActor> ownedPetSeats) {
+        this(withOwnedPetRewards(playerRewards, ownedPetSeats));
+    }
+
     public S2CMatchplaySetGameResultData(List<PlayerReward> playerRewards) {
         super(PacketOperations.S2CMatchplaySetGameResultData);
 
@@ -22,5 +31,27 @@ public class S2CMatchplaySetGameResultData extends Packet {
             // 0000 0001 = EXP Bonus, 0000 0010 = Gold Bonus, 0000 1000 = Ring Wiseman, 0000 0100 = Event
             this.write(playerReward.getActiveBonuses());
         }
+    }
+
+    static List<PlayerReward> withOwnedPetRewards(List<PlayerReward> playerRewards,
+                                                 Collection<GameplayActor> ownedPetSeats) {
+        List<PlayerReward> resultRewards = new ArrayList<>(playerRewards);
+        for (GameplayActor actor : ownedPetSeats) {
+            if (actor.isHuman()) {
+                continue;
+            }
+            PlayerReward ownerReward = playerRewards.stream()
+                    .filter(reward -> reward.getPlayerPosition() == actor.ownerPosition())
+                    .findFirst()
+                    .orElse(null);
+            if (ownerReward == null) {
+                continue;
+            }
+            PlayerReward petReward = new PlayerReward(actor.position());
+            petReward.setExp(ownerReward.getExp());
+            resultRewards.add(petReward);
+        }
+        resultRewards.sort(Comparator.comparingInt(PlayerReward::getPlayerPosition));
+        return resultRewards;
     }
 }

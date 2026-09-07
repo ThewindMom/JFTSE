@@ -1,0 +1,6 @@
+2026-08-11 13:10:23,107 [ServerUpdateLoop] TimeSyncLogger [handle] DEBUG TimeSync (TourTest): clock offset: 8 ms (clientSysClock: 1786453823106 ms, rtt: 18 ms)
+2026-08-11 13:10:23,108 [ServerUpdateLoop] TimeSyncLogger [handle] DEBUG TimeSync (TourTest): steady drift: 0 ms (serverStep: 30016 ms)
+2026-08-11 13:10:52,408 [ServerUpdateLoop] FTConnection [update] WARN  No handler for packet id: 0x26c0 (9920)
+2026-08-11 13:10:53,094 [ServerUpdateLoop] TimeSyncLogger [handle] DEBUG TimeSync (TourTest): clock offset: 0 ms (clientSysClock: 1786453853092 ms, rtt: 2 ms)
+2026-08-11 13:10:53,094 [ServerUpdateLoop] TimeSyncLogger [handle] DEBUG TimeSync (TourTest): steady drift: 1 ms (serverStep: 29986 ms)
+2026-08-11 13:11:23,109 [ServerUpdateLoop] TimeSyncLogger [handle] DEBUG TimeSync (TourTest): clock offset: 8 ms (clientSysClock: 1786453883108 ms, rtt: 17 ms)

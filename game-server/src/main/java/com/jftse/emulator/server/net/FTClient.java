@@ -37,9 +37,13 @@ public class FTClient extends Client<FTConnection> {
     private ChallengeGame activeChallengeGame;
     private TutorialGame activeTutorialGame;
 
-    private Room activeRoom;
+    private volatile Room activeRoom;
     private RoomPlayer roomPlayer;
-    private Integer gameSessionId;
+    private volatile Integer gameSessionId;
+    @Setter(lombok.AccessLevel.NONE)
+    private volatile long gameSessionGeneration;
+    @Getter(lombok.AccessLevel.NONE)
+    private final Object matchPublicationLock = new Object();
 
     private FruitManager fruitManager = new FruitManager();
 
@@ -152,16 +156,67 @@ public class FTClient extends Client<FTConnection> {
     }
 
     public GameSession getActiveGameSession() {
-        if (this.gameSessionId == null)
+        Integer sessionId = this.gameSessionId;
+        if (sessionId == null)
             return null;
-        return GameSessionManager.getInstance().getGameSessionBySessionId(this.gameSessionId);
+        return GameSessionManager.getInstance().getGameSessionBySessionId(sessionId);
     }
 
-    public void setActiveGameSession(Integer gameSessionId) {
-        this.gameSessionId = gameSessionId;
+    public synchronized void setActiveGameSession(Integer gameSessionId) {
+        synchronized (matchPublicationLock) {
+            if (gameSessionId != null && !gameSessionId.equals(this.gameSessionId)) {
+                gameSessionGeneration++;
+            }
+            this.gameSessionId = gameSessionId;
+        }
+    }
+
+    public void setGameSessionId(Integer gameSessionId) {
+        setActiveGameSession(gameSessionId);
+    }
+
+    public synchronized boolean clearActiveGameSession(GameSession expected) {
+        synchronized (matchPublicationLock) {
+            if (getActiveGameSession() != expected) return false;
+            gameSessionId = null;
+            return true;
+        }
+    }
+
+    public synchronized boolean clearActiveGameSession(Integer expectedSessionId) {
+        synchronized (matchPublicationLock) {
+            if (expectedSessionId == null || !expectedSessionId.equals(this.gameSessionId)) {
+                return false;
+            }
+            gameSessionId = null;
+            return true;
+        }
+    }
+
+    public synchronized void setActiveRoom(Room room) {
+        synchronized (matchPublicationLock) {
+            this.activeRoom = room;
+        }
+    }
+
+    public record MatchMembership(GameSession session, Room room, long generation) {}
+
+    public MatchMembership matchMembership() {
+        synchronized (matchPublicationLock) {
+            return new MatchMembership(getActiveGameSession(), getActiveRoom(), getGameSessionGeneration());
+        }
     }
 
     public void setActivePet(Pet pet) {
         this.activePet = pet == null ? null : PetView.of(pet);
+    }
+
+    public void sendMatchPacket(MatchMembership expected, com.jftse.server.core.protocol.IPacket packet) {
+        synchronized (matchPublicationLock) {
+            if (expected.session() != null && getActiveGameSession() == expected.session() && getActiveRoom() == expected.room() &&
+                    getGameSessionGeneration() == expected.generation() && getConnection() != null) {
+                getConnection().sendTCP(packet);
+            }
+        }
     }
 }

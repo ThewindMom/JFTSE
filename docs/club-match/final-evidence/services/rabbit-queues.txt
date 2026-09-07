@@ -1,0 +1,10 @@
+Timeout: 60.0 seconds ...
+Listing queues for vhost / ...
+name	messages	consumers
+q-relay	0	1
+match-queue-club	0	1
+q-game	0	1
+q-game-club	0	1
+q-chat	0	1
+q-auth	0	1
+match-queue	0	1

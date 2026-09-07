@@ -19,6 +19,8 @@ public abstract class MatchplayGame {
     protected AtomicBoolean finished;
     protected ConcurrentLinkedDeque<ScheduledFuture<?>> scheduledFutures;
 
+    private final AtomicBoolean settlementStarted = new AtomicBoolean(false);
+
     private MatchplayHandleable handleable;
 
     protected MatchplayGame() {
@@ -35,6 +37,10 @@ public abstract class MatchplayGame {
 
     public boolean isBlueTeam(int playerPos) {
         return playerPos == 1 || playerPos == 3;
+    }
+
+    public boolean beginSettlement() {
+        return settlementStarted.compareAndSet(false, true);
     }
 
     public abstract MatchplayReward getMatchRewards();

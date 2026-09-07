@@ -44,6 +44,8 @@ public class MatchplayBasicGame extends MatchplayGame {
     private AtomicInteger setsBlueTeam;
     private AtomicReference<RoomPlayer> servePlayer;
     private AtomicReference<RoomPlayer> receiverPlayer;
+    private AtomicInteger servePlayerPosition;
+    private AtomicInteger receiverPlayerPosition;
 
     private Map<Integer, Integer> previousIndividualPointsMadeFromPlayers;
     private AtomicInteger previousPointsRedTeam;
@@ -55,6 +57,7 @@ public class MatchplayBasicGame extends MatchplayGame {
     private AtomicBoolean setDowngraded = new AtomicBoolean(false);
     private AtomicBoolean pointBackValid = new AtomicBoolean(false);
     private final boolean isSingles;
+    private final boolean enhancedActorGame;
 
     private SMaps map;
 
@@ -63,6 +66,18 @@ public class MatchplayBasicGame extends MatchplayGame {
     private final Random random = new Random();
 
     public MatchplayBasicGame(byte players) {
+        this(players, java.util.stream.IntStream.range(0, players).boxed().toList(), false);
+    }
+
+    public MatchplayBasicGame(byte gameplayActors, byte rewardPlayers) {
+        this(gameplayActors, java.util.stream.IntStream.range(0, rewardPlayers).boxed().toList(), true);
+    }
+
+    public MatchplayBasicGame(byte gameplayActors, Collection<Integer> rewardPlayerPositions) {
+        this(gameplayActors, rewardPlayerPositions, true);
+    }
+
+    private MatchplayBasicGame(byte gameplayActors, Collection<Integer> rewardPlayerPositions, boolean enhancedActorGame) {
         super();
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -79,26 +94,29 @@ public class MatchplayBasicGame extends MatchplayGame {
         this.setsRedTeam = new AtomicInteger(0);
         this.setsBlueTeam = new AtomicInteger(0);
         this.finished = new AtomicBoolean(false);
-        this.pointBackVotes = new ConcurrentHashMap<>(players);
-        for (int i = 0; i < players; i++) {
-            this.pointBackVotes.put(i, false);
+        this.pointBackVotes = new ConcurrentHashMap<>(rewardPlayerPositions.size());
+        for (int playerPosition : rewardPlayerPositions) {
+            this.pointBackVotes.put(playerPosition, false);
         }
-        this.previousIndividualPointsMadeFromPlayers = new ConcurrentHashMap<>(players);
+        this.previousIndividualPointsMadeFromPlayers = new ConcurrentHashMap<>(rewardPlayerPositions.size());
         this.previousPointsRedTeam = new AtomicInteger(0);
         this.previousPointsBlueTeam = new AtomicInteger(0);
         this.previousSetsRedTeam = new AtomicInteger(0);
         this.previousSetsBlueTeam = new AtomicInteger(0);
-        this.previousServePlayerPosition = new AtomicInteger(0);
-        this.previousReceiverPlayerPosition = new AtomicInteger(0);
+        this.previousServePlayerPosition = new AtomicInteger(enhancedActorGame ? -1 : 0);
+        this.previousReceiverPlayerPosition = new AtomicInteger(enhancedActorGame ? -1 : 0);
         this.servePlayer = new AtomicReference<>();
         this.receiverPlayer = new AtomicReference<>();
+        this.servePlayerPosition = new AtomicInteger(-1);
+        this.receiverPlayerPosition = new AtomicInteger(-1);
         this.scheduledFutures = new ConcurrentLinkedDeque<>();
-        this.individualPointsMadeFromPlayers = new ConcurrentHashMap<>(players);
-        for (int i = 0; i < players; i++) {
-            this.individualPointsMadeFromPlayers.put(i, 0);
+        this.individualPointsMadeFromPlayers = new ConcurrentHashMap<>(rewardPlayerPositions.size());
+        for (int playerPosition : rewardPlayerPositions) {
+            this.individualPointsMadeFromPlayers.put(playerPosition, 0);
         }
 
-        this.isSingles = players == 2;
+        this.isSingles = gameplayActors == 2;
+        this.enhancedActorGame = enhancedActorGame;
 
         this.jdbcUtil = ServiceManager.getInstance().getJdbcUtil();
     }
@@ -112,10 +130,12 @@ public class MatchplayBasicGame extends MatchplayGame {
         this.previousSetsRedTeam.set(this.setsRedTeam.get());
         this.previousSetsBlueTeam.set(this.setsBlueTeam.get());
         this.previousIndividualPointsMadeFromPlayers = new ConcurrentHashMap<>(this.individualPointsMadeFromPlayers);
-        if (this.servePlayer.get() != null)
-            this.previousServePlayerPosition.set(this.servePlayer.get().getPosition());
-        if (this.receiverPlayer.get() != null)
-            this.previousReceiverPlayerPosition.set(this.receiverPlayer.get().getPosition());
+        this.previousServePlayerPosition.set(this.servePlayer.get() == null
+                ? this.servePlayerPosition.get()
+                : this.servePlayer.get().getPosition());
+        this.previousReceiverPlayerPosition.set(this.receiverPlayer.get() == null
+                ? this.receiverPlayerPosition.get()
+                : this.receiverPlayer.get().getPosition());
         this.pointBackValid.set(true);
 
         this.pointsRedTeam.set(pointsRedTeam);
@@ -145,7 +165,10 @@ public class MatchplayBasicGame extends MatchplayGame {
     }
 
     public synchronized void setPointBackVote(int playerPosition) {
-        this.pointBackVotes.put(playerPosition, true);
+        if (enhancedActorGame)
+            this.pointBackVotes.computeIfPresent(playerPosition, (position, ignored) -> true);
+        else
+            this.pointBackVotes.put(playerPosition, true);
     }
 
     public boolean isPointBackAvailable() {
@@ -332,7 +355,7 @@ public class MatchplayBasicGame extends MatchplayGame {
 
     @Override
     public void addBonusesToRewards(ConcurrentLinkedDeque<RoomPlayer> roomPlayers, List<PlayerReward> playerRewards) {
-        final boolean isSingles = roomPlayers.stream().filter(rp -> rp.getPosition() < 4).count() == 2;
+        final boolean ordinarySingles = roomPlayers.stream().filter(rp -> rp.getPosition() < 4).count() == 2;
         for (RoomPlayer rp : roomPlayers) {
             boolean wonGame = false;
 
@@ -349,7 +372,7 @@ public class MatchplayBasicGame extends MatchplayGame {
                     wonGame = true;
                 }
 
-                if (!isSingles)
+                if (!(this.enhancedActorGame ? this.isSingles : ordinarySingles))
                     playerReward.setActiveBonuses(playerReward.getActiveBonuses() | BonusIconHighlightValues.TeamBonus);
 
                 ExpGoldBonus expGoldBonusSimple = new ExpGoldBonusImpl(playerReward.getExp(), playerReward.getGold());

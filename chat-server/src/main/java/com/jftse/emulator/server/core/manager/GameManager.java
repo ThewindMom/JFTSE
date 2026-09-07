@@ -11,6 +11,7 @@ import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.housing.FishManager;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.packets.item.S2CPersonalBoardMessageListPacket;
 import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.net.FTClient;
@@ -56,6 +57,10 @@ import java.util.stream.IntStream;
 @Setter
 @Log4j2
 public class GameManager implements ServerLoopHandler {
+    public static final byte CLUB_HOUSE_MAP = 5;
+    public static final float CLUB_HOUSE_SPAWN_X = 16.0f;
+    public static final float CLUB_HOUSE_SPAWN_Y = 32.0f;
+
     private static GameManager instance;
 
     private static final Logger scriptLogger = LogManager.getLogger("ScriptLogger");
@@ -79,9 +84,8 @@ public class GameManager implements ServerLoopHandler {
 
     private ConcurrentLinkedQueue<FTConnection> addConnectionQueue;
     private ConcurrentLinkedDeque<FTClient> clients;
-    private Room townSquare;
-
     private ConcurrentHashMap<Integer, String> personalBoardMessages;
+    private Room townSquare;
 
     private Optional<ScriptManagerV2> scriptManager;
 
@@ -124,6 +128,7 @@ public class GameManager implements ServerLoopHandler {
         scriptManager = ScriptManagerFactory.loadScriptsV2("scripts", () -> scriptLogger);
 
         roomManager.setupChatLobby();
+        refreshClubHouses();
 
         GameTime.updateGameTimers();
         initTimers();
@@ -249,6 +254,53 @@ public class GameManager implements ServerLoopHandler {
                 .orElse(null);
     }
 
+    public synchronized void refreshClubHouses() {
+        Map<Long, Guild> castleGuilds = serviceManager.getGuildCastleService().findAll().stream()
+                .collect(Collectors.toMap(Guild::getId, guild -> guild));
+
+        roomManager.getRooms().removeIf(room -> {
+            if (!room.isClubHouse() || castleGuilds.containsKey(room.getCastleGuildId())) {
+                return false;
+            }
+            synchronized (room) {
+                return room.getRoomPlayerList().isEmpty();
+            }
+        });
+
+        for (Guild guild : castleGuilds.values()) {
+            Room clubHouse = roomManager.getRooms().stream()
+                    .filter(Room::isClubHouse)
+                    .filter(room -> guild.getId().equals(room.getCastleGuildId()))
+                    .findFirst()
+                    .orElseGet(() -> roomManager.registerRoom(createClubHouse(guild)));
+            synchronized (clubHouse) {
+                clubHouse.setCastleGuildName(guild.getName());
+                clubHouse.setCastleAccessLimit(guild.getCastleAccessLimit());
+                clubHouse.setCastleAdmissionFee(guild.getCastleAdmissionFee());
+            }
+        }
+    }
+
+    private Room createClubHouse(Guild guild) {
+        Room room = new Room();
+        room.setRoomName("Club House");
+        room.setRoomType((byte) 1);
+        room.setMode((byte) 3);
+        room.setMap(CLUB_HOUSE_MAP);
+        room.setRule((byte) 0);
+        room.setPlayers((byte) 100);
+        room.setPrivate(false);
+        room.setSkillFree(false);
+        room.setQuickSlot(true);
+        room.setLevel((byte) 0);
+        room.setLevelRange((byte) 0);
+        room.setBall(0);
+        room.setCastleGuildId(guild.getId());
+        room.setCastleGuildName(guild.getName());
+        room.setCastleAccessLimit(guild.getCastleAccessLimit());
+        room.setCastleAdmissionFee(guild.getCastleAdmissionFee());
+        return room;
+    }
     public synchronized void handleChatLobbyJoin(FTClient client) {
         FTConnection connection = client.getConnection();
         if (connection == null || !client.hasPlayer()) {
@@ -328,6 +380,8 @@ public class GameManager implements ServerLoopHandler {
             sendPacketToAllClientsInSameRoom(roomPlayerInformationPacket, connection);
         }
 
+        sendPersonalBoardMessages(connection, townSquare);
+
         Packet enableMovement = new Packet(PacketOperations.S2CEnableTownSquareMovement);
         connection.sendTCP(enableMovement);
 
@@ -368,9 +422,12 @@ public class GameManager implements ServerLoopHandler {
 
         final short playerPosition = roomPlayer.isPresent() ? roomPlayer.get().getPosition() : -1;
 
+        room.getPersonalBoardMessages().remove(activePlayer.getId());
+
         if (roomPlayer.isPresent()) {
             RoomPlayer rp = roomPlayer.get();
-            if (rp.isMaster()) {
+            if (rp.isMaster() && !room.isClubHouse()) {
+                room.getPersonalBoardMessages().clear();
                 Packet roomLeaveAnswer = new Packet(PacketOperations.S2CRoomLeaveAnswer);
                 roomLeaveAnswer.write((short) 1);
 
@@ -396,7 +453,7 @@ public class GameManager implements ServerLoopHandler {
         }
 
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
-        if (roomPlayerList.isEmpty() && room.getMode() != 2) {
+        if (roomPlayerList.isEmpty() && room.getMode() != 2 && !room.isClubHouse()) {
             roomManager.removeRoom(room);
         }
 
@@ -478,6 +535,12 @@ public class GameManager implements ServerLoopHandler {
                 }
             });
         }
+    }
+
+    public void sendPersonalBoardMessages(FTConnection connection, Room room) {
+        Map<Short, String> messages = room.getPersonalBoardMessagesByPosition();
+        if (!messages.isEmpty())
+            connection.sendTCP(new S2CPersonalBoardMessageListPacket(messages));
     }
 
     private void updateSessions(long diff) {

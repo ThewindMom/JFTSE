@@ -20,7 +20,10 @@ public class RoomLeaveRequestPacketHandler implements PacketHandler<FTConnection
 
         client.setLobbyCurrentRoomListPage(-1);
 
-        GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true);
+        if (!GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true)) {
+            client.getIsJoiningOrLeavingRoom().set(false);
+            return;
+        }
 
         SMSGRoomLeave answer = SMSGRoomLeave.builder().result((short) 0).build();
         connection.sendTCP(answer);

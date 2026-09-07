@@ -37,24 +37,18 @@ public class S2CPlayerStatusPointChangePacket extends Packet {
 
         // earrings added status points
         this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
+        this.write(equippedItemStats.getSpecialStrength().byteValue());
+        this.write(equippedItemStats.getSpecialStamina().byteValue());
+        this.write(equippedItemStats.getSpecialDexterity().byteValue());
+        this.write(equippedItemStats.getSpecialWillpower().byteValue());
         // cards added status points
         this.write(0);
         this.write((byte) 0);
         this.write((byte) 0);
         this.write((byte) 0);
         this.write((byte) 0);
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
-        // ??
-        for (int i = 5; i < 13; ++i) {
-            this.write((byte) 0);
-        }
+        // cards added status points and elements
+        this.writeCardStats(player.getCardStats());
 
         this.write((byte) player.getStatusPoints());
     }

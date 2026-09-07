@@ -15,7 +15,7 @@ public class RoomNameChangePacketHandler implements PacketHandler<FTConnection, 
     public void handle(FTConnection connection, CMSGRoomChangeName packet) {
         FTClient client = connection.getClient();
         Room room = client.getActiveRoom();
-        if (room != null) {
+        if (room != null && !room.isClubHouse()) {
             synchronized (room) {
                 room.setRoomName(packet.getRoomName());
             }

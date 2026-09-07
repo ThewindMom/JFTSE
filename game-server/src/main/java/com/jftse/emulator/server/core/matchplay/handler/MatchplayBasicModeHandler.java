@@ -16,6 +16,7 @@ import com.jftse.emulator.server.core.life.item.special.RingOfGold;
 import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
@@ -23,6 +24,7 @@ import com.jftse.emulator.server.core.life.room.ServeInfo;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.MatchSpecialItemUse;
 import com.jftse.emulator.server.core.matchplay.MatchplayHandleable;
 import com.jftse.emulator.server.core.matchplay.MatchplayReward;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
@@ -33,6 +35,7 @@ import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.messages.MatchFinishedMessage;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
 import com.jftse.emulator.server.core.task.AutoItemRewardPickerTask;
+import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.core.utils.RankingUtils;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -45,9 +48,11 @@ import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.packets.matchplay.CMSGPoint;
+import com.jftse.server.core.tournament.TournamentService;
 import lombok.extern.log4j.Log4j2;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -62,6 +67,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
     private final LevelService levelService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -74,6 +80,7 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         this.levelService = ServiceManager.getInstance().getLevelService();
         this.pocketService = ServiceManager.getInstance().getPocketService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
     }
@@ -127,6 +134,35 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
+        if (!game.beginSettlement())
+            return;
+
+        boolean redTeamWon = game.getSetsRedTeam().get() == 2;
+        if (activeRoom.isTournamentRoom()) {
+            if (!gameSession.getTournamentCompletionStarted().compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                TournamentService.CompletionResult completion = TournamentRoomCoordinator.getInstance().completeBasicMatch(
+                        activeRoom,
+                        gameSessionId,
+                        gameSession,
+                        ftClient.getPlayer().getId(),
+                        redTeamWon);
+                if (completion != TournamentService.CompletionResult.COMPLETED
+                        && completion != TournamentService.CompletionResult.ALREADY_COMPLETED) {
+                    gameSession.getTournamentCompletionStarted().set(false);
+                    resetRejectedTournamentMatch(activeRoom, gameSessionId, gameSession);
+                    return;
+                }
+            } catch (RuntimeException exception) {
+                gameSession.getTournamentCompletionStarted().set(false);
+                resetRejectedTournamentMatch(activeRoom, gameSessionId, gameSession);
+                log.error("Tournament match completion failed; the game session was reset", exception);
+                return;
+            }
+        }
+
         activeRoom.setStatus(RoomStatus.NotRunning);
 
         gameSession.getFireables().forEach(f -> f.setCancelled(true));
@@ -135,7 +171,6 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         StringBuilder gameLogContent = new StringBuilder();
 
         gameLogContent.append("Basic game finished. ");
-        boolean redTeamWon = game.getSetsRedTeam().get() == 2;
         gameLogContent.append(redTeamWon ? "Red " : "Blue ").append("team won. ");
 
         MatchplayReward matchplayReward = game.getMatchRewards();
@@ -206,6 +241,8 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                     }
                 }
 
+                MatchSpecialItemUse.consume(client, GameMode.BASIC);
+
                 final int oldLevel = player.getLevel();
                 final int level = levelService.getLevel(playerReward.getExp(), player.getExpPoints(), (byte) oldLevel);
                 if ((level < ConfigService.getInstance().getValue("player.level.max", 60)) || (oldLevel < level))
@@ -233,20 +270,25 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
                         playerStats.getSmash(), playerStats.getVolley(), playerStats.getTopSpin(), playerStats.getRising(),
                         playerStats.getServe(), playerStats.getGuardBreakShot(), playerStats.getChargeShot(), playerStats.getSkillShot());
 
+                emblemQuestService.updateMatchTotals(player.getId(), GameMode.BASIC, wonGame, serviceAces, returnAces,
+                        playerStats.getSlice(), playerStats.getLob(), playerStats.getSmash(), playerStats.getGuardBreakShot(),
+                        playerStats.getChargeShot(), playerStats.getSkillShot());
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, player.getLevel());
+
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 
                 rp.setReady(false);
                 int playerLevel = player.getLevel();
                 byte resultTitle = (byte) (wonGame ? 1 : 0);
                 if (playerLevel != oldLevel) {
-                    S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player);
+                    S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player, GameMode.BASIC);
                     eventHandler.offer(eventHandler.createPacketEvent(client, gameEndLevelUpPlayerStatsPacket, PacketEventType.DEFAULT, 0));
                 }
 
                 S2CMatchplayItemRewardsPacket itemRewardsPacket = new S2CMatchplayItemRewardsPacket(matchplayReward);
                 client.getConnection().sendTCP(itemRewardsPacket);
 
-                S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, (int) Math.ceil((double) game.getTimeNeeded() / 1000), playerReward, (byte) playerLevel, rp);
+                S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, (int) Math.ceil((double) game.getTimeNeeded() / 1000), playerReward, (byte) playerLevel, rp, GameMode.BASIC);
                 eventHandler.offer(eventHandler.createPacketEvent(client, setExperienceGainInfoData, PacketEventType.DEFAULT, 0));
             } else {
                 gameLogContent.append("spec: ").append(rp.getName()).append(" acc: ").append(rp.getAccountId()).append("; ");
@@ -295,6 +337,43 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
         }
     }
 
+    private void resetRejectedTournamentMatch(Room room, int gameSessionId, GameSession gameSession) {
+        TournamentRoomCoordinator coordinator = TournamentRoomCoordinator.getInstance();
+        boolean durableRoomBindingRetained = true;
+        try {
+            durableRoomBindingRetained = coordinator.deactivate(room, gameSessionId);
+            if (!durableRoomBindingRetained) {
+                coordinator.release(room);
+            }
+        } catch (RuntimeException exception) {
+            log.error("Tournament match binding could not be reset; retaining the room for recovery", exception);
+        }
+
+        synchronized (room) {
+            room.setStatus(RoomStatus.NotRunning);
+            room.getRoomPlayerList().forEach(player -> {
+                player.setReady(false);
+                player.getConnectedToRelay().set(false);
+            });
+        }
+
+        List<FTClient> sessionClients = new ArrayList<>(gameSession.getClients());
+        S2CMatchplayBackToRoom backToRoom = new S2CMatchplayBackToRoom();
+        sessionClients.forEach(client -> {
+            client.setActiveGameSession(null);
+            if (client.getConnection() != null) {
+                client.getConnection().sendTCP(backToRoom);
+            }
+        });
+        GameSessionManager.getInstance().discardGameSession(gameSessionId, gameSession);
+
+        if (!durableRoomBindingRetained) {
+            sessionClients.stream()
+                    .filter(client -> client.getActiveRoom() == room && client.getConnection() != null)
+                    .forEach(client -> GameManager.getInstance().handleRoomPlayerChanges(client.getConnection(), true));
+        }
+    }
+
     @Override
     public void onPrepare(final FTClient ftClient) {
         Room room = ftClient.getActiveRoom();
@@ -305,6 +384,84 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
             return;
         }
         game.setMap(map.get());
+    }
+
+    public synchronized void onClubMatchTimerExpired(GameSession gameSession, int gameSessionId,
+                                                     Room activeRoom) {
+        if (gameSession == null || activeRoom == null || !ClubMatchRules.isClubMatch(activeRoom)) {
+            return;
+        }
+        synchronized (activeRoom) {
+            if (gameSession.getMatchplayGame() != game
+                    || !activeRoom.getClubMatchState().tryExpire(gameSessionId, Instant.now())) {
+                return;
+            }
+
+            finishExpiredClubMatch(gameSession, gameSessionId, activeRoom);
+        }
+    }
+
+    private void finishExpiredClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom) {
+        int redSets = game.getSetsRedTeam().get();
+        int blueSets = game.getSetsBlueTeam().get();
+        if (redSets == blueSets) {
+            log.warn("Club Match session {} expired with tied sets {}-{}; "
+                            + "the original tie-break rule is not yet proven, so no result was sent",
+                    gameSessionId, redSets, blueSets);
+            finishClubMatch(gameSession, gameSessionId, activeRoom, null, true);
+            return;
+        }
+
+        byte winningSide = redSets > blueSets ? (byte) 0 : (byte) 1;
+        finishClubMatch(gameSession, gameSessionId, activeRoom, winningSide, true);
+    }
+
+    private void finishClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom,
+                                 Byte winningSide, boolean timerExpiry) {
+        synchronized (activeRoom) {
+            boolean terminalClaimed = timerExpiry
+                    ? activeRoom.getClubMatchState().tryRecordExpiredResult(gameSessionId)
+                    : activeRoom.getClubMatchState().tryRecordResult(gameSessionId);
+            if (!terminalClaimed) {
+                return;
+            }
+            activeRoom.setStatus(RoomStatus.StartCancelled);
+            gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+            gameSession.getFireables().clear();
+            game.getFinished().set(true);
+            if (game.getEndTime() == null) {
+                game.setEndTime(new java.util.concurrent.atomic.AtomicReference<>(new Date()));
+            }
+
+            S2CClubMatchResultPacket resultPacket = winningSide == null
+                    ? null
+                    : new S2CClubMatchResultPacket(winningSide);
+            for (FTClient client : gameSession.getClients()) {
+                RoomPlayer roomPlayer = client.getRoomPlayer();
+                if (roomPlayer != null) {
+                    roomPlayer.setReady(false);
+                    roomPlayer.getConnectedToRelay().set(false);
+                }
+                if (client.getConnection() != null) {
+                    if (resultPacket != null) {
+                        client.getConnection().sendTCP(resultPacket);
+                    }
+                    eventHandler.offer(eventHandler.createPacketEvent(client,
+                            new S2CMatchplayBackToRoom(), PacketEventType.FIRE_DELAYED,
+                            TimeUnit.SECONDS.toMillis(12)));
+                }
+                client.clearActiveGameSession(gameSession);
+            }
+
+            matchRallyStatsConsumer.clearSession(gameSessionId);
+            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+            if (activeRoom.getClubMatchState().ownsGameSession(gameSessionId)) {
+                activeRoom.setStatus(RoomStatus.NotRunning);
+            }
+        }
+        log.info("Club Match session {} ended{}; ordinary Basic rewards, rankings, player statistics, "
+                        + "and guild records were not changed",
+                gameSessionId, winningSide == null ? " without a proven tie result" : " with winning side " + winningSide);
     }
 
     @Override

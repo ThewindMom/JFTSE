@@ -2,6 +2,7 @@ package com.jftse.emulator.server.core.packets.inventory;
 
 import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.player.Player;
@@ -55,10 +56,10 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
 
             // earrings added status points
             this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
+            this.write(equippedItemStats.getSpecialStrength().byteValue());
+            this.write(equippedItemStats.getSpecialStamina().byteValue());
+            this.write(equippedItemStats.getSpecialDexterity().byteValue());
+            this.write(equippedItemStats.getSpecialWillpower().byteValue());
             // cards added status points
             this.write(0);
             this.write((byte) 0);
@@ -66,13 +67,7 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
             this.write((byte) 0);
             this.write((byte) 0);
             // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
-            // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
+            this.writeCardStats(player.getCardStats());
         }
     }
 
@@ -117,24 +112,8 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
 
             // earrings added status points
             this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            // cards added status points
-            this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
-            // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
+            // cards added status points and elements
+            this.writeCardStats(ServiceManager.getInstance().getCardSlotEquipmentService().calculateCardStats(player));
         }
     }
 }

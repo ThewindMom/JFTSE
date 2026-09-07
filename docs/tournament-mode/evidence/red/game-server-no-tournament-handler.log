@@ -1,0 +1,22 @@
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:41,543 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: CMSGGuildData { "id": "0x200D", "len": 0, "data": { } }
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: --- Hex Dump ---
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 6A 7E 35 07 0D 20 00 00
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: ===
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:41,545 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [12 bytes]
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: CMSGDefault { "id": "0x26AF", "len": 4, "data": 00 00 00 00 }
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: --- Hex Dump ---
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: F9 40 45 08 AF 26 04 00    00 00 00 00
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: ===
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:41,545 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: --- Hex Dump ---
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 44 7E A7 07 A3 0F 00 00
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: ===
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:41,551 [ServerUpdateLoop] FTConnection [update] WARN  No handler for packet id: 0x26af (9903)
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:41,554 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [10 bytes]
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: Packet { "id": "0x200E", "len": 2, "data": FE FF }
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: --- Hex Dump ---
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: A5 57 5F 07 0E 20 02 00    FE FF
+2026-08-11T10:16:41+0000 e2b.local amp-svc-game-baseline[51369]: ===
+2026-08-11T10:16:44+0000 e2b.local amp-svc-game-baseline[51369]: 2026-08-11 10:16:44,963 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]

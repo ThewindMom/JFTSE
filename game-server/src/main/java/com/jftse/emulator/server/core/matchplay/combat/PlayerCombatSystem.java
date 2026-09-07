@@ -40,6 +40,8 @@ public class PlayerCombatSystem implements PlayerCombatable {
 
         boolean isNormalDamageSkill = Math.abs(damage) != 1;
         if (isNormalDamageSkill) {
+            if (attackingPlayer == null)
+                throw new ValidationException("attackingPlayer battle state is null");
             totalDamageToDeal = BattleUtils.calculateDmg(attackingPlayer.getStr(), damage, hasAttackerDmgBuff);
         }
 
@@ -134,40 +136,32 @@ public class PlayerCombatSystem implements PlayerCombatable {
         if (targetPlayer == null)
             throw new ValidationException("targetPlayer battle state is null");
 
-        int currentHealth = targetPlayer.getCurrentHealth().get();
         short healthToHeal = (short) (targetPlayer.getMaxHealth() * (percentage / 100f));
-        currentHealth = Math.max(currentHealth, 0);
-        short newPlayerHealth = (short) (currentHealth + healthToHeal);
-        if (newPlayerHealth > targetPlayer.getMaxHealth()) {
-            newPlayerHealth = (short) targetPlayer.getMaxHealth();
-        }
-
-        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth))
-            return newPlayerHealth;
-        else
-            return (short) currentHealth;
+        return (short) targetPlayer.getCurrentHealth().updateAndGet(current ->
+                Math.min((short) (Math.max(current, 0) + healthToHeal), targetPlayer.getMaxHealth()));
     }
 
     @Override
     public short updateHealthByDamage(PlayerBattleState targetPlayer, int dmg) {
-        int currentHealth = targetPlayer.getCurrentHealth().get();
-        currentHealth = Math.max(currentHealth, 0);
-        short newPlayerHealth = (short) (currentHealth + dmg);
+        short newPlayerHealth = (short) targetPlayer.getCurrentHealth().updateAndGet(current ->
+                Math.min(targetPlayer.getMaxHealth(), Math.max(0, (short) (Math.max(current, 0) + dmg))));
         if (newPlayerHealth < 1) {
             targetPlayer.setDead(true);
         }
-        newPlayerHealth = newPlayerHealth < 0 ? 0 : newPlayerHealth;
-
-        if (targetPlayer.getCurrentHealth().compareAndSet(currentHealth, newPlayerHealth))
-            return newPlayerHealth;
-        else
-            return (short) currentHealth;
+        return newPlayerHealth;
     }
 
     @Override
     public PlayerBattleState reviveAnyPlayer(short revivePercentage, RoomPlayer roomPlayer) throws ValidationException {
-        if (roomPlayer != null) {
-            boolean isRedTeam = game.isRedTeam(roomPlayer.getPosition());
+        if (roomPlayer == null)
+            return null;
+        return reviveAnyPlayer(revivePercentage, roomPlayer.getPosition());
+    }
+
+    @Override
+    public PlayerBattleState reviveAnyPlayer(short revivePercentage, int actorPosition) throws ValidationException {
+        if (actorPosition >= 0) {
+            boolean isRedTeam = game.isRedTeam(actorPosition);
 
             PlayerBattleState playerBattleState = isBattleGame ?
                     ((MatchplayBattleGame) game).getPlayerBattleStates().stream()

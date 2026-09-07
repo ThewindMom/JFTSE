@@ -39,11 +39,15 @@ public class ServiceManager {
     @Autowired
     private CardSlotEquipmentService cardSlotEquipmentService;
     @Autowired
+    private PlayerEmblemEquipmentService playerEmblemEquipmentService;
+    @Autowired
     private BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     @Autowired
     private PocketService pocketService;
     @Autowired
     private PlayerPocketService playerPocketService;
+    @Autowired
+    private PersonalBoardService personalBoardService;
     @Autowired
     private PlayerStatisticService playerStatisticService;
     @Autowired
@@ -66,6 +70,8 @@ public class ServiceManager {
     private GuildMemberService guildMemberService;
     @Autowired
     private GuildService guildService;
+    @Autowired
+    private GuildCastleService guildCastleService;
     @Autowired
     private ItemCharService itemCharService;
     @Autowired

@@ -21,7 +21,7 @@ public class S2CPetRequestRoomAnswerPacket extends Packet {
 
         if (pet != null) {
             this.write(pet.name());
-            this.write((byte) pet.level());
+            this.write(pet.level());
             this.write((byte) pet.type());
             this.write(pet.hp());
             this.write((byte) pet.strength());

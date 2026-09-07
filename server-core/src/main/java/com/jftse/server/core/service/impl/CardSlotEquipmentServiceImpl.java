@@ -1,26 +1,34 @@
 package com.jftse.server.core.service.impl;
 
+import com.jftse.entities.database.model.item.ItemCard;
 import com.jftse.entities.database.model.player.CardSlotEquipment;
 import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
-import com.jftse.entities.database.model.pocket.Pocket;
+import com.jftse.entities.database.repository.item.ItemCardRepository;
 import com.jftse.entities.database.repository.player.CardSlotEquipmentRepository;
+import com.jftse.entities.database.repository.pocket.PlayerPocketRepository;
+import com.jftse.server.core.item.CardStats;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.service.CardSlotEquipmentService;
-import com.jftse.server.core.service.PlayerPocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CardSlotEquipmentServiceImpl implements CardSlotEquipmentService {
     private final CardSlotEquipmentRepository cardSlotEquipmentRepository;
-    private final PlayerPocketService playerPocketService;
+    private final PlayerPocketRepository playerPocketRepository;
+    private final ItemCardRepository itemCardRepository;
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -55,37 +63,83 @@ public class CardSlotEquipmentServiceImpl implements CardSlotEquipmentService {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void updateCardSlots(Player player, List<Integer> cardSlotItems) {
-        Pocket pocket = player.getPocket();
-        CardSlotEquipment cardSlotEquipment = findById(player.getCardSlotEquipment().getId());
+        tryUpdateCardSlots(player, cardSlotItems);
+    }
 
-        List<PlayerPocket> playerPockets = playerPocketService.getItemsAsPocket(
-                List.of(
-                        Long.valueOf(cardSlotItems.get(0)),
-                        Long.valueOf(cardSlotItems.get(1)),
-                        Long.valueOf(cardSlotItems.get(2)),
-                        Long.valueOf(cardSlotItems.get(3))
-                ),
-                pocket
-        );
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public boolean tryUpdateCardSlots(Player player, List<Integer> cardSlotItems) {
+        if (player == null || player.getPocket() == null || player.getCardSlotEquipment() == null
+                || cardSlotItems == null || cardSlotItems.size() != 4 || cardSlotItems.stream().anyMatch(id -> id == null || id < 0))
+            return false;
 
-        for (int i = 0; i < cardSlotItems.size(); i++) {
-            Integer itemId = cardSlotItems.get(i);
-            PlayerPocket item = playerPockets.stream()
-                    .filter(p -> p.getId().intValue() == itemId)
-                    .findFirst()
-                    .orElse(null);
+        CardSlotEquipment equipment = cardSlotEquipmentRepository
+                .findByIdForUpdate(player.getCardSlotEquipment().getId()).orElse(null);
+        if (equipment == null)
+            return false;
 
-            int slotValue = item == null ? 0 : item.getId().intValue();
+        List<Long> requestedIds = cardSlotItems.stream().filter(id -> id != 0).map(Integer::longValue).toList();
+        if (new HashSet<>(requestedIds).size() != requestedIds.size())
+            return false;
 
-            switch (i) {
-                case 0 -> cardSlotEquipment.setSlot1(slotValue);
-                case 1 -> cardSlotEquipment.setSlot2(slotValue);
-                case 2 -> cardSlotEquipment.setSlot3(slotValue);
-                case 3 -> cardSlotEquipment.setSlot4(slotValue);
-            }
+        List<PlayerPocket> pockets = requestedIds.isEmpty()
+                ? List.of()
+                : playerPocketRepository.findAllByPocketAndIdInForUpdate(player.getPocket(), requestedIds);
+        Map<Long, PlayerPocket> pocketsById = pockets.stream().collect(Collectors.toMap(PlayerPocket::getId, item -> item));
+        if (pocketsById.size() != requestedIds.size() || requestedIds.stream().anyMatch(id -> {
+            PlayerPocket item = pocketsById.get(id);
+            return item == null || item.getItemCount() == null || item.getItemCount() <= 0
+                    || !EItemCategory.CARD.getName().equals(item.getCategory()) || item.getItemIndex() == null;
+        }))
+            return false;
+
+        List<Integer> itemIndexes = requestedIds.stream()
+                .map(pocketsById::get)
+                .map(PlayerPocket::getItemIndex)
+                .distinct()
+                .toList();
+        List<ItemCard> cards = itemCardRepository.findAllByItemIndexIn(itemIndexes);
+        Map<Integer, ItemCard> cardsByIndex = cards.stream()
+                .collect(Collectors.toMap(ItemCard::getItemIndex, card -> card));
+        if (itemIndexes.stream().anyMatch(index -> {
+            ItemCard card = cardsByIndex.get(index);
+            return card == null || card.getItemType() == null || card.getAbilityPower() == null
+                    || !CardStats.supports(card.getItemType());
+        }))
+            return false;
+
+        equipment.setSlot1(cardSlotItems.get(0));
+        equipment.setSlot2(cardSlotItems.get(1));
+        equipment.setSlot3(cardSlotItems.get(2));
+        equipment.setSlot4(cardSlotItems.get(3));
+        save(equipment);
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CardStats calculateCardStats(Player player) {
+        List<Integer> slots = getEquippedCardSlots(player);
+        List<Long> ids = slots.stream().filter(id -> id != null && id > 0).map(Integer::longValue).toList();
+        if (ids.isEmpty())
+            return CardStats.zero();
+
+        List<PlayerPocket> pockets = playerPocketRepository.findAllByPocketAndIdIn(player.getPocket(), ids).stream()
+                .filter(item -> EItemCategory.CARD.getName().equals(item.getCategory()))
+                .filter(item -> item.getItemCount() != null && item.getItemCount() > 0)
+                .toList();
+        List<ItemCard> cards = itemCardRepository.findAllByItemIndexIn(
+                pockets.stream().map(PlayerPocket::getItemIndex).distinct().toList());
+        Map<Integer, ItemCard> cardsByIndex = new HashMap<>();
+        cards.forEach(card -> cardsByIndex.put(card.getItemIndex(), card));
+
+        CardStats result = CardStats.zero();
+        for (PlayerPocket pocket : pockets) {
+            ItemCard card = cardsByIndex.get(pocket.getItemIndex());
+            if (card != null && card.getItemType() != null && card.getAbilityPower() != null)
+                result = result.add(card.getItemType(), card.getAbilityPower());
         }
-
-        save(cardSlotEquipment);
+        return result;
     }
 
     @Override

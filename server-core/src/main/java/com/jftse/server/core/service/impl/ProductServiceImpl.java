@@ -37,6 +37,7 @@ public class ProductServiceImpl implements ProductService {
     private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final PlayerEmblemEquipmentService playerEmblemEquipmentService;
     private final ItemCharService itemCharService;
 
     @Override
@@ -236,16 +237,15 @@ public class ProductServiceImpl implements ProductService {
         CardSlotEquipment cardSlotEquipment = new CardSlotEquipment();
         cardSlotEquipment = cardSlotEquipmentService.save(cardSlotEquipment);
 
-        /* BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
+        BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
         battlemonSlotEquipment = battlemonSlotEquipmentService.save(battlemonSlotEquipment);
-        */
 
         player.setClothEquipment(clothEquipment);
         player.setQuickSlotEquipment(quickSlotEquipment);
         player.setSpecialSlotEquipment(specialSlotEquipment);
         player.setToolSlotEquipment(toolSlotEquipment);
         player.setCardSlotEquipment(cardSlotEquipment);
-        // player.setBattlemonSlotEquipment(battlemonSlotEquipment);
+        player.setBattlemonSlotEquipment(battlemonSlotEquipment);
 
         Pocket pocket = new Pocket();
         pocket = pocketService.save(pocket);
@@ -255,6 +255,8 @@ public class ProductServiceImpl implements ProductService {
         playerStatistic = playerStatisticService.save(playerStatistic);
         player.setPlayerStatistic(playerStatistic);
 
-        return playerService.save(player);
+        player = playerService.save(player);
+        playerEmblemEquipmentService.createIfAbsent(player);
+        return player;
     }
 }

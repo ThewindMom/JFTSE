@@ -1,0 +1,112 @@
+Selected decoded native protocol evidence
+All timestamps UTC. Handshake keys, credentials, and raw login traffic are excluded.
+
+1. Guardian with one attached owner pet: native pre-start negative
+----------------------------------------------------------------
+2026-08-12 21:46:33.364 C->S game/5895
+CMSGRoomChangeReady { id=0x1775, len=1, ready=true }
+payload: 01
+
+2026-08-12 21:46:33.368 S->both game/5895
+SMSGRoomChangeReady { id=0x1776, len=3, position=1, ready=true }
+payload: 01 00 01
+
+The decoded packet log was inspected from 21:46:33 through 21:50:32. It contains
+heartbeats but no CMSGStartGame (0x177B), relay setup, or SMSGStartGame. The native
+master UI remained in the room with START disabled and displayed "You cannot start
+the game yet." This proves native pre-start gating. A focused server test separately
+proves that a crafted start request is rejected when any active owner lacks a pet.
+
+2. Guardian with one pet per active owner: native positive
+-----------------------------------------------------------
+2026-08-12 08:04:12.484 C->S game/5895
+CMSGRoomChangeReady { id=0x1775, ready=true }
+
+2026-08-12 08:04:14.980 C->S game/5895
+CMSGStartGame { id=0x177B, len=0 }
+
+2026-08-12 08:04:15.121 S->QaLucy game/5895
+Packet { id=0x03EA, len=50, endpoint player IDs=[4,5,0,0] }
+
+2026-08-12 08:04:15.124 S->QaShua game/5895
+Packet { id=0x03EA, len=50, endpoint player IDs=[5,4,0,0] }
+
+2026-08-12 08:04:15.561/.673 C->S game/5895
+CMSGConnectedToRelay { id=0x03F3 } from both human endpoints
+
+2026-08-12 08:04:16.281/.282 S->both game/5895
+SMSGStartGame { id=0x17DE, len=2, result=0 }
+
+Guardian remains a two-network-endpoint match. Pet actor authorization is held by
+the server and is not represented by synthetic pet network clients in 0x03EA.
+
+3. Pet stat item and signed-byte cap
+------------------------------------
+2026-08-12 18:26:11.971 C->S game/5895
+CMSGUseQuickSlot { id=0x1BDA, len=4, quickSlotId=24 }
+payload: 18 00 00 00
+
+The authoritative fixture and after-image both contain strength=127 and item count=1.
+No pet refresh or inventory decrement followed the request. The server-side reason is
+the one-byte signed wire/storage cap used by this client path, not a claim about retail
+balance policy.
+
+4. Pet rename positive and exhausted-item negative
+--------------------------------------------------
+2026-08-12 18:47:02.308 C->S game/5895
+CMSGPetNameCheck { id=0x1524, len=25,
+  itemId=22, petType=1, newPetName="ShuaProof" }
+payload after header:
+16 00 00 00 01 53 00 68 00 75 00 61 00 50 00 72 00 6F 00 6F 00 66 00 00 00
+
+2026-08-12 18:47:02.358 S->C game/5895
+Packet { id=0x1525, len=2, result=0 }
+payload: 00 00
+
+2026-08-12 18:47:02.359 S->C game/5895
+Pet data refresh 0x151B, then inventory count update 0x1B73:
+item pocket ID=22, remaining count=2
+
+2026-08-12 18:53:37.976 C->S game/5895
+CMSGPetNameCheck { id=0x1524, len=19,
+  itemId=22, petType=1, newPetName="NoItem" }
+
+2026-08-12 18:53:37.985 S->C game/5895
+Packet { id=0x1525, len=2, result=1 }
+payload: 01 00
+
+The exhausted-item database fixture and after-image both contain item count=0 and
+name=ShuaProofLon.
+
+5. Dead and expired pet revive positive
+----------------------------------------
+2026-08-12 19:21:00.099 C->S game/5895
+CMSGRevivePet { id=0x1526, len=5, itemId=21, petType=1 }
+payload: 15 00 00 00 01
+
+2026-08-12 19:21:00.126 S->C game/5895
+Packet { id=0x1527, len=2, result=0 }
+payload: 00 00
+
+2026-08-12 19:21:00.127/.128 S->C game/5895
+Pet data refresh 0x151B, then inventory count update 0x1B73:
+item pocket ID=21, remaining count=2
+
+6. Owner/pet actor control experiment
+--------------------------------------
+Right-key interval in the relay capture:
+- endpoint for owner position 0 reported positions 0 and 2;
+- endpoint for owner position 1 reported positions 1 and 3;
+- moving position reports included pet actor positions 2 and 3;
+- the ordinary relayed actor packet was 0x32C9 with position, absolute coordinates,
+  relative movement, and animation type.
+
+No dedicated Battlemon controller opcode was observed. This establishes the report
+shape and ownership mapping only; it does not establish autonomous pet AI.
+
+7. Owner disconnect cleanup
+---------------------------
+2026-08-12 16:12:19.504 game endpoint for player 4 became inactive.
+The remaining client received room/player removal and room refresh packets. The native
+room then contained only QaShua and ShuaPet; QaLucy and LucyPet were absent together.
+Relay authorization was revoked/refreshed as part of the disconnect path.

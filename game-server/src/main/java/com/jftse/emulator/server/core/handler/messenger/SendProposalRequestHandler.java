@@ -17,6 +17,7 @@ import com.jftse.entities.database.model.player.Player;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.packets.inventory.S2CInventoryItemRemoveAnswerPacket;
 import com.jftse.server.core.shared.packets.messenger.CMSGSendProposal;
@@ -37,12 +38,28 @@ public class SendProposalRequestHandler implements PacketHandler<FTConnection, C
     private final RProducerService rProducerService;
 
     public SendProposalRequestHandler() {
-        playerPocketService = ServiceManager.getInstance().getPlayerPocketService();
-        proposalService = ServiceManager.getInstance().getProposalService();
-        playerService = ServiceManager.getInstance().getPlayerService();
-        friendService = ServiceManager.getInstance().getFriendService();
-        gameLogService = ServiceManager.getInstance().getGameLogService();
-        rProducerService = RProducerService.getInstance();
+        this(
+                ServiceManager.getInstance().getPlayerPocketService(),
+                ServiceManager.getInstance().getProposalService(),
+                ServiceManager.getInstance().getPlayerService(),
+                ServiceManager.getInstance().getFriendService(),
+                ServiceManager.getInstance().getGameLogService(),
+                RProducerService.getInstance()
+        );
+    }
+
+    SendProposalRequestHandler(PlayerPocketService playerPocketService,
+                               ProposalService proposalService,
+                               PlayerService playerService,
+                               FriendService friendService,
+                               GameLogService gameLogService,
+                               RProducerService rProducerService) {
+        this.playerPocketService = playerPocketService;
+        this.proposalService = proposalService;
+        this.playerService = playerService;
+        this.friendService = friendService;
+        this.gameLogService = gameLogService;
+        this.rProducerService = rProducerService;
     }
 
     @Override
@@ -60,10 +77,12 @@ public class SendProposalRequestHandler implements PacketHandler<FTConnection, C
         //-6 = MSG_YOU_CAN_NOT_PROPOSE_FOR_SAME_ACCOUNT
         //-7 = MSG_NO_HAVE_PROPOSE_ITEM
         //-9 = MSG_YOU_CAN_NOT_PROPOSE_FOR_SAME_SEX
-        boolean isValidProposalItem = item != null && (
-                item.getItemIndex().equals(23) ||
-                        item.getItemIndex().equals(24) ||
-                        item.getItemIndex().equals(25));
+        Integer itemIndex = item == null ? null : item.getItemIndex();
+        boolean isValidProposalItem = item != null
+                && EItemCategory.SPECIAL.getName().equals(item.getCategory())
+                && itemIndex != null
+                && itemIndex >= 23
+                && itemIndex <= 25;
         if (!isValidProposalItem) {
             SMSGSendProposal response = SMSGSendProposal.builder().status((byte) -7).build();
             connection.sendTCP(response);
@@ -85,6 +104,11 @@ public class SendProposalRequestHandler implements PacketHandler<FTConnection, C
         }
 
         Player receiver = playerService.findByName(packet.getReceiverName());
+        if (receiver == null) {
+            SMSGSendProposal response = SMSGSendProposal.builder().status((byte) -1).build();
+            connection.sendTCP(response);
+            return;
+        }
 
         List<Friend> senderFriend = friendService.findByPlayer(sender.getPlayerRef());
         if (senderFriend.stream().anyMatch(x -> x.getEFriendshipState().equals(EFriendshipState.Relationship))) {
@@ -93,50 +117,51 @@ public class SendProposalRequestHandler implements PacketHandler<FTConnection, C
             return;
         }
 
-        if (receiver != null) {
-            List<Friend> receiverFriends = friendService.findByPlayer(receiver);
-            if (receiverFriends.stream().anyMatch(x -> x.getEFriendshipState().equals(EFriendshipState.Relationship))) {
-                SMSGSendProposal response = SMSGSendProposal.builder().status((byte) -3).build();
-                connection.sendTCP(response);
-                return;
-            }
-
-            Proposal proposal = new Proposal();
-            proposal.setReceiver(receiver);
-            proposal.setSender(sender.getPlayer());
-            proposal.setMessage(packet.getMessage());
-            proposal.setSeen(false);
-            proposal.setCategory(item.getCategory());
-            proposal.setItemIndex(item.getItemIndex());
-
-            proposalService.save(proposal);
-            int newItemCount = item.getItemCount() - 1;
-            if (newItemCount < 1) {
-                playerPocketService.remove(item.getId());
-                S2CInventoryItemRemoveAnswerPacket inventoryItemRemoveAnswerPacket =
-                        new S2CInventoryItemRemoveAnswerPacket(item.getId().intValue());
-                connection.sendTCP(inventoryItemRemoveAnswerPacket);
-            } else {
-                item.setItemCount(newItemCount);
-                playerPocketService.save(item);
-                S2CInventoryItemCountPacket inventoryItemCountPacket = new S2CInventoryItemCountPacket(item);
-                connection.sendTCP(inventoryItemCountPacket);
-            }
-
-            S2CReceivedProposalNotificationPacket s2CReceivedProposalNotificationPacket = new S2CReceivedProposalNotificationPacket(proposal);
-
-            PacketMessage packetMessage = PacketMessage.builder()
-                    .receivingPlayerId(receiver.getId())
-                    .packet(s2CReceivedProposalNotificationPacket)
-                    .build();
-            rProducerService.send(packetMessage, "game.messenger.proposal chat.messenger.proposal", sender.getName() + "(GameServer)");
-
-            SMSGSendProposal response = SMSGSendProposal.builder().status((byte) 0).build();
+        List<Friend> receiverFriends = friendService.findByPlayer(receiver);
+        if (receiverFriends.stream().anyMatch(x -> x.getEFriendshipState().equals(EFriendshipState.Relationship))) {
+            SMSGSendProposal response = SMSGSendProposal.builder().status((byte) -3).build();
             connection.sendTCP(response);
-
-            List<Proposal> sentProposals = proposalService.findWithPlayerBySender(sender.getId());
-            S2CProposalListPacket s2CSentProposalListPacket = new S2CProposalListPacket((byte) 1, sentProposals);
-            connection.sendTCP(s2CSentProposalListPacket);
+            return;
         }
+
+        ProposalService.ProposalCreationResult creationResult = proposalService.createWithItem(
+                sender.getPlayer(),
+                receiver,
+                packet.getMessage(),
+                item.getId()
+        );
+        if (creationResult.status() != ProposalService.ProposalCreationStatus.SUCCESS) {
+            SMSGSendProposal response = SMSGSendProposal.builder()
+                    .status((byte) (creationResult.status() == ProposalService.ProposalCreationStatus.NOT_OWNED ? -2 : -7))
+                    .build();
+            connection.sendTCP(response);
+            return;
+        }
+
+        Proposal proposal = creationResult.proposal();
+        item = creationResult.item();
+        if (creationResult.itemRemoved()) {
+            S2CInventoryItemRemoveAnswerPacket inventoryItemRemoveAnswerPacket =
+                    new S2CInventoryItemRemoveAnswerPacket(item.getId().intValue());
+            connection.sendTCP(inventoryItemRemoveAnswerPacket);
+        } else {
+            S2CInventoryItemCountPacket inventoryItemCountPacket = new S2CInventoryItemCountPacket(item);
+            connection.sendTCP(inventoryItemCountPacket);
+        }
+
+        S2CReceivedProposalNotificationPacket s2CReceivedProposalNotificationPacket = new S2CReceivedProposalNotificationPacket(proposal);
+
+        PacketMessage packetMessage = PacketMessage.builder()
+                .receivingPlayerId(receiver.getId())
+                .packet(s2CReceivedProposalNotificationPacket)
+                .build();
+        rProducerService.send(packetMessage, "game.messenger.proposal chat.messenger.proposal", sender.getName() + "(GameServer)");
+
+        SMSGSendProposal response = SMSGSendProposal.builder().status((byte) 0).build();
+        connection.sendTCP(response);
+
+        List<Proposal> sentProposals = proposalService.findWithPlayerBySender(sender.getId());
+        S2CProposalListPacket s2CSentProposalListPacket = new S2CProposalListPacket((byte) 1, sentProposals);
+        connection.sendTCP(s2CSentProposalListPacket);
     }
 }

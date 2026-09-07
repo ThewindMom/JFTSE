@@ -77,7 +77,7 @@ public class RoomManager {
         registerRoom(square);
     }
 
-    private synchronized Room registerRoom(Room room) {
+    public synchronized Room registerRoom(Room room) {
         int roomId = roomIds.nextClearBit(MIN_ROOM_ID);
         if (roomId >= MAX_ROOM_ID_EXCLUSIVE) {
             log.warn("No available room IDs. Cannot create new room.");

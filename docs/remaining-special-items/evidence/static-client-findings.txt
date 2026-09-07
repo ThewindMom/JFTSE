@@ -1,0 +1,35 @@
+Static Fantasy Tennis client resource findings
+==============================================
+
+Source file:
+.amp/tmp/jftse-special-items/client/decrypted-item-script/Item_Special.set
+
+Client build:
+FantaTennis.exe SHA-256
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31
+
+Selected catalog facts recovered from Item_Special.set:
+
+- 4 Nickname Changer: English text says a changed nickname can be changed
+  again after 6 months.
+- 23 Rose Card: proposal item; Charming Point +1.
+- 24 Rose a Nosegay Card: proposal item; Charming Point +3.
+- 25 Diamond Ring Card: proposal item; Charming Point +5.
+- 27/28/29 Iris necklaces: +50/+100/+200 HP. Japanese descriptions limit
+  the effect to Battle, Battlemon Battle, and Guardian Battle modes.
+- 30/31 Power Earrings: STR +3/+5 per game.
+- 32/33 Stamina Earrings: STA +3/+5 per game.
+- 34/35 Dexterity Earrings: DEX +3/+5 per game.
+- 36/37 Wisdom Earrings: WIS/WIL +3/+5 per game.
+- 39/40/41 promotional rings repeat the descriptions and icons of canonical
+  EXP, Gold, and Wiseman rings 1/2/3.
+- 42 promotional necklace repeats item 27 (+50 HP).
+- 43/44/45/46 promotional earrings repeat +3 STR/STA/DEX/WIS effects.
+
+The Japanese earring descriptions explicitly say one item is consumed per
+match. Ring descriptions likewise say one use is consumed after each match.
+
+Evidence boundary:
+These are static client resource facts, not proof that this client emitted a
+particular packet or that the original retail server used the same backend
+state transitions.

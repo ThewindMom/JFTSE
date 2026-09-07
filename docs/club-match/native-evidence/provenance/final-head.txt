@@ -1,0 +1,4 @@
+5a29788bd46f97cdc69306b0cffdf84a49ad96d6
+5a29788bd46f97cdc69306b0cffdf84a49ad96d6
+4800704cc38f4d0bc788b1f0b7c10cab7d1c91c706deae37af7b32c991261319  game-server/target/game-server.jar
+82178bebda55b968bb7b98332ae8d639d7f04bdb5baf46c92d509cac2de5a723  relay-server/target/relay-server.jar

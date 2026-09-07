@@ -25,6 +25,7 @@ public class FirstPlayerPacketHandler implements PacketHandler<FTConnection, CMS
     private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     private final PocketService pocketService;
     private final PlayerStatisticService playerStatisticService;
+    private final PlayerEmblemEquipmentService playerEmblemEquipmentService;
     private final PlayerService playerService;
     private final HomeService homeService;
     private final AuthenticationService authenticationService;
@@ -38,6 +39,7 @@ public class FirstPlayerPacketHandler implements PacketHandler<FTConnection, CMS
         battlemonSlotEquipmentService = ServiceManager.getInstance().getBattlemonSlotEquipmentService();
         pocketService = ServiceManager.getInstance().getPocketService();
         playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        playerEmblemEquipmentService = ServiceManager.getInstance().getPlayerEmblemEquipmentService();
         playerService = ServiceManager.getInstance().getPlayerService();
         homeService = ServiceManager.getInstance().getHomeService();
         authenticationService = ServiceManager.getInstance().getAuthenticationService();
@@ -79,10 +81,8 @@ public class FirstPlayerPacketHandler implements PacketHandler<FTConnection, CMS
             cardSlotEquipment = cardSlotEquipmentService.save(cardSlotEquipment);
             player.setCardSlotEquipment(cardSlotEquipment);
 
-                /*BattlemonSlotEquipment battlemonSlotEquipment = new BattlemonSlotEquipment();
-                battlemonSlotEquipment = battlemonSlotEquipmentService.save(battlemonSlotEquipment);
-                player.setBattlemonSlotEquipment(battlemonSlotEquipment);
-                */
+            player.setBattlemonSlotEquipment(battlemonSlotEquipmentService.save(
+                    new BattlemonSlotEquipment()));
 
             Pocket pocket = new Pocket();
             pocket = pocketService.save(pocket);
@@ -93,6 +93,7 @@ public class FirstPlayerPacketHandler implements PacketHandler<FTConnection, CMS
             player.setPlayerStatistic(playerStatistic);
 
             player = playerService.save(player);
+            playerEmblemEquipmentService.createIfAbsent(player);
 
             SMSGLoginFirstPlayer response = SMSGLoginFirstPlayer.builder()
                     .result((char) 0)

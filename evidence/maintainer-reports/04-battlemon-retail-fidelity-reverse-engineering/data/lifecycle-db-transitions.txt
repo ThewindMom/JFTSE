@@ -1,0 +1,91 @@
+Battlemon lifecycle database checkpoints
+Validation date: 2026-08-12 UTC
+Fixture player: QaShua (player_id=5), pet: ShuaPet/ShuaProof (pet_id=2, type=1)
+
+PET_ITEM positive sequence
+--------------------------
+Initial checkpoint (17:42:49Z):
+pet: strength=15 stamina=15 dexterity=15 willpower=15
+     validUntil=2026-11-20 12:28:01.000000 lifeMax=120 energy=30 hunger=40
+items: pocket 24 / PET_ITEM 1 count=3
+       pocket 25 / PET_ITEM 13 count=3
+       pocket 26 / PET_ITEM 14 count=3
+       pocket 27 / PET_ITEM 23 count=3
+
+After PET_ITEM 1 and then PET_ITEM 13 (17:45:45Z):
+pet: strength=16 validUntil=2026-11-21 12:28:01.000000
+items: PET_ITEM 1 count=2, PET_ITEM 13 count=2
+
+After PET_ITEM 14 (17:46:06Z):
+pet: lifeMax=125
+items: PET_ITEM 14 count=2
+
+After PET_ITEM 23 (17:46:27Z):
+pet: energy=80 hunger=90
+items: PET_ITEM 23 count=2
+
+Signed-byte stat boundary
+-------------------------
+Authoritative fixture immediately before native action:
+pet: strength=127 stamina=15 dexterity=15 willpower=15
+item: pocket 24 / PET_ITEM 1 count=1
+
+Authoritative state after native CMSGUseQuickSlot(quickSlotId=24):
+pet: strength=127 stamina=15 dexterity=15 willpower=15
+item: pocket 24 / PET_ITEM 1 count=1
+
+Rename positive and boundaries
+------------------------------
+Valid rename before:
+pet: name=ShuaPet, SPECIAL item 10 at pocket 22 count=3
+Valid rename after native 0x1524/0x1525:
+pet: name=ShuaProof, SPECIAL item 10 at pocket 22 count=2
+
+The client accepted 13 typed characters by truncating the wire value to 12:
+wire/server value: ShuaProofLon
+This is not a server rejection and must not be reported as one.
+
+One-character input:
+before and after: name=ShuaProofLon, item count=1
+The native client displayed its 2-to-12-character error and emitted no one-character 0x1524.
+
+Exhausted rename item fixture:
+pet: name=ShuaProofLon, SPECIAL item 10 at pocket 22 count=0
+After native 0x1524 result=1:
+pet: name=ShuaProofLon, SPECIAL item 10 at pocket 22 count=0
+
+Revive positive and boundary
+----------------------------
+Dead and expired before:
+pet: alive=false validUntil=2026-08-10 19:00:21.000000
+     lifeMax=125 energy=7 hunger=8
+item: SPECIAL item 9 at pocket 21 count=3
+
+After native 0x1526/0x1527 success at 19:21:00Z:
+pet: alive=true validUntil=2026-12-15 20:21:00.106000
+     lifeMax=125 energy=100 hunger=150
+item: SPECIAL item 9 at pocket 21 count=2
+
+Alive-but-expired confirmation fixture before and after:
+pet: alive=true validUntil=2026-08-10 19:27:39.000000
+     lifeMax=125 energy=7 hunger=8
+item: SPECIAL item 9 at pocket 21 count=2
+The native UI reached confirmation but emitted no revive request. This is not native proof of a server result.
+
+Source snapshots retained during the experiment:
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-before-positive.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-item13.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-item14.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-item23.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-stat-cap-127-fixture.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-stat-cap-native-final.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-before-rename-valid.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-rename-valid.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-before-rename-one-char.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-rename-one-char.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-rename-exhausted-fixture.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-rename-exhausted.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-before-revive-dead.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-revive-dead.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-before-revive-alive-expired.txt
+/tmp/battlemon-fidelity-evidence/final-native-lifecycle/db-after-revive-alive-expired.txt

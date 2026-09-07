@@ -22,6 +22,7 @@ import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.MatchSpecialItemUse;
 import com.jftse.emulator.server.core.matchplay.MatchplayHandleable;
 import com.jftse.emulator.server.core.matchplay.MatchplayReward;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
@@ -83,6 +84,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
     private final BossGuardianService bossGuardianService;
     private final ScenarioService scenarioService;
     private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
     private final MapService mapService;
     private final MatchRallyStatsConsumer matchRallyStatsConsumer;
 
@@ -98,6 +100,7 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         this.bossGuardianService = ServiceManager.getInstance().getBossGuardianService();
         this.scenarioService = ServiceManager.getInstance().getScenarioService();
         this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
         this.mapService = ServiceManager.getInstance().getMapService();
         this.matchRallyStatsConsumer = GameManager.getInstance().getMatchRallyStatsConsumer();
 
@@ -152,8 +155,10 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         if (activeRoom == null)
             return;
 
-        if (!game.getFinished().compareAndSet(false, true))
+        if (!game.beginSettlement())
             return;
+
+        game.getFinished().set(true);
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         if (game.getEndTime() == null)
@@ -311,6 +316,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                     }
                 }
 
+                MatchSpecialItemUse.consume(client, GameMode.GUARDIAN);
+
                 final int oldLevel = player.getLevel();
                 if (!rewardAlreadyGranted) {
                     final int level = levelService.getLevel(playerReward.getExp(), player.getExpPoints(), (byte) oldLevel);
@@ -376,20 +383,25 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                         playerStats.getSmash(), playerStats.getVolley(), playerStats.getTopSpin(), playerStats.getRising(),
                         playerStats.getServe(), playerStats.getGuardBreakShot(), playerStats.getChargeShot(), playerStats.getSkillShot());
 
+                emblemQuestService.updateMatchTotals(player.getId(), GameMode.GUARDIAN, wonGame, 0, 0,
+                        playerStats.getSlice(), playerStats.getLob(), playerStats.getSmash(), playerStats.getGuardBreakShot(),
+                        playerStats.getChargeShot(), playerStats.getSkillShot());
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.CHARACTER_LEVEL, player.getLevel());
+
                 player.setPlayerStatistic(PlayerStatisticView.fromEntity(dbPlayerStatistic));
 
                 rp.setReady(false);
                 int playerLevel = player.getLevel();
                 byte resultTitle = (byte) (wonGame ? 1 : 0);
                 if (playerLevel != oldLevel) {
-                    S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player);
+                    S2CGameEndLevelUpPlayerStatsPacket gameEndLevelUpPlayerStatsPacket = new S2CGameEndLevelUpPlayerStatsPacket(rp.getPosition(), player, GameMode.GUARDIAN);
                     eventHandler.offer(eventHandler.createPacketEvent(client, gameEndLevelUpPlayerStatsPacket, PacketEventType.DEFAULT, 0));
                 }
 
                 S2CMatchplayItemRewardsPacket itemRewardsPacket = new S2CMatchplayItemRewardsPacket(matchplayReward);
                 client.getConnection().sendTCP(itemRewardsPacket);
 
-                S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, secondsPlayed, playerReward, (byte) playerLevel, rp);
+                S2CMatchplaySetExperienceGainInfoData setExperienceGainInfoData = new S2CMatchplaySetExperienceGainInfoData(resultTitle, secondsPlayed, playerReward, (byte) playerLevel, rp, GameMode.GUARDIAN);
                 eventHandler.offer(eventHandler.createPacketEvent(client, setExperienceGainInfoData, PacketEventType.DEFAULT, 0));
             } else {
                 gameLogContent.append("spec: ").append(rp.getName()).append(" acc: ").append(rp.getAccountId()).append("; ");

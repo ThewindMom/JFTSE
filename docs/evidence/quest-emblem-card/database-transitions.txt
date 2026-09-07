@@ -1,0 +1,53 @@
+JFTSE Quest / Emblem / Card database transition excerpts
+All timestamps are UTC. The account and player IDs are disposable test fixtures.
+
+CARD POSITIVE AND NEGATIVE PATH
+
+Before the native client submitted its pending card loadout:
+player_id  slot1  slot2  slot3  slot4
+1          0      0      0      0
+
+After submitting [1,0,0,0], then attempting a second card at level-one capacity:
+2026-08-12 17:01:32
+player_id  slot1  slot2  slot3  slot4
+1          1      0      0      0
+
+The rejected second attempt left the row unchanged. After a disconnect and fresh
+login, the same row remained [1,0,0,0] and the native UI restored the first card.
+
+QUEST COMPLETION
+
+Before C2S 0x227C for questIndex 1000:
+player_id  level  expPoints  gold   statusPoints  TotalSmash
+1          1      0          10000  5             199
+
+questIndex  status  completionCount  baseline1  progress1
+1000        ACTIVE  0                99         199
+
+After S2C 0x227D and the refreshed 0x226B list:
+player_id  level  expPoints  gold   statusPoints  TotalSmash
+1          2      100        10100  6             199
+
+questIndex  status     completionCount  baseline1  progress1
+1000        COMPLETED  1                99         199
+
+The 99 -> 199 statistic transition was an operator-seeded fixture used to make
+the native-client completion flow deterministic. It is not claimed as native
+gameplay-generated activity.
+
+EMBLEM EQUIPMENT AND RECONNECT
+
+After native C2S 0x2295:
+2026-08-12T21:15:47Z
+player_id  slot1  slot2  slot3  slot4
+1          1000   0      0      0
+
+After disconnect:
+2026-08-12T21:17:58Z
+player_id  level  expPoints  gold   online  quest1000_status  completionCount  slot1
+1          2      100        10100  0       COMPLETED         1                1000
+
+After fresh reconnect and authoritative S2C 0x2297:
+2026-08-12T22:30:46Z
+player_id  level  expPoints  gold   slot1  slot2  slot3  slot4
+1          2      100        10100  1000   0      0      0

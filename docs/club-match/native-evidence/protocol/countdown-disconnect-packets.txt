@@ -1,0 +1,7 @@
+CMSGClubMatchReady { "id": "0x26F7", "len": 1, "data": { "ready": true } }
+Packet { "id": "0x26F8", "len": 27, "data": 00 00 00 00 F7 DB 4F F6 2A DD 01 80 E7 D6 52 F6 2A DD 01 00 F7 DB 4F F6 2A DD 01 }
+Packet { "id": "0x26F8", "len": 27, "data": 00 00 01 00 F7 DB 4F F6 2A DD 01 80 E7 D6 52 F6 2A DD 01 00 F7 DB 4F F6 2A DD 01 }
+2026-08-13 07:35:32,034 [epollEventLoopGroup-3-4] TCPChannelHandler [channelInactive] INFO  (/94.130.249.41:53396) Channel Inactive
+2026-08-13 07:35:32,034 [epollEventLoopGroup-3-4] TCPChannelHandler [disconnected0] INFO  (/94.130.249.41:53396) Client disconnected
+Packet { "id": "0x26F8", "len": 2, "data": 01 00 }
+2026-08-13 07:35:32,147 [org.springframework.amqp.rabbit.RabbitListenerEndpointContainer#1-1] NotifyGuildMemberListOnDisconnectHandler [handle] INFO  Player 2 disconnected, notifying guild members

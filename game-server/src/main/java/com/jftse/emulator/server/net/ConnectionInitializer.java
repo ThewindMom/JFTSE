@@ -23,11 +23,17 @@ public class ConnectionInitializer extends ChannelInitializer<SocketChannel> {
     private final TCPChannelHandler tcpChannelHandler;
 
     private final boolean encryptionEnabled;
+    private final byte gameServerType;
 
     public ConnectionInitializer() {
+        this((byte) 1);
+    }
+
+    public ConnectionInitializer(byte gameServerType) {
         FT_CONNECTION_ATTRIBUTE_KEY = AttributeKey.newInstance("connection");
         this.tcpChannelHandler = new TCPChannelHandler(FT_CONNECTION_ATTRIBUTE_KEY);
         this.encryptionEnabled = ConfigService.getInstance().getValue("network.encryption.enabled", false);
+        this.gameServerType = gameServerType;
     }
 
     @Override
@@ -35,7 +41,7 @@ public class ConnectionInitializer extends ChannelInitializer<SocketChannel> {
         final int decryptionKey = encryptionEnabled ? getRandomBigInteger().intValueExact() : 0;
         final int encryptionKey = encryptionEnabled ? getRandomBigInteger().intValueExact() : 0;
 
-        FTConnection connection = new FTConnection(decryptionKey, encryptionKey, ServerType.GAME_SERVER);
+        FTConnection connection = new FTConnection(decryptionKey, encryptionKey, ServerType.GAME_SERVER, gameServerType);
         ch.attr(FT_CONNECTION_ATTRIBUTE_KEY).set(connection);
 
         ch.pipeline().addLast(new FlushConsolidationHandler());

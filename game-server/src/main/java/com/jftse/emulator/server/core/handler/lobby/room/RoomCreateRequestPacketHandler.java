@@ -2,12 +2,14 @@ package com.jftse.emulator.server.core.handler.lobby.room;
 
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.emulator.server.core.life.room.RoomCreateResult;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomCreateAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.shared.packets.lobby.room.CMSGRoomCreate;
@@ -23,8 +25,14 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
         if (client.getActiveRoom() != null || !client.hasPlayer())
             return;
 
-        if (packet.getRoomType() == RoomType.BATTLEMON) {
-            //GameManager.getInstance().handleChatLobbyJoin(client);
+        if (packet.getRoomType() == RoomType.BATTLEMON
+                && packet.getMode() != GameMode.BASIC
+                && packet.getMode() != GameMode.BATTLE) {
+            return;
+        }
+
+        // Mode 3 social rooms are server-managed Club Houses on the chat server.
+        if (packet.getRoomType() == 1 && packet.getMode() == 3) {
             return;
         }
 
@@ -32,7 +40,14 @@ public class RoomCreateRequestPacketHandler implements PacketHandler<FTConnectio
             return;
         }
 
-        Room room = GameManager.getInstance().getRoomManager().createRoom(packet, client);
+        RoomCreateResult created = GameManager.getInstance().getRoomManager().createRoom(packet, client);
+        if (created.result() != 0 || created.room() == null) {
+            connection.sendTCP(new S2CRoomCreateAnswerPacket(created.result(), (byte) 0, 0, (byte) 0));
+            client.getIsJoiningOrLeavingRoom().set(false);
+            return;
+        }
+
+        Room room = created.room();
         client.setActiveRoom(room);
         client.setInLobby(false);
 

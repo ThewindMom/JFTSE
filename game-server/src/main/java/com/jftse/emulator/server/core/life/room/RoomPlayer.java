@@ -2,8 +2,10 @@ package com.jftse.emulator.server.core.life.room;
 
 import com.jftse.emulator.server.core.client.*;
 import com.jftse.emulator.server.core.manager.ServiceManager;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.CardStats;
 import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.matchplay.battle.SkillCrystal;
 import lombok.Getter;
@@ -28,7 +30,6 @@ public class RoomPlayer {
     private AtomicBoolean fitting = new AtomicBoolean(false);
     private AtomicBoolean gameAnimationSkipReady = new AtomicBoolean(false);
     private AtomicBoolean connectedToRelay = new AtomicBoolean(false);
-
     private PetView pet;
 
     private Queue<SkillCrystal> pickedUpSkillCrystals = new LinkedBlockingQueue<>(2);
@@ -61,33 +62,38 @@ public class RoomPlayer {
     }
 
     public boolean isRingOfExpEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(1, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingExp = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingExp = getEquippedRingPocketId(1, 39);
         return this.ppIdRingExp != 0;
     }
 
     public boolean isRingOfGoldEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(2, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingGold = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingGold = getEquippedRingPocketId(2, 40);
         return this.ppIdRingGold != 0;
     }
 
     public boolean isRingOfWisemanEquipped() {
-        final PlayerPocket pp = ServiceManager.getInstance().getPlayerPocketService().getItemAsPocketByItemIndexAndCategoryAndPocket(3, EItemCategory.SPECIAL.getName(), player.getPocketId());
-        if (pp == null)
-            return false;
-
-        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
-        this.ppIdRingWiseman = specialSlots.hasItem(Math.toIntExact(pp.getId()));
+        this.ppIdRingWiseman = getEquippedRingPocketId(3, 41);
         return this.ppIdRingWiseman != 0;
+    }
+
+    private long getEquippedRingPocketId(int... itemIndices) {
+        EquippedSpecialSlots specialSlots = player.getSpecialSlots();
+        if (specialSlots == null)
+            return 0;
+
+        for (int playerPocketId : specialSlots.toList()) {
+            if (playerPocketId < 1) {
+                continue; // empty special slot
+            }
+            PlayerPocket item = ServiceManager.getInstance().getPlayerPocketService()
+                    .getItemAsPocket((long) playerPocketId, player.getPocketId());
+            boolean matchingIndex = item != null
+                    && java.util.Arrays.stream(itemIndices).anyMatch(itemIndex -> itemIndex == item.getItemIndex());
+            if (matchingIndex && EItemCategory.SPECIAL.getName().equals(item.getCategory()))
+                return playerPocketId;
+        }
+
+        return 0;
     }
 
     public boolean isMaster() {
@@ -197,6 +203,14 @@ public class RoomPlayer {
     public EquippedItemStats getEquippedItemStats() {
         return player.getItemStats();
     }
+    public CardStats getCardStats() {
+        return player.getCardStats();
+    }
+
+    public PlayerEmblemEquipment getEmblemEquipment() {
+        return player.getEmblemEquipment();
+    }
+
 
     public EquippedSpecialSlots getEquippedSpecialSlots() {
         return player.getSpecialSlots();

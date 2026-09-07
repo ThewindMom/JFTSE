@@ -1,0 +1,127 @@
+Guardian compatibility evidence — 2026-08-12, current Amp orb
+
+Contract distinction
+--------------------
+Guardian is not a third dedicated Battlemon room mode. The validated tuples are:
+
+  Guardian:             roomType=0, mode=2
+  Battlemon Basic:      roomType=2, mode=0
+  Battlemon Battle:     roomType=2, mode=1
+  Invalid and rejected: roomType=2, mode=2
+
+The native menu exposes Guardian Battle Mode separately from Battlemon Basic
+Mode and Battlemon Battle Mode. Server create, quick-create, mode-change, and
+start guards enforce the same matrix.
+
+Guardian supports pets through its independent Allow Battlemon room option.
+When that option is enabled, every active human must have one canonical,
+alive, unexpired attached pet. For two humans, the gameplay actor topology is:
+
+  position 0: QaLucy   (human endpoint 4)
+  position 1: QaShua   (human endpoint 5)
+  position 2: LucyPet  (owned by QaLucy)
+  position 3: ShuaPet  (owned by QaShua)
+
+Focused start regression
+------------------------
+RoomStartGamePacketHandlerTest.guardianBattlemonStartRequiresBothPetsAndAcceptsBothOwners
+proves both sides of the admission contract:
+
+  1. start with only QaLucy's pet attached is rejected before relay
+     authorization or session creation;
+  2. start with LucyPet and ShuaPet attached succeeds;
+  3. the resulting session has gameplay positions [0, 1, 2, 3]; and
+  4. relay authorization remains non-Battlemon and maps owner 4 to [0, 2]
+     and owner 5 to [1, 3].
+
+Final two-client Guardian run
+-----------------------------
+Accounts: QaLucy and QaShua
+Pets: LucyPet and ShuaPet
+Map: Nest of Rubycrab
+Room: roomType=0, mode=2, Allow Battlemon=1
+Result: natural Guardian defeat, successful result and room return
+
+Pre-start native state showed all four friendly cards simultaneously:
+
+  LucyPet READY
+  QaLucy  MASTER
+  QaShua  READY
+  ShuaPet READY
+
+08:04:12.484  CMSGRoomChangeReady (0x1775), position 1 ready=true
+08:04:14.980  CMSGStartGame (0x177B)
+08:04:15.120  Guardian network settings sent to both humans
+08:04:15.561  CMSGConnectedToRelay (0x03F3), QaShua endpoint
+08:04:15.673  CMSGConnectedToRelay (0x03F3), QaLucy endpoint
+08:04:16.277  Guardian initialization packet 0x1D4F sent
+08:04:16.281  Guardian initialization packet 0x1D50 sent
+08:04:16.281  SMSGStartGame (0x17DE), result=0
+08:04:16.282  SMSGStartGame (0x17DE), result=0
+
+Guardian network endpoint contract
+----------------------------------
+Guardian retained two real relay endpoints. Packet 0x3EA and relay join state
+were human-only:
+
+  QaLucy recipient roster: [4, 5, 0, 0]
+  QaShua recipient roster: [5, 4, 0, 0]
+
+Both relay joins returned result 0. Pets were mapped as server-side gameplay
+actors controlled by their owners; they were not represented as synthetic
+network clients. This intentionally differs from dedicated Battlemon rooms,
+which duplicate owner endpoint IDs for the pet actor positions.
+
+Gameplay and lifecycle
+----------------------
+Both clients rendered QaLucy, QaShua, LucyPet, and ShuaPet in live Guardian
+gameplay against Dokaro. The HUD tracked separate pet HP. Both pets eventually
+reached 0/200 HP while the surviving humans continued the match, proving that
+the pets were gameplay actors rather than room-only decorations.
+
+The match completed naturally after approximately eleven minutes. The server
+sent item rewards only for human positions 0 and 1:
+
+08:15:50.735  SMSGPickupItemReward (0x1D53), playerPos=0
+08:15:50.914  SMSGPickupItemReward (0x1D53), playerPos=1
+08:15:53.775  CMSGClientBackInRoom (0x1773), QaShua
+08:15:53.777  SMSGClientBackInRoom (0x1774), position=1
+08:15:54.062  CMSGClientBackInRoom (0x1773), QaLucy
+08:15:54.064  SMSGClientBackInRoom (0x1774), position=0
+
+Both clients returned to the same Guardian room with both attached pet cards
+still present.
+
+Persistence
+-----------
+The before/after database snapshots show one Guardian loss recorded for each
+human. Pet and PetStatistic rows were unchanged; no independent pet reward or
+progression record was created.
+
+Crash and error boundary
+------------------------
+The native dump inventory after the run was unchanged and contained only the
+same older zero-byte controlled-exit placeholders. No new native dump was
+created. The curated exception scan contains infrastructure failures from
+earlier timestamps, but no game-server or relay-server exception during the
+08:04–08:15 final match window.
+
+Evidence hashes
+---------------
+runtime-client-server.pcap
+  a77ed8571291a5520e4c9aeda5dc0376c2b02cdac413770c7d694ab7c9346171
+
+final-match-game-packets.log
+  8a22b55a06ab06b371269cf5ed96307e638121cd8810306e664a58e9a63fac2b
+
+db-before.txt
+  8e1a1401abd93a369f190cb14e8ef9366f7231459d55d896e3168a773f1535e1
+
+db-after.txt
+  c52d9fb6149e48c5487084b97f51b9e911de7095156b6bbe695587d2fd5d8c5f
+
+deployed game-server.jar
+  f2c28a47e0696b7c4053b790a2a1ab4f94093037186ee358d2dcc19e8a22db14
+
+The raw PCAP is retained in the Amp artifact set but is intentionally excluded
+from the repository because captures can contain sensitive session traffic.

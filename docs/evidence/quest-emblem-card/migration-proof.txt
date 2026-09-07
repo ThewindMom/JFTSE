@@ -1,0 +1,27 @@
+Standalone migration idempotence proof
+Migration: scripts/sql/quest_emblem_card_systems.sql
+Database: disposable local MariaDB datadir; removed after verification
+
+Migration pass 1: PASS
+Migration pass 2: PASS
+
+Feature tables found:
+EmblemQuestDefinition
+EmblemQuestReward
+ItemCard
+PlayerEmblemEquipment
+PlayerEmblemEquipment_AUD
+PlayerEmblemQuest
+PlayerEmblemQuest_AUD
+
+Statistic columns (each count must equal 1):
+PlayerStatistic      fishesCaught      1
+PlayerStatistic      fruitsCollected  1
+PlayerStatistic      perfectGames     1
+PlayerStatistic_AUD  fishesCaught      1
+PlayerStatistic_AUD  fruitsCollected  1
+PlayerStatistic_AUD  perfectGames     1
+
+Feature foreign-key count: 6
+
+PASS: two clean migration executions completed.

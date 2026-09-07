@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Setter
 public class Room {
     public Room() {
+        clubMatchState = new ClubMatchState();
         bannedPlayers = new ConcurrentLinkedDeque<>();
         invitedPlayerIds = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
@@ -28,6 +29,7 @@ public class Room {
     }
 
     private short roomId;
+    private byte gameServerType = 1;
     private String roomName;
     private byte roomType;
     private byte allowBattlemon;
@@ -50,6 +52,11 @@ public class Room {
     private ArrayList<Short> positions;
     private int status;
 
+    private Long tournamentMatchId;
+    private boolean tournamentSpectatorsAllowed;
+    private final ClubMatchState clubMatchState;
+    private int clubMatchMaxPlayTimeMinutes;
+
     private byte previousMap = 0;
 
     // Guardian
@@ -64,6 +71,10 @@ public class Room {
 
     public boolean isModeActive(String modeId) {
         return activeExtensionModes.contains(modeId);
+    }
+
+    public boolean isTournamentRoom() {
+        return tournamentMatchId != null;
     }
 
     public void setModeActive(String modeId, boolean active) {

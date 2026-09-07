@@ -1,0 +1,106 @@
+message TournamentReward {
+    int32 productIndex = 1;
+    int32 useType = 2;
+}
+
+message TournamentPair {
+    int32 first = 1;
+    int32 second = 2;
+}
+
+message Tournament {
+    int32 tournamentId = 1;
+    byte entryType = 2;
+    byte gameMode = 3;
+    string title = 4;
+    date applicationStart = 5;
+    date applicationEnd = 6;
+    date tournamentStart = 7;
+    date tournamentEnd = 8;
+    int32 unknown0 = 9;
+    int32 unknown1 = 10;
+    byte unknown2 = 11;
+    int32 unknown3 = 12;
+    date unknownTime = 13;
+    byte status = 14;
+    boolean unknownFlag = 15;
+    int32 unknown4 = 16;
+    int32 bracketSize = 17;
+    repeated TournamentReward rewards = 18 [len = 5];
+    repeated TournamentPair bracketA = 19 [len = 16];
+    repeated TournamentPair bracketB = 20 [len = 16];
+}
+
+message CMSG_TournamentJoin (0x26AD) {
+    int32 tournamentId = 1;
+}
+
+// A non-zero status ends the packet. Status zero is followed by the tournament
+// metadata from Tournament, through bracketSize; rewards and brackets are not
+// repeated in this response.
+message SMSG_TournamentJoin (0x26AE) {
+    byte status = 1;
+}
+
+message CMSG_TournamentList (0x26AF) {
+    int32 page = 1;
+}
+
+message SMSG_TournamentList (0x26B0) {
+    repeated Tournament tournaments = 1;
+}
+
+message CMSG_TournamentApply (0x26B1) {
+    int32 tournamentId = 1;
+}
+
+message SMSG_TournamentApply (0x26B2) {
+    byte status = 1;
+}
+
+message CMSG_TournamentCancel (0x26B3) {
+    int32 tournamentId = 1;
+}
+
+message SMSG_TournamentCancel (0x26B4) {
+    byte status = 1;
+}
+
+message CMSG_TournamentInfo (0x26BE) {
+    int32 tournamentId = 1;
+}
+
+// A non-zero result ends the packet. Result zero is followed by the tournament ID,
+// player state, one unknown byte, three UTF-16LE strings, two unknown bytes, and
+// two unknown 64-bit values. The client also accepts result one with only the
+// tournament ID and player state, but that is an update rather than a full reply.
+message SMSG_TournamentInfo (0x26BF) {
+    int8 result = 1;
+}
+
+// The client sends two independent byte selectors after the tournament ID:
+// bracketType (0 qualifying, 1 final) and page/index within that bracket.
+message CMSG_TournamentBracket (0x26C0) {
+    int32 tournamentId = 1;
+    byte bracketType = 2;
+    byte page = 3;
+}
+
+// A non-zero status ends the packet. Status zero is followed by the request
+// selectors and the bracket rows consumed by the client's fixed-width parser.
+message SMSG_TournamentBracket (0x26C1) {
+    int8 status = 1;
+}
+
+message CMSG_TournamentBracketMatch (0x26C2) {
+    int32 tournamentId = 1;
+    byte bracketType = 2;
+    byte matchIndex = 3;
+}
+
+// A non-zero status ends the packet. Status zero is followed by the request
+// selectors, a signed 16-bit match count, and that many two-byte match states.
+// The first state byte is signed and the second is unsigned in the client.
+message SMSG_TournamentBracketMatch (0x26C3) {
+    int8 status = 1;
+}

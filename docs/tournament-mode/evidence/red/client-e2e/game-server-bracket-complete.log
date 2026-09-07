@@ -1,0 +1,120 @@
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: 4D 63 CB 07 BE 26 04 00    01 00 00 00
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:17,007 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [39 bytes]
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: SMSGTournamentInfo { "id": "0x26BF", "len": 31, "data": { "result": 0 } }
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: 4D 63 E7 07 BF 26 1F 00    00 01 00 00 00 00 00 00
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 00 00 00 00 00
+2026-08-11T14:17:17+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:22+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:22,958 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:17:22+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:17:22+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:22+0000 e2b.local amp-svc-game-baseline[256874]: F4 CB 91 08 A3 0F 00 00
+2026-08-11T14:17:22+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:32+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:32,979 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:17:32+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:17:32+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:32+0000 e2b.local amp-svc-game-baseline[256874]: BD 81 23 08 A3 0F 00 00
+2026-08-11T14:17:32+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:40,100 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: SMSGServerTimeSync { "id": "0x1452", "len": 8, "data": { "currentTime": 134309314600990000 } }
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: F4 CB 4D 08 52 14 08 00    30 75 D1 2A 9C 29 DD 01
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:40,119 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: CMSGServerTimeSync { "id": "0x1453", "len": 24, "data": { "syncDelta": 10 } }
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: 4E 7E 6B 07 53 14 18 00    0A 00 00 00 00 00 00 00
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: 17 A8 2F F1 9F 01 00 00    AF 2F 29 01 00 00 00 00
+2026-08-11T14:17:40+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:42+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:42,994 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:17:42+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:17:42+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:42+0000 e2b.local amp-svc-game-baseline[256874]: B5 5E E5 07 A3 0F 00 00
+2026-08-11T14:17:42+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:52+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:52,995 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:17:52+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:17:52+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:52+0000 e2b.local amp-svc-game-baseline[256874]: 1A 5F 4B 07 A3 0F 00 00
+2026-08-11T14:17:52+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:58,300 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [14 bytes]
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: CMSGTournamentBracket { "id": "0x26C0", "len": 6, "data": { "tournamentId": 1, "bracketType": 1, "page": 0 } }
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: B1 5A 17 08 C0 26 06 00    01 00 00 00 01 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:58,305 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [594 bytes]
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: SMSGTournamentBracket { "id": "0x26C1", "len": 586, "data": { "status": 0 } }
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: BD 81 91 08 C1 26 4A 02    00 01 00 00 00 01 00 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 10 00 74 00 65 00 73 00    74 00 00 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 30 00 31 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 30 00 32 00 00 00 42 00    4F 00 54 00 30 00 33 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    30 00 34 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 30 00 35 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 30 00 36 00 00 00 42 00    4F 00 54 00 30 00 37 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    30 00 38 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 30 00 39 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 31 00 30 00 00 00 42 00    4F 00 54 00 31 00 31 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    31 00 32 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 31 00 33 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 31 00 34 00 00 00 42 00    4F 00 54 00 31 00 35 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    31 00 36 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 31 00 37 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 31 00 38 00 00 00 42 00    4F 00 54 00 31 00 39 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    32 00 30 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 32 00 31 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 32 00 32 00 00 00 42 00    4F 00 54 00 32 00 33 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    32 00 34 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 32 00 35 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 32 00 36 00 00 00 42 00    4F 00 54 00 32 00 37 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    32 00 38 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 32 00 39 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 33 00 30 00 00 00 42 00    4F 00 54 00 33 00 31 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    33 00 32 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 33 00 33 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 33 00 34 00 00 00 42 00    4F 00 54 00 33 00 35 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    33 00 36 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 33 00 37 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 33 00 38 00 00 00 42 00    4F 00 54 00 33 00 39 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    34 00 30 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 34 00 31 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 34 00 32 00 00 00 42 00    4F 00 54 00 34 00 33 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 42 00 4F 00 54 00    34 00 34 00 00 00 42 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4F 00 54 00 34 00 35 00    00 00 42 00 4F 00 54 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 34 00 36 00 00 00 42 00    4F 00 54 00 34 00 37 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:58,313 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [14 bytes]
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: CMSGTournamentBracketMatch { "id": "0x26C2", "len": 6, "data": { "tournamentId": 1, "bracketType": 1, "matchIndex": 0 } }
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 8A 37 CF 07 C2 26 06 00    01 00 00 00 01 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:17:58,320 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [47 bytes]
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: SMSGTournamentBracketMatch { "id": "0x26C3", "len": 39, "data": { "status": 0 } }
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 4E 7E 0F 08 C3 26 27 00    00 01 00 00 00 01 00 0F
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: 00 00 00 00 00 00 00 00    00 00 00 00 00 00 00
+2026-08-11T14:17:58+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:18:03+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:18:03,003 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:18:03+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:18:03+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:18:03+0000 e2b.local amp-svc-game-baseline[256874]: B5 53 ED 07 A3 0F 00 00
+2026-08-11T14:18:03+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:18:10,102 [epollEventLoopGroup-3-1] PacketLogger [encode] DEBUG SEND [16 bytes]
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: SMSGServerTimeSync { "id": "0x1452", "len": 8, "data": { "currentTime": 134309314901010000 } }
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: B5 5E A1 07 52 14 08 00    50 66 B3 3C 9C 29 DD 01
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:18:10,128 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [32 bytes]
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: CMSGServerTimeSync { "id": "0x1453", "len": 24, "data": { "syncDelta": 13 } }
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: 14 A5 6B 07 53 14 18 00    0D 00 00 00 00 00 00 00
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: 50 1D 30 F1 9F 01 00 00    E8 A4 29 01 00 00 00 00
+2026-08-11T14:18:10+0000 e2b.local amp-svc-game-baseline[256874]: ===
+2026-08-11T14:18:13+0000 e2b.local amp-svc-game-baseline[256874]: 2026-08-11 14:18:13,003 [epollEventLoopGroup-3-1] PacketLogger [decode] DEBUG RECV [8 bytes]
+2026-08-11T14:18:13+0000 e2b.local amp-svc-game-baseline[256874]: CMSGHeartbeat { "id": "0xFA3", "len": 0, "data": { } }
+2026-08-11T14:18:13+0000 e2b.local amp-svc-game-baseline[256874]: --- Hex Dump ---
+2026-08-11T14:18:13+0000 e2b.local amp-svc-game-baseline[256874]: EB 56 13 08 A3 0F 00 00
+2026-08-11T14:18:13+0000 e2b.local amp-svc-game-baseline[256874]: ===

@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.life.progression.bonuses.BattleHouseBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfExpBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfWisemanBonus;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.script.ScriptContextHelper;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -91,6 +92,8 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private AtomicInteger spiderMineIdentifier;
 
     private AtomicBoolean stageChangingToBoss;
+    private int pendingLootUpdates;
+    private final List<Runnable> deferredLootActions = new ArrayList<>();
 
     // Generic per-match state bag for extension points (see .../matchplay/extension/). A plugin's
     // own per-match state lives here, keyed by its own state class, instead of as dedicated fields
@@ -292,11 +295,11 @@ public class MatchplayGuardianGame extends MatchplayGame {
 
         calculateBonusStats(roomPlayer, activeRoomPlayers);
 
-        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getBonusHp();
-        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getBonusStr();
-        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getBonusSta();
-        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getBonusDex();
-        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getBonusWil();
+        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getEquippedItemStats().getSpecialAddHp() + roomPlayer.getBonusHp();
+        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getEquippedItemStats().getSpecialStrength() + roomPlayer.getBonusStr();
+        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getEquippedItemStats().getSpecialStamina() + roomPlayer.getBonusSta();
+        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getEquippedItemStats().getSpecialDexterity() + roomPlayer.getBonusDex();
+        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getEquippedItemStats().getSpecialWillpower() + roomPlayer.getBonusWil();
 
         PlayerBattleState pbs = new PlayerBattleState(roomPlayer.getPosition(), roomPlayer.getPlayerId(), totalHp, totalStr, totalSta, totalDex, totalWill);
 
@@ -323,16 +326,28 @@ public class MatchplayGuardianGame extends MatchplayGame {
         return pbs;
     }
 
+    public PlayerBattleState createOwnedPetBattleState(GameplayActor actor) {
+        return new PlayerBattleState(
+                actor.position(),
+                actor.pet().id(),
+                actor.pet().hp(),
+                actor.pet().strength(),
+                actor.pet().stamina(),
+                actor.pet().dexterity(),
+                actor.pet().willpower()
+        );
+    }
+
     private void calculateBonusStats(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
         roomPlayer.resetBonusStats();
 
         EquippedItemStats equipment = roomPlayer.getEquippedItemStats();
 
-        int hpBeforeBonuses = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equipment.getAddHp();
-        int strBeforeBonuses = roomPlayer.getStrength() + equipment.getStrength() + equipment.getEnchantStr();
-        int staBeforeBonuses = roomPlayer.getStamina() + equipment.getStamina() + equipment.getEnchantSta();
-        int dexBeforeBonuses = roomPlayer.getDexterity() + equipment.getDexterity() + equipment.getEnchantDex();
-        int wilBeforeBonuses = roomPlayer.getWillpower() + equipment.getWillpower() + equipment.getEnchantWil();
+        int hpBeforeBonuses = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equipment.getAddHp() + equipment.getSpecialAddHp();
+        int strBeforeBonuses = roomPlayer.getStrength() + equipment.getStrength() + equipment.getEnchantStr() + equipment.getSpecialStrength();
+        int staBeforeBonuses = roomPlayer.getStamina() + equipment.getStamina() + equipment.getEnchantSta() + equipment.getSpecialStamina();
+        int dexBeforeBonuses = roomPlayer.getDexterity() + equipment.getDexterity() + equipment.getEnchantDex() + equipment.getSpecialDexterity();
+        int wilBeforeBonuses = roomPlayer.getWillpower() + equipment.getWillpower() + equipment.getEnchantWil() + equipment.getSpecialWillpower();
 
         if (hasActiveCoupleInParty(roomPlayer, activeRoomPlayers)) {
             roomPlayer.addBonusHp(hpBeforeBonuses / 20);
@@ -872,5 +887,34 @@ public class MatchplayGuardianGame extends MatchplayGame {
                 .filter(x -> x.getPosition() == position)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public synchronized void beginLootUpdate() {
+        pendingLootUpdates++;
+    }
+
+    public synchronized boolean deferUntilLootComplete(Runnable action) {
+        if (pendingLootUpdates == 0) return false;
+        deferredLootActions.add(action);
+        return true;
+    }
+
+    public synchronized void failLootUpdates() {
+        getFinished().set(true);
+        deferredLootActions.clear();
+    }
+
+    public void completeLootUpdate() {
+        List<Runnable> actions;
+        synchronized (this) {
+            if (--pendingLootUpdates != 0) return;
+            if (getFinished().get()) {
+                deferredLootActions.clear();
+                return;
+            }
+            actions = new ArrayList<>(deferredLootActions);
+            deferredLootActions.clear();
+        }
+        actions.forEach(action -> com.jftse.server.core.thread.ThreadManager.getInstance().newTask(action));
     }
 }

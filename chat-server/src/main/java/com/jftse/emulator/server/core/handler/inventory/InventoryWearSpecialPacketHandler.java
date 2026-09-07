@@ -11,6 +11,8 @@ import com.jftse.server.core.service.SpecialSlotEquipmentService;
 import com.jftse.server.core.shared.packets.inventory.CMSGInventoryWearSpecial;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.List;
+
 @Log4j2
 @PacketId(CMSGInventoryWearSpecial.PACKET_ID)
 public class InventoryWearSpecialPacketHandler implements PacketHandler<FTConnection, CMSGInventoryWearSpecial> {
@@ -27,10 +29,10 @@ public class InventoryWearSpecialPacketHandler implements PacketHandler<FTConnec
             return;
 
         FTPlayer player = client.getPlayer();
-        specialSlotEquipmentService.updateSpecialSlots(player.getPlayer(), packet.getSpecialSlotList());
+        List<Integer> equippedSpecialSlots = specialSlotEquipmentService.updateSpecialSlots(player.getPlayer(), packet.getSpecialSlotList());
         player.loadSpecialSlots();
 
-        S2CInventoryWearSpecialAnswerPacket inventoryWearSpecialAnswerPacket = new S2CInventoryWearSpecialAnswerPacket(packet.getSpecialSlotList());
+        S2CInventoryWearSpecialAnswerPacket inventoryWearSpecialAnswerPacket = new S2CInventoryWearSpecialAnswerPacket(equippedSpecialSlots);
         connection.sendTCP(inventoryWearSpecialAnswerPacket);
     }
 }

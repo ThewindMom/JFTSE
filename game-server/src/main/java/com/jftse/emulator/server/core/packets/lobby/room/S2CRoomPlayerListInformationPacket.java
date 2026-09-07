@@ -2,9 +2,9 @@ package com.jftse.emulator.server.core.packets.lobby.room;
 
 import com.jftse.emulator.server.core.client.EquippedItemParts;
 import com.jftse.emulator.server.core.client.GuildView;
-import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.utils.BattleUtils;
+import com.jftse.entities.database.model.emblem.PlayerEmblemEquipment;
 import com.jftse.entities.database.model.player.EquippedItemStats;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
@@ -19,7 +19,7 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
         for (RoomPlayer roomPlayer : roomPlayerList) {
             EquippedItemParts equippedItemParts = roomPlayer.getEquippedItemPartsIDX();
             EquippedItemStats equippedItemStats = roomPlayer.getEquippedItemStats();
-            PetView pet = roomPlayer.getPet();
+            PlayerEmblemEquipment emblemEquipment = roomPlayer.getEmblemEquipment();
 
             boolean isSpectator = roomPlayer.getPosition() > 3;
             this.write(roomPlayer.getPosition());
@@ -31,7 +31,7 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(roomPlayer.isFitting());
             this.write((byte) roomPlayer.getPlayerType());
             this.write(isSpectator);
-            this.write(pet != null);
+            this.write((byte) 0); // unk3
 
             GuildView guild = roomPlayer.getGuild();
             this.write(guild != null ? guild.name() : "");
@@ -52,10 +52,10 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(roomPlayer.getCoupleName());
             this.write(0);
             this.write((byte) 0);
-            this.write((short) 0); // emblem slot 1
-            this.write((short) 0); // emblem slot 2
-            this.write((short) 0); // emblem slot 3
-            this.write((short) 0); // emblem slot 4
+            this.write(emblemEquipment.getSlot1());
+            this.write(emblemEquipment.getSlot2());
+            this.write(emblemEquipment.getSlot3());
+            this.write(emblemEquipment.getSlot4());
 
             this.write((BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equippedItemStats.getAddHp() + roomPlayer.getBonusHp()));
 
@@ -79,24 +79,18 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
 
             // earrings added status points
             this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
+            this.write(equippedItemStats.getSpecialStrength().byteValue());
+            this.write(equippedItemStats.getSpecialStamina().byteValue());
+            this.write(equippedItemStats.getSpecialDexterity().byteValue());
+            this.write(equippedItemStats.getSpecialWillpower().byteValue());
             // cards added status points
             this.write(0);
             this.write((byte) 0);
             this.write((byte) 0);
             this.write((byte) 0);
             this.write((byte) 0);
-            // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
-            // ??
-            for (int i = 5; i < 13; ++i) {
-                this.write((byte) 0);
-            }
+            // cards added status points and elements
+            this.writeCardStats(roomPlayer.getCardStats());
             /* end - status points */
 
             this.write(equippedItemParts.hair());
@@ -111,19 +105,6 @@ public class S2CRoomPlayerListInformationPacket extends Packet {
             this.write(equippedItemParts.bag());
             this.write(equippedItemParts.hat());
             this.write(equippedItemParts.dye());
-
-            if (pet != null) {
-                this.write(pet.name());
-                this.write((byte) pet.level());
-                this.write((byte) pet.type());
-                this.write(pet.hp());
-                this.write((byte) pet.strength());
-                this.write((byte) pet.stamina());
-                this.write((byte) pet.dexterity());
-                this.write((byte) pet.willpower());
-                this.write(pet.hunger());
-                this.write(pet.energy());
-            }
         }
     }
 }

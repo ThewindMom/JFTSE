@@ -82,7 +82,7 @@ public class RoomJoinRequestPacketHandler implements PacketHandler<FTConnection,
         connection.sendTCP(roomJoinAnswerPacket);
 
         roomManager.sendRoomInformation(connection, joinResult.room(), clientsInRoom);
-
+        GameManager.getInstance().sendPersonalBoardMessages(connection, room);
         GameManager.getInstance().updateLobbyRoomListForAllClients(connection);
         GameManager.getInstance().refreshLobbyPlayerListForAllClients();
 

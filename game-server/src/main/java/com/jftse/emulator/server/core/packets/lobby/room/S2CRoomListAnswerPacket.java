@@ -2,7 +2,9 @@ package com.jftse.emulator.server.core.packets.lobby.room;
 
 import com.jftse.emulator.common.utilities.BitKit;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.Room;
+import com.jftse.server.core.constants.GameMode;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
@@ -17,10 +19,14 @@ public class S2CRoomListAnswerPacket extends Packet {
             int nonSpectatorPlayerCount = (int) room.getRoomPlayerList().stream()
                     .filter(x -> x.getPosition() < 4)
                     .count();
-            byte maxPositionsAvailable = (byte) room.getPositions().stream()
-                    .limit(4)
-                    .filter(x -> x != RoomPositionState.Locked)
-                    .count();
+            boolean hasOptionalPetPositions = room.getRoomType() == RoomType.BATTLEMON ||
+                    room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0;
+            byte maxPositionsAvailable = hasOptionalPetPositions
+                    ? (byte) 2
+                    : (byte) room.getPositions().stream()
+                            .limit(4)
+                            .filter(x -> x != RoomPositionState.Locked)
+                            .count();
             this.write(room.getRoomId());
             this.write(room.getRoomName());
             this.write(room.getRoomType());

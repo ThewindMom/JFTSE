@@ -20,6 +20,10 @@ public class MatchplayPointPacketHandler implements PacketHandler<FTConnection, 
         if (gameSession == null)
             return;
 
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() || gameSession.hasOwnedPetSeats();
+        if (enhancedActorSession && !gameSession.isGameplayEndpoint(ftClient))
+            return;
+
         MatchplayGame game = gameSession.getMatchplayGame();
         if (game == null)
             return;

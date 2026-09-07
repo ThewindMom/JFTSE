@@ -1,0 +1,322 @@
+package com.jftse.emulator.server.core.life.room;
+
+import com.jftse.emulator.server.net.FTClient;
+import com.jftse.entities.database.model.pet.Pet;
+import com.jftse.entities.database.model.pet.PetStatistic;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class GameSessionTest {
+    @Test
+    void ordinaryBasicSessionIsOneHumanSeatPerClient() {
+        GameSession session = new GameSession();
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        session.getClients().add(clientFor(firstPlayer));
+        session.getClients().add(clientFor(secondPlayer));
+
+        session.initializeGameplayActorPositions();
+
+        assertFalse(session.isDedicatedBattlemonRoom());
+        assertFalse(session.hasOwnedPetSeats());
+        assertEquals(List.of((short) 0, (short) 1), session.getGameplayActorPositions());
+        assertTrue(session.isHumanSeat(0));
+        assertTrue(session.isHumanSeat(1));
+        assertTrue(session.isActorOwnedBy(firstPlayer, 0));
+        assertFalse(session.isActorOwnedBy(firstPlayer, 1));
+        assertEquals(0, session.getOwnerPositionForActor(0));
+        assertEquals(1, session.getOwnerPositionForActor(1));
+        assertNull(session.getOwnedPetSeat(100L));
+    }
+
+    @Test
+    void battlemonActorsUseOwnerPositionPlusTwoAndOwnerEndpoint() {
+        GameSession session = new GameSession(true);
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        session.getClients().add(clientFor(firstPlayer));
+        session.getClients().add(clientFor(secondPlayer));
+
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
+        session.initializeGameplayActorPositions();
+        GameplayActor firstPet = session.getActor(2);
+        GameplayActor secondPet = session.getActor(3);
+
+        assertEquals((short) 2, firstPet.position());
+        assertEquals((short) 3, secondPet.position());
+        assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3), session.getGameplayActorPositions());
+        assertSame(firstPet, session.getOwnedPetSeat(100L));
+        assertSame(secondPet, session.getOwnedPetSeat(200L));
+        assertTrue(session.isHumanSeat(0));
+        assertTrue(session.isHumanSeat(1));
+        assertFalse(session.isHumanSeat(2));
+        assertFalse(session.isHumanSeat(3));
+        assertEquals((short) 0, firstPet.ownerPosition());
+        assertEquals((short) 1, secondPet.ownerPosition());
+        assertTrue(session.isActorOwnedBy(firstPlayer, 0));
+        assertTrue(session.isActorOwnedBy(firstPlayer, 2));
+        assertFalse(session.isActorOwnedBy(firstPlayer, 1));
+        assertFalse(session.isActorOwnedBy(firstPlayer, 3));
+    }
+
+    @Test
+    void guardianSessionCanOwnPetActors() {
+        GameSession session = new GameSession();
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        session.getClients().add(clientFor(firstPlayer));
+        session.getClients().add(clientFor(secondPlayer));
+
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
+        session.initializeGameplayActorPositions();
+
+        assertFalse(session.isDedicatedBattlemonRoom());
+        assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3), session.getGameplayActorPositions());
+        assertTrue(session.isActorOwnedBy(firstPlayer, 2));
+        assertTrue(session.isActorOwnedBy(secondPlayer, 3));
+    }
+
+    @Test
+    void guardianSessionSupportsZeroOneAndTwoOptionalPets() {
+        for (int petCount = 0; petCount <= 2; petCount++) {
+            GameSession session = new GameSession();
+            RoomPlayer firstOwner = roomPlayer(100L, (short) 0);
+            RoomPlayer secondOwner = roomPlayer(200L, (short) 1);
+            session.getClients().add(clientFor(firstOwner));
+            session.getClients().add(clientFor(secondOwner));
+            if (petCount >= 1) {
+                session.addOwnedPetSeat(firstOwner, pet(10L, "First pet"));
+            }
+            if (petCount == 2) {
+                session.addOwnedPetSeat(secondOwner, pet(20L, "Second pet"));
+            }
+
+            session.initializeGameplayActorPositions();
+
+            assertEquals(2 + petCount, session.getGameplayActorPositions().size());
+            assertEquals(petCount >= 1, session.getGameplayActorPositions().contains((short) 2));
+            assertEquals(petCount == 2, session.getGameplayActorPositions().contains((short) 3));
+        }
+    }
+
+    @Test
+    void battlemonActorsRejectPositionsWithoutAHumanOwner() {
+        GameSession session = new GameSession(true);
+        RoomPlayer invalidOwner = roomPlayer(100L, (short) 2);
+
+        assertThrows(IllegalArgumentException.class, () -> session.addOwnedPetSeat(invalidOwner, pet(10L, "Pet")));
+        assertTrue(session.getOwnedPetSeats().isEmpty());
+    }
+
+    @Test
+    void battlemonActorsRequireMatchingHumanEndpoint() {
+        GameSession session = new GameSession(true);
+        RoomPlayer owner = roomPlayer(100L, (short) 0);
+        RoomPlayer differentPlayer = roomPlayer(200L, (short) 0);
+        session.getClients().add(clientFor(differentPlayer));
+
+        assertThrows(IllegalArgumentException.class, () -> session.addOwnedPetSeat(owner, pet(10L, "Pet")));
+        assertTrue(session.getOwnedPetSeats().isEmpty());
+    }
+
+    @Test
+    void battlemonActorsRejectDuplicateOwner() {
+        GameSession session = new GameSession(true);
+        RoomPlayer owner = roomPlayer(100L, (short) 0);
+        session.getClients().add(clientFor(owner));
+        session.addOwnedPetSeat(owner, pet(10L, "First pet"));
+
+        assertThrows(IllegalStateException.class, () -> session.addOwnedPetSeat(owner, pet(20L, "Second pet")));
+        assertEquals(1, session.getOwnedPetSeats().size());
+        assertEquals(10L, session.getActor(2).pet().id());
+    }
+
+    @Test
+    void gameplayActorRosterDoesNotChangeWhenAnEndpointDisconnects() {
+        GameSession session = new GameSession(true);
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        FTClient firstClient = clientFor(firstPlayer);
+        FTClient secondClient = clientFor(secondPlayer);
+        session.getClients().add(firstClient);
+        session.getClients().add(secondClient);
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
+        session.initializeGameplayActorPositions();
+
+        session.getClients().remove(secondClient);
+
+        assertEquals(List.of((short) 0, (short) 1, (short) 2, (short) 3), session.getGameplayActorPositions());
+        assertEquals(0, session.getOwnerPositionForActor(2));
+        assertEquals(1, session.getOwnerPositionForActor(3));
+    }
+
+    @Test
+    void battlemonSpectatorsAreNotGameplayEndpoints() {
+        GameSession session = new GameSession(true);
+        RoomPlayer firstPlayer = roomPlayer(100L, (short) 0);
+        RoomPlayer secondPlayer = roomPlayer(200L, (short) 1);
+        FTClient firstClient = clientFor(firstPlayer);
+        FTClient secondClient = clientFor(secondPlayer);
+        FTClient spectatorClient = clientFor(roomPlayer(300L, (short) 4));
+        session.getClients().add(firstClient);
+        session.getClients().add(secondClient);
+        session.getClients().add(spectatorClient);
+        session.addOwnedPetSeat(firstPlayer, pet(10L, "First pet"));
+        session.addOwnedPetSeat(secondPlayer, pet(20L, "Second pet"));
+        session.initializeGameplayActorPositions();
+
+        assertTrue(session.isGameplayEndpoint(firstClient));
+        assertTrue(session.isGameplayEndpoint(secondClient));
+        assertFalse(session.isGameplayEndpoint(spectatorClient));
+
+        FTClient detachedParticipant = mock(FTClient.class);
+        session.getClients().add(detachedParticipant);
+        assertFalse(session.isGameplayEndpoint(detachedParticipant));
+
+        FTClient detachedSpectator = mock(FTClient.class);
+        when(detachedSpectator.isSpectator()).thenReturn(true);
+        session.getClients().add(detachedSpectator);
+        assertFalse(session.isGameplayEndpoint(detachedSpectator));
+    }
+
+    @Test
+    void skillHitAuthorizationAllowsEachTargetExactlyOnceAndExpires() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 3_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 4_000L));
+        assertFalse(session.tryConsumeSkillHit(3, 1, 7, 4_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 2, 7, 15_000_001_001L));
+    }
+
+    @Test
+    void targetedSkillCannotBeReplayedAgainstAnotherTarget() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, 0, 7, 1_000L);
+
+        assertFalse(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 3_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 4_000L));
+    }
+
+    @Test
+    void recastReplacesConsumedTargetsAndPriorTargetRestriction() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, 0, 7, 1_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        session.authorizeSkillHits(2, 1, 7, 3_000L);
+        assertFalse(session.tryConsumeSkillHit(2, 0, 7, 4_000L));
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 4_000L));
+        session.authorizeSkillHits(2, 1, 7, 5_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 6_000L));
+    }
+
+    @Test
+    void hitGrantAcceptsExactDeadlineButRejectsOneNanosecondLater() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+        assertTrue(session.tryConsumeSkillHit(2, 0, 7, 15_000_001_000L));
+        assertFalse(session.tryConsumeSkillHit(2, 1, 7, 15_000_001_001L));
+    }
+
+    @Test
+    void concurrentDuplicateReportsConsumeTargetOnlyOnce() {
+        GameSession session = new GameSession(true);
+        session.authorizeSkillHits(2, -1, 7, 1_000L);
+        long accepted = java.util.stream.IntStream.range(0, 100).parallel()
+                .filter(ignored -> session.tryConsumeSkillHit(2, 0, 7, 2_000L)).count();
+        assertEquals(1, accepted);
+        assertTrue(session.tryConsumeSkillHit(2, 1, 7, 2_000L));
+    }
+
+    @Test
+    void serverGrantedSkillCastCanBeConsumedExactlyOnce() {
+        GameSession session = new GameSession();
+        session.authorizeSkillCast(10, 8, 1_000L);
+
+        assertTrue(session.tryConsumeSkillCast(10, 8, 2_000L));
+        assertFalse(session.tryConsumeSkillCast(10, 8, 3_000L));
+        assertFalse(session.tryConsumeSkillCast(10, 9, 3_000L));
+    }
+
+    @Test
+    void serverGrantedSkillCastExpires() {
+        GameSession session = new GameSession();
+        session.authorizeSkillCast(10, 8, 1_000L);
+
+        assertFalse(session.tryConsumeSkillCast(10, 8, 15_000_001_001L));
+    }
+
+    @Test
+    void acceptsExactlyOnePointForEachRelayObservedRally() {
+        GameSession session = new GameSession(true);
+
+        assertFalse(session.tryHandleRallyPoint());
+        session.beginRally();
+        assertTrue(session.tryHandleRallyPoint());
+        assertFalse(session.tryHandleRallyPoint());
+        session.beginRally();
+        assertTrue(session.tryHandleRallyPoint());
+    }
+
+    @Test
+    void replacementSessionStartsWithoutPreviousActorsReplayOrCompletionState() {
+        GameSession previous = new GameSession(true);
+        RoomPlayer firstOwner = roomPlayer(100L, (short) 0);
+        RoomPlayer secondOwner = roomPlayer(200L, (short) 1);
+        previous.getClients().add(clientFor(firstOwner));
+        previous.getClients().add(clientFor(secondOwner));
+        previous.addOwnedPetSeat(firstOwner, pet(10L, "First pet"));
+        previous.addOwnedPetSeat(secondOwner, pet(20L, "Second pet"));
+        previous.initializeGameplayActorPositions();
+        previous.authorizeSkillHits(2, -1, 7, 1_000L);
+        previous.beginRally();
+        assertTrue(previous.tryHandleRallyPoint());
+        assertTrue(previous.getCompletionHandled().compareAndSet(false, true));
+
+        GameSession replacement = new GameSession(true);
+
+        assertTrue(replacement.getGameplayActorPositions().isEmpty());
+        assertTrue(replacement.getOwnedPetSeats().isEmpty());
+        assertFalse(replacement.tryConsumeSkillHit(2, 0, 7, 2_000L));
+        assertFalse(replacement.tryHandleRallyPoint());
+        assertFalse(replacement.getCompletionHandled().get());
+    }
+
+    private static FTClient clientFor(RoomPlayer roomPlayer) {
+        FTClient client = mock(FTClient.class);
+        when(client.getRoomPlayer()).thenReturn(roomPlayer);
+        return client;
+    }
+
+    private static RoomPlayer roomPlayer(long playerId, short position) {
+        RoomPlayer roomPlayer = mock(RoomPlayer.class);
+        when(roomPlayer.getPlayerId()).thenReturn(playerId);
+        when(roomPlayer.getPosition()).thenReturn(position);
+        return roomPlayer;
+    }
+
+    private static Pet pet(long petId, String name) {
+        Pet pet = mock(Pet.class);
+        PetStatistic statistic = new PetStatistic();
+        when(pet.getId()).thenReturn(petId);
+        when(pet.getName()).thenReturn(name);
+        when(pet.getPetStatistic()).thenReturn(statistic);
+        return pet;
+    }
+}

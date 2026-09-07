@@ -1,0 +1,43 @@
+Final release native runtime summary
+====================================
+
+Validation date: 2026-08-12 UTC
+Client: unmodified FantaTennis.exe
+Client SHA-256:
+5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31
+Wine: wine-8.0 (Debian 8.0~repack-4), Win32 prefix
+Display: Xvfb :108, 1280x900x24, Openbox
+Routing: ServerInfo.ini -> 127.0.0.1:5894
+
+Release JAR SHA-256 values used by the supervised server stack:
+f43b7b7b3e4d2375c487acb25a5ef788b6dc02e848bf0c2d43570edb71a373f7  auth-server.jar
+44985a39b3c2f2877db5c2de0c1b4d2a30d83b50dbeafb913c973aefd89871f4  game-server.jar
+1dd846bc1b142f124cbd4cc8bcd240a5ccc00aa5dfcf1346dc5683e1bd969421  chat-server.jar
+570269584c139d31c4e5bce8abb1a6399fa2577de6356677df482d5d46674c7c  relay-server.jar
+0e21ae05cd7e869171bc54249c53057b183f30070d7e6d537fd34de16f53e13b  ac-server.jar (packaged, not used by this smoke run)
+
+Observed final-JAR path:
+1. Unmodified client reached visible User Login.
+2. Native login reached character/server selection.
+3. DB-seeded SpecialLab level 1 and Chat/Free Channel #1 were visible.
+4. Native client connected to Free Channel and reached the Main lobby.
+5. Client and capture were stopped cleanly; account state returned to NONE /
+   offline.
+
+Capture metadata:
+- release-native-runtime.pcap: 39,410 bytes
+- SHA-256:
+  f3baa146e6be08785cfad4f72a6e2be11acbfbcd2333fe1dd9cc42acd9782b6e
+- TCP conversations: three auth:5894 conversations (two GUI-calibration
+  failures followed by success) and one game:5895 conversation.
+- The game conversation contained 344 frames / 27 kB and lasted 756.6 s.
+
+Privacy boundary:
+The raw PCAP is intentionally not committed because JFTSE login traffic can
+contain disposable credentials in plaintext. This summary contains only
+metadata, endpoint roles, sizes, and hashes.
+
+Feature boundary:
+The final release run proves client/server compatibility through the Main
+lobby. It does not prove proposal, match settlement, special-slot persistence,
+or Battlemon behavior through native UI.

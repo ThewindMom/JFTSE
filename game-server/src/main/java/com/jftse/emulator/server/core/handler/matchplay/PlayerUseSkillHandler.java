@@ -6,6 +6,7 @@ import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.room.GameSession;
+import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
@@ -73,9 +74,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         FTPlayer player = ftClient.getPlayer();
         RoomPlayer roomPlayer = ftClient.getRoomPlayer();
         GameSession gameSession = ftClient.getActiveGameSession();
+        Room room = ftClient.getActiveRoom();
 
         MatchplayGame game = gameSession.getMatchplayGame();
-        if (game == null) return;
+        if (game == null || game.getFinished().get()) return;
 
         byte attackerPosition = anyoneUsesSkill.getAttackerPosition();
         byte targetPosition = anyoneUsesSkill.getTargetPosition();
@@ -83,6 +85,44 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
 
         boolean attackerIsGuardian = attackerPosition > 9;
         boolean attackerIsPlayer = attackerPosition < 4;
+
+        boolean enhancedActorSession = gameSession.isDedicatedBattlemonRoom() ||
+                game instanceof MatchplayGuardianGame || gameSession.hasOwnedPetSeats();
+        if (enhancedActorSession && !gameSession.isGameplayEndpoint(ftClient))
+            return;
+        if (enhancedActorSession && game instanceof MatchplayBattleGame battleGame) {
+            if (!attackerIsPlayer || !gameSession.isActorOwnedBy(roomPlayer, attackerPosition))
+                return;
+            if (battleGame.getPlayerBattleStates().stream().noneMatch(state ->
+                    state.getPosition() == attackerPosition && state.getCurrentHealth().get() > 0))
+                return;
+            if (targetPosition >= 0 && battleGame.getPlayerBattleStates().stream()
+                    .noneMatch(state -> state.getPosition() == targetPosition))
+                return;
+        } else if (enhancedActorSession && game instanceof MatchplayGuardianGame guardianGame) {
+            boolean livePlayerAttacker = attackerIsPlayer &&
+                    gameSession.isActorOwnedBy(roomPlayer, attackerPosition) &&
+                    guardianGame.getPlayerBattleStates().stream()
+                            .anyMatch(state -> state.getPosition() == attackerPosition &&
+                                    state.getCurrentHealth().get() > 0);
+            boolean liveGuardianAttacker = attackerIsGuardian &&
+                    guardianGame.getGuardianBattleStates().stream()
+                            .anyMatch(state -> state.getPosition() == attackerPosition &&
+                                    state.getCurrentHealth().get() > 0);
+            if (!livePlayerAttacker && !(liveGuardianAttacker && roomPlayer.isMaster()))
+                return;
+            if (targetPosition >= 0 && guardianGame.getPlayerBattleStates().stream()
+                    .noneMatch(state -> state.getPosition() == targetPosition) &&
+                    guardianGame.getGuardianBattleStates().stream()
+                            .noneMatch(state -> state.getPosition() == targetPosition))
+                return;
+        } else if (enhancedActorSession) {
+            return;
+        }
+        if (enhancedActorSession && gameSession.isDedicatedBattlemonRoom() && attackerPosition != roomPlayer.getPosition())
+            return;
+        if (enhancedActorSession && attackerIsPlayer && isQuickSlot && attackerPosition != roomPlayer.getPosition())
+            return;
 
         if (attackerIsPlayer && !isQuickSlot) {
             // a canceled skill use will have sourceValue -1 and skillIndex -6?, a less than zero check is enough
@@ -100,15 +140,23 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         }
 
         Skill skill = skillService.findSkillByIndex(anyoneUsesSkill.getSkillIndex());
+        if (enhancedActorSession && attackerIsGuardian &&
+                (skill == null || !gameSession.tryConsumeSkillCast(attackerPosition,
+                        anyoneUsesSkill.getSkillIndex(), Time.getNSTime()))) {
+            return;
+        }
         SkillUse skillUse = null;
         if (skill != null)
             skillUse = new SkillUse(skill, attackerPosition, targetPosition, isQuickSlot, skillUseTimestamp, false);
 
         GameEventBus.call(GameEventType.MP_PLAYER_USE_SKILL, ftClient, game, roomPlayer, skill, skillUse, anyoneUsesSkill);
 
-        if (attackerIsGuardian) {
+        if (attackerIsGuardian && game instanceof MatchplayGuardianGame guardianGame) {
             if (skill != null) {
-                this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, (MatchplayGuardianGame) game, skill);
+                synchronized (game) {
+                    if (ftClient.getActiveGameSession() != gameSession || game.getFinished().get()) return;
+                    this.handleSpecialSkillsUseOfGuardians(connection, attackerPosition, guardianGame, skill);
+                }
             }
         } else if (attackerIsPlayer) {
             if (roomPlayer != null) {
@@ -126,20 +174,31 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
             }
         }
 
-        SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()
-                .attacker(attackerPosition)
-                .target(targetPosition)
-                .skillId(anyoneUsesSkill.getSkillIndex())
-                .seed(anyoneUsesSkill.getSeed())
-                .xTarget(anyoneUsesSkill.getXTarget())
-                .zTarget(anyoneUsesSkill.getZTarget())
-                .yTarget(anyoneUsesSkill.getYTarget())
-                .build();
-        gameSession.getClients().forEach(c -> {
-            if (c.getConnection().getId() != connection.getId()) {
-                c.getConnection().sendTCP(response);
+        synchronized (game) {
+            if (ftClient.getActiveGameSession() != gameSession || game.getFinished().get()) return;
+            if (enhancedActorSession && skill != null) {
+                gameSession.authorizeSkillHits(attackerPosition, attackerIsGuardian ? -1 : targetPosition,
+                        skill.getId().byteValue(), Time.getNSTime());
             }
-        });
+
+            SMSGPlayerUseSkill response = SMSGPlayerUseSkill.builder()
+                    .attacker(attackerPosition)
+                    .target(targetPosition)
+                    .skillId(anyoneUsesSkill.getSkillIndex())
+                    .seed(anyoneUsesSkill.getSeed())
+                    .xTarget(anyoneUsesSkill.getXTarget())
+                    .zTarget(anyoneUsesSkill.getZTarget())
+                    .yTarget(anyoneUsesSkill.getYTarget())
+                    .build();
+            gameSession.getClients().forEach(c -> {
+                if (c.getConnection().getId() != connection.getId()) {
+                    FTClient.MatchMembership membership = c.matchMembership();
+                    if (membership.session() == gameSession && membership.room() == room) {
+                        c.sendMatchPacket(membership, response);
+                    }
+                }
+            });
+        }
     }
 
     private boolean isQsUseValid(FTConnection connection, long skillUseTimestamp, FTPlayer player, Skill skill, SkillUse skillUse, MatchplayGame game, byte attackerPosition, CMSGPlayerUseSkill anyoneUsesSkill) {
@@ -286,9 +345,10 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
     }
 
     private void validateSkillCrystal(Queue<SkillCrystal> skillCrystals, int crystalId, int skillIndex) throws ValidationException {
-        SkillCrystal skillCrystal = skillCrystals.poll();
+        SkillCrystal skillCrystal = skillCrystals.peek();
         if (skillCrystal == null || skillCrystal.getId() != crystalId || skillCrystal.getSkillIndex() != skillIndex) {
             throw new ValidationException("Player tried to use a skill crystal they do not possess");
         }
+        skillCrystals.poll();
     }
 }

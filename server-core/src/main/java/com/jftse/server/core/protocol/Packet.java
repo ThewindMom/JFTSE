@@ -1,5 +1,6 @@
 package com.jftse.server.core.protocol;
 
+import com.jftse.server.core.item.CardStats;
 import com.jftse.emulator.common.utilities.BitKit;
 import lombok.Getter;
 import lombok.Setter;
@@ -149,6 +150,16 @@ public class Packet implements IPacket {
         } else if (element == null) {
             // do nothing for null values
         }
+    }
+
+    protected void writeCardStats(CardStats stats) {
+        this.write(stats.hp());
+        this.write((byte) CardStats.saturateByte(stats.strength()));
+        this.write((byte) CardStats.saturateByte(stats.stamina()));
+        this.write((byte) CardStats.saturateByte(stats.dexterity()));
+        this.write((byte) CardStats.saturateByte(stats.willpower()));
+        stats.attackElements().forEach(value -> this.write((byte) CardStats.saturateByte(value)));
+        stats.defenseElements().forEach(value -> this.write((byte) CardStats.saturateByte(value)));
     }
 
     public void writeStringUTF8(String text) {

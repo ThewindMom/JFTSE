@@ -1,0 +1,7 @@
+2026-08-12T09:36:28Z
+id	username	gameMaster	status	loggedInServer	playerId	name	playerOnline	guildId	guild	allowedCharacterType
+1	cmhost	0	0	NULL	1	CMHostA	0	1	CMHostGuild	000102030405060708
+2	cmguest	0	0	NULL	2	CMGuestB	0	2	CMGuestGuild	000102030405060708
+name	tutorialCount	completedCount
+CMHostA	11	11
+CMGuestB	11	11

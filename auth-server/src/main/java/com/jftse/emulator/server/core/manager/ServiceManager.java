@@ -43,6 +43,8 @@ public class ServiceManager {
     @Autowired
     private PlayerStatisticService playerStatisticService;
     @Autowired
+    private PlayerEmblemEquipmentService playerEmblemEquipmentService;
+    @Autowired
     private HomeService homeService;
     @Autowired
     private FriendService friendService;

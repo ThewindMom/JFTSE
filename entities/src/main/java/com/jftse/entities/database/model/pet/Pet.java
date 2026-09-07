@@ -23,7 +23,8 @@ public class Pet extends AbstractBaseModel {
     private Player player;
     private Byte type;
     private String name;
-    private Byte level;
+    @Column(columnDefinition = "TINYINT UNSIGNED")
+    private Integer level;
     private Integer expPoints;
     private Integer hp;
     private Byte strength;
@@ -35,4 +36,5 @@ public class Pet extends AbstractBaseModel {
     private Integer lifeMax;
     private Date validUntil;
     private Boolean alive;
+    private Date lifecycleUpdatedAt;
 }

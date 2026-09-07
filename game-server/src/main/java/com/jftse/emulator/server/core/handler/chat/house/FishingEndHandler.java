@@ -19,7 +19,9 @@ import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.item.EItemUseType;
+import com.jftse.server.core.service.EmblemQuestService;
 import com.jftse.server.core.service.PlayerPocketService;
+import com.jftse.server.core.service.PlayerStatisticService;
 import com.jftse.server.core.service.PocketService;
 import com.jftse.server.core.service.ProductService;
 import com.jftse.server.core.shared.packets.chat.house.CMSGFishingEnd;
@@ -32,11 +34,15 @@ public class FishingEndHandler implements PacketHandler<FTConnection, CMSGFishin
     private final PlayerPocketService playerPocketService;
     private final PocketService pocketService;
     private final ProductService productService;
+    private final PlayerStatisticService playerStatisticService;
+    private final EmblemQuestService emblemQuestService;
 
     public FishingEndHandler() {
         this.playerPocketService = ServiceManager.getInstance().getPlayerPocketService();
         this.pocketService = ServiceManager.getInstance().getPocketService();
         this.productService = ServiceManager.getInstance().getProductService();
+        this.playerStatisticService = ServiceManager.getInstance().getPlayerStatisticService();
+        this.emblemQuestService = ServiceManager.getInstance().getEmblemQuestService();
     }
 
     @Override
@@ -66,6 +72,12 @@ public class FishingEndHandler implements PacketHandler<FTConnection, CMSGFishin
             GameManager.getInstance().sendPacketToAllClientsInSameRoom(stopPacket, connection);
 
             FishManager.getInstance().removeFish(room.getRoomId(), claimedFish);
+
+            var statistic = playerStatisticService.incrementHousingCollections(player.getPlayerStatisticId(), 1, 0);
+            if (statistic != null) {
+                emblemQuestService.increment(player.getId(), "Fishes", 1);
+                emblemQuestService.setBaseline(player.getId(), EmblemQuestService.TOTAL_FISHES, statistic.getFishesCaught());
+            }
 
             S2CFishingBarPacket despawnMiniGame = new S2CFishingBarPacket(roomPlayer.getPosition(), claimedFish.getId(), 1.3f, (byte) 0);
             GameManager.getInstance().sendPacketToAllClientsInSameRoom(despawnMiniGame, connection);

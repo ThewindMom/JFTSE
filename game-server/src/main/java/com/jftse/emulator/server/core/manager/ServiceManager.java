@@ -7,11 +7,14 @@ import com.jftse.emulator.server.core.matchplay.extension.MatchTimerExtension;
 import com.jftse.emulator.server.core.matchplay.extension.MatchplayLifecycleExtension;
 import com.jftse.emulator.server.core.matchplay.extension.WaveCompletionExtension;
 import com.jftse.emulator.server.core.rpc.GrpcAuthService;
+import com.jftse.emulator.server.core.service.BattlemonLifecycleService;
 import com.jftse.emulator.server.core.service.LotteryServiceV2;
+import com.jftse.emulator.server.core.service.MatchResultService;
 import com.jftse.emulator.server.core.service.impl.ClothEquipmentServiceImpl;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.service.*;
 import com.jftse.server.core.shared.MetricsService;
+import com.jftse.server.core.tournament.TournamentService;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +49,8 @@ public class ServiceManager {
     @Autowired
     private CardSlotEquipmentService cardSlotEquipmentService;
     @Autowired
+    private PlayerEmblemEquipmentService playerEmblemEquipmentService;
+    @Autowired
     private BattlemonSlotEquipmentService battlemonSlotEquipmentService;
     @Autowired
     private PocketService pocketService;
@@ -60,6 +65,10 @@ public class ServiceManager {
     @Autowired
     private PetService petService;
     @Autowired
+    private BattlemonLifecycleService battlemonLifecycleService;
+    @Autowired
+    private MatchResultService matchResultService;
+    @Autowired
     private FriendService friendService;
     @Autowired
     private GiftService giftService;
@@ -70,9 +79,15 @@ public class ServiceManager {
     @Autowired
     private ProposalService proposalService;
     @Autowired
+    private ClubMemberLicenseService clubMemberLicenseService;
+    @Autowired
+    private ContractWithGuardianService contractWithGuardianService;
+    @Autowired
     private GuildMemberService guildMemberService;
     @Autowired
     private GuildService guildService;
+    @Autowired
+    private GuildCastleService guildCastleService;
     @Autowired
     private ItemCharService itemCharService;
     @Autowired
@@ -87,6 +102,8 @@ public class ServiceManager {
     private ChallengeService challengeService;
     @Autowired
     private TutorialService tutorialService;
+    @Autowired
+    private EmblemQuestService emblemQuestService;
     @Autowired
     private LotteryServiceV2 lotteryServiceV2;
     @Autowired
@@ -130,6 +147,8 @@ public class ServiceManager {
     private EnchantService enchantService;
     @Autowired
     private InventoryService inventoryService;
+    @Autowired
+    private TournamentService tournamentService;
 
     @Autowired
     private ProfaneWordsService profaneWordsService;
