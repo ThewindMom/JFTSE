@@ -1,0 +1,20 @@
+PASS: validated FantaTennis.exe SHA-256 5477f0827acae66976403aecd2e9ebffeb4fa28da1fedae5f9541ec25e336c31
+PASS: AI_PetA.ini path
+PASS: AI_PetB.ini path
+PASS: AI_PetC.ini path
+PASS: AI_PetD.ini path
+PASS: AI_PetE.ini path
+PASS: AI_PetF.ini path
+PASS: AI_PetG.ini path
+PASS: AI_PetH.ini path
+PASS: AI_PetI.ini path
+PASS: AI_PetJ.ini path
+PASS: AI_PetK.ini path
+PASS: Level%d section-name format
+PASS: missing-level diagnostic
+PASS: twelve-model AI_Pet loader loop
+PASS: nPetModel vector selection without level clamping
+PASS: 88-byte record copy followed by exact requested-level comparison
+PASS: TennisAIPetBasic level-to-TennisAIMgr call
+PASS: TennisAIPetDouble level-to-TennisAIMgr call
+PASS: JFTSE 0x151B carried 'PotekoTest' level byte 0x0B (11)

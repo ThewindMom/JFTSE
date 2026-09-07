@@ -8,9 +8,9 @@ import com.jftse.entities.database.repository.pet.PetStatisticRepository;
 import com.jftse.server.core.service.PetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -22,15 +22,26 @@ public class PetServiceImpl implements PetService {
     private final PetStatisticRepository petStatisticRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Pet findById(Long id) {
-        return petRepository.findById(id).orElse(null);
+        Pet pet = petRepository.findByIdForUpdate(id).orElse(null);
+        return refresh(pet, Instant.now());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
+    public Pet findByIdAndPlayerId(Long id, Long playerId) {
+        Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
+        return refresh(pet, Instant.now());
+    }
+
+    @Override
+    @Transactional
     public List<Pet> findAllByPlayerId(Long playerId) {
-        return petRepository.findAllByPlayerId(playerId);
+        Instant now = Instant.now();
+        List<Pet> pets = petRepository.findAllByPlayerIdForUpdate(playerId);
+        pets.forEach(pet -> refresh(pet, now));
+        return pets;
     }
 
     @Override
@@ -53,6 +64,29 @@ public class PetServiceImpl implements PetService {
         };
     }
 
+    @Override
+    @Transactional
+    public Pet awardExperience(Long id, Long playerId, int experience) {
+        if (experience <= 0) {
+            return null;
+        }
+        Pet pet = petRepository.findByIdAndPlayerIdForUpdate(id, playerId).orElse(null);
+        Instant now = Instant.now();
+        PetLifecyclePolicy.refresh(pet, now);
+        if (!PetLifecyclePolicy.canParticipate(pet, now)) return null;
+        int currentExperience = pet.getExpPoints() == null ? 0 : Math.max(0, pet.getExpPoints());
+        int newExperience = (int) Math.min(Integer.MAX_VALUE,
+                (long) currentExperience + experience);
+        pet.setExpPoints(newExperience);
+        pet.setLevel(PetLevelTable.toStoredLevel(levelForExperience(newExperience)));
+        return petRepository.save(pet);
+    }
+
+    @Override
+    public int levelForExperience(int experience) {
+        return PetLevelTable.levelForExperience(experience);
+    }
+
     private Pet createPet(String nameLabel, int strength, int stamina, int dexterity, int willpower,
                            int hp, int energy, int hunger, int life, int lifeMax, int level, int model,
                            PetStatistic petStatistic, Player player) {
@@ -61,7 +95,7 @@ public class PetServiceImpl implements PetService {
         pet.setPlayer(player);
         pet.setName(nameLabel);
         pet.setType((byte) model);
-        pet.setLevel((byte) level);
+        pet.setLevel(level);
         pet.setExpPoints(0);
         pet.setHp(hp);
         pet.setStrength((byte) strength);
@@ -73,6 +107,7 @@ public class PetServiceImpl implements PetService {
         pet.setLifeMax(lifeMax);
         pet.setAlive(true);
         pet.setValidUntil(calculateValidUntil(life));
+        pet.setLifecycleUpdatedAt(new Date());
 
         return petRepository.save(pet);
     }
@@ -81,5 +116,12 @@ public class PetServiceImpl implements PetService {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, life);
         return calendar.getTime();
+    }
+
+    private Pet refresh(Pet pet, Instant now) {
+        if (pet != null && PetLifecyclePolicy.refresh(pet, now)) {
+            return petRepository.save(pet);
+        }
+        return pet;
     }
 }

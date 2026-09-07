@@ -110,7 +110,7 @@ var phase = {
 
                     let guardAttackTask = new GuardianAttackTask(connection, guardianBattleState);
                     let runnableEvent = eventHandler.createRunnableEvent(guardAttackTask, 100);
-                    eventHandler.offerJS(runnableEvent);
+                    eventHandler.offerJS(runnableEvent, connection);
 
                     let reviveMessage = phase2.revivingGuardiansMessages[Math.floor(Math.random() * phase2.revivingGuardiansMessages.length)];
                     packet = new S2CChatRoomAnswerPacket(2, "Server", reviveMessage);
@@ -119,7 +119,7 @@ var phase = {
                     phase2.partIsTransitioning = false;
                 };
                 const event = eventHandler.createRunnableEvent(task, 2 * 1000);
-                eventHandler.offerJS(event);
+                eventHandler.offerJS(event, connection);
             } else if (currentHealthPercentage <= 45 && !phase2.part2Finished && !phase2.partIsTransitioning) {
                 phase2.part1Finished = true;
                 phase2.part2Finished = true;
@@ -148,7 +148,7 @@ var phase = {
 
                     let guardAttackTask = new GuardianAttackTask(connection, guardianBattleState);
                     let runnableEvent = eventHandler.createRunnableEvent(guardAttackTask, 100);
-                    eventHandler.offerJS(runnableEvent);
+                    eventHandler.offerJS(runnableEvent, connection);
 
                     let reviveMessage = phase2.revivingGuardiansMessages[Math.floor(Math.random() * phase2.revivingGuardiansMessages.length)];
                     packet = new S2CChatRoomAnswerPacket(2, "Server", reviveMessage);
@@ -157,7 +157,7 @@ var phase = {
                     phase2.partIsTransitioning = false;
                 };
                 const event = eventHandler.createRunnableEvent(task, 2 * 1000);
-                eventHandler.offerJS(event);
+                eventHandler.offerJS(event, connection);
             }
         }
 

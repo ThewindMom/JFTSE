@@ -6,4 +6,6 @@ import java.util.Optional;
 
 public interface MapService {
     Optional<SMaps> findByMap(Integer map);
+
+    boolean isGuardianMapAvailable(Integer map);
 }

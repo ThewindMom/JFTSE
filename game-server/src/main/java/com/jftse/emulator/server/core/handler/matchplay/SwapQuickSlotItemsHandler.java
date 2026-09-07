@@ -42,7 +42,7 @@ public class SwapQuickSlotItemsHandler implements PacketHandler<FTConnection, CM
             return;
 
         Queue<SkillCrystal> pickedUpSkillCrystals = roomPlayer.getPickedUpSkillCrystals();
-        if (pickedUpSkillCrystals.isEmpty())
+        if (pickedUpSkillCrystals.size() < 2)
             return;
 
         // we just simply shift

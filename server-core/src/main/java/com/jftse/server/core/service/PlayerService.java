@@ -28,6 +28,8 @@ public interface PlayerService {
 
     Player findById(Long playerId);
 
+    Player findByIdForUpdate(Long playerId);
+
     Player getPlayerRef(Long playerId);
 
     Player findByIdFetched(Long playerId);

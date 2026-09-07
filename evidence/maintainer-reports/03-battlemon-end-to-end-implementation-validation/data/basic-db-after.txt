@@ -1,0 +1,21 @@
+captured_at_utc=2026-08-11T15:25:51Z
+id	name	level	expPoints	gold	playerStatistic_id
+1	QaLucy	20	429	100433	1
+2	QaShua	20	294	100303	2
+id	created	modified	basicRP	basicRecordLoss	basicRecordWin	battleRP	battleRecordLoss	battleRecordWin	chargeShot	consecutiveWins	guardBreakShot	guardianRP	guardianRecordLoss	guardianRecordWin	lob	maxConsecutiveWins	numberOfDisconnects	returnAce	rising	serve	serviceAce	skillShot	slice	smash	stroke	topSpin	volley
+1	2026-08-11 12:18:00	2026-08-11 17:23:25	16	0	1	0	0	0	2	1	0	0	0	0	0	1	2	1	0	15	8	0	0	2	5	0	0
+2	2026-08-11 12:18:00	2026-08-11 17:23:25	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	5	3	0	0	0	10	0	0
+playerName	id	created	modified	alive	dexterity	energy	expPoints	hp	hunger	level	lifeMax	name	stamina	strength	type	validUntil	willpower	petStatistic_id	player_id
+QaLucy	1	2026-08-11 12:18:00	2026-08-11 12:18:00		15	100	0	200	150	1	120	LucyPet	15	15	1	2026-12-09 12:18:00.000000	15	1	1
+QaShua	2	2026-08-11 12:18:00	2026-08-11 12:18:00		15	100	0	200	150	1	120	ShuaPet	15	15	1	2026-12-09 12:18:00.000000	15	2	2
+id	created	modified	basicRP	basicRecordLoss	basicRecordWin	battleRP	battleRecordLoss	battleRecordWin	consecutiveWins	guardianRP	guardianRecordLoss	guardianRecordWin	maxConsecutiveWins	numberOfDisconnects
+1	2026-08-11 12:18:00	2026-08-11 12:18:00	0	0	0	0	0	0	0	0	0	0	0	0
+2	2026-08-11 12:18:00	2026-08-11 12:18:00	0	0	0	0	0	0	0	0	0	0	0	0
+Player_rows
+2
+PlayerStatistic_rows
+2
+Pet_rows
+2
+PetStatistic_rows
+2

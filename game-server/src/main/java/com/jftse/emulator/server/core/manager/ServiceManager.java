@@ -7,7 +7,9 @@ import com.jftse.emulator.server.core.matchplay.extension.MatchTimerExtension;
 import com.jftse.emulator.server.core.matchplay.extension.MatchplayLifecycleExtension;
 import com.jftse.emulator.server.core.matchplay.extension.WaveCompletionExtension;
 import com.jftse.emulator.server.core.rpc.GrpcAuthService;
+import com.jftse.emulator.server.core.service.BattlemonLifecycleService;
 import com.jftse.emulator.server.core.service.LotteryServiceV2;
+import com.jftse.emulator.server.core.service.MatchResultService;
 import com.jftse.emulator.server.core.service.impl.ClothEquipmentServiceImpl;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.service.*;
@@ -62,6 +64,10 @@ public class ServiceManager {
     private HomeService homeService;
     @Autowired
     private PetService petService;
+    @Autowired
+    private BattlemonLifecycleService battlemonLifecycleService;
+    @Autowired
+    private MatchResultService matchResultService;
     @Autowired
     private FriendService friendService;
     @Autowired

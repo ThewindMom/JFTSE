@@ -17,9 +17,11 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class GuardianServeTask extends AbstractTask {
     private final FTConnection connection;
+    private final GameSession gameSession;
 
     public GuardianServeTask(FTConnection connection) {
         this.connection = connection;
+        this.gameSession = connection.getClient().getActiveGameSession();
     }
 
     @Override
@@ -27,31 +29,35 @@ public class GuardianServeTask extends AbstractTask {
         FTClient client = connection.getClient();
         if (client == null) return;
 
-        GameSession gameSession = client.getActiveGameSession();
         if (gameSession == null) return;
         MatchplayGuardianGame game = (MatchplayGuardianGame) gameSession.getMatchplayGame();
 
-        if (!game.getStageChangingToBoss().get()) {
-            return;
+        synchronized (game) {
+            synchronized (client) {
+                if (client.getActiveGameSession() != gameSession || game.getFinished().get() ||
+                        !game.getStageChangingToBoss().get()) {
+                    return;
+                }
+
+                byte servingPositionXOffset = (byte) ServingPositionGenerator.randomServingPositionXOffset();
+                byte servingPositionYOffset = (byte) ServingPositionGenerator.randomServingPositionYOffset(servingPositionXOffset);
+
+                S2CMatchplayTriggerGuardianServe triggerGuardianServePacket = new S2CMatchplayTriggerGuardianServe(GameFieldSide.Guardian, servingPositionXOffset, servingPositionYOffset);
+                S2CGameSetNameColorAndRemoveBlackBar setNameColorAndRemoveBlackBarPacket = new S2CGameSetNameColorAndRemoveBlackBar(null);
+                GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setNameColorAndRemoveBlackBarPacket, connection);
+                GameManager.getInstance().sendPacketToAllClientsInSameGameSession(triggerGuardianServePacket, connection);
+                game.resetStageStartTime();
+
+                if (game.isAdvancedBossGuardianMode()) {
+                    final PhaseManager phaseManager = game.getPhaseManager();
+                    phaseManager.start(connection);
+                }
+
+                ThreadManager.getInstance().newTask(new DefeatTimerTask(connection, gameSession));
+                ThreadManager.getInstance().newTask(new GuardianAttackTask(connection));
+
+                game.getStageChangingToBoss().compareAndSet(true, false);
+            }
         }
-
-        byte servingPositionXOffset = (byte) ServingPositionGenerator.randomServingPositionXOffset();
-        byte servingPositionYOffset = (byte) ServingPositionGenerator.randomServingPositionYOffset(servingPositionXOffset);
-
-        S2CMatchplayTriggerGuardianServe triggerGuardianServePacket = new S2CMatchplayTriggerGuardianServe(GameFieldSide.Guardian, servingPositionXOffset, servingPositionYOffset);
-        S2CGameSetNameColorAndRemoveBlackBar setNameColorAndRemoveBlackBarPacket = new S2CGameSetNameColorAndRemoveBlackBar(null);
-        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(setNameColorAndRemoveBlackBarPacket, connection);
-        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(triggerGuardianServePacket, connection);
-        game.resetStageStartTime();
-
-        if (game.isAdvancedBossGuardianMode()) {
-            final PhaseManager phaseManager = game.getPhaseManager();
-            phaseManager.start(connection);
-        }
-
-        ThreadManager.getInstance().newTask(new DefeatTimerTask(connection, gameSession));
-        ThreadManager.getInstance().newTask(new GuardianAttackTask(connection));
-
-        game.getStageChangingToBoss().compareAndSet(true, false);
     }
 }

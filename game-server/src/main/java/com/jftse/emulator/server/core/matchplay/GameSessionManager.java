@@ -40,6 +40,15 @@ public class GameSessionManager {
         }
         return id;
     }
+
+    public Integer addRelayActorPolicyGameSession(GameSession gameSession) {
+        Integer id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+        while (gameSessionList.putIfAbsent(id, gameSession) != null) {
+            id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+        }
+        return id;
+    }
+
     public boolean removeGameSession(Integer gameSessionId, GameSession gameSession) {
         return gameSessionList.remove(gameSessionId, gameSession);
     }
@@ -77,6 +86,10 @@ public class GameSessionManager {
 
     public void removeMatchplayReward(int roomId) {
         matchplayRewardList.remove(roomId);
+    }
+
+    public void removeMatchplayReward(int roomId, MatchplayReward expected) {
+        matchplayRewardList.remove(roomId, expected);
     }
 
     public boolean hasMatchplayReward(int roomId) {

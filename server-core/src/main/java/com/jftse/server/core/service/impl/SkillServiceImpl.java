@@ -7,29 +7,30 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SkillServiceImpl implements SkillService {
     private final SkillRepository skillRepository;
 
-    private Skill[] skills;
+    private Map<Long, Skill> skills;
 
     @PostConstruct
     public void init() {
-        skills = skillRepository.findAll().toArray(Skill[]::new);
+        skills = skillRepository.findAll().stream()
+                .collect(Collectors.toUnmodifiableMap(Skill::getId, Function.identity()));
     }
 
     @Override
     public Skill findSkillById(Long id) {
-        return findSkillByIndex(id.intValue() - 1);
+        return skills.get(id);
     }
 
     @Override
     public Skill findSkillByIndex(int index) {
-        if (index < 0 || index >= skills.length) {
-            return null;
-        }
-        return skills[index];
+        return index < 0 ? null : findSkillById(index + 1L);
     }
 }

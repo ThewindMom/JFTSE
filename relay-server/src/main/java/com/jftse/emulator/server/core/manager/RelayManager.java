@@ -50,6 +50,8 @@ public class RelayManager implements ServerLoopHandler {
     private MetricsService metricsService;
     @Autowired
     private ServerLoopMetricsService serverLoopMetrics;
+    @Autowired
+    private RelaySessionAuthorizationStore relaySessionAuthorizationStore;
 
     private ConcurrentLinkedQueue<FTConnection> addConnectionQueue;
     private ConcurrentLinkedDeque<FTClient> clients;

@@ -97,6 +97,25 @@ public class MatchplayReward {
         return slotRewards.get(slot);
     }
 
+    public synchronized boolean tryClaim(byte slot, short playerPosition) {
+        ItemReward reward = slotRewards.get(slot);
+        if (reward == null || playerPosition < 0 || playerPosition >= 4 ||
+                slotRewards.values().stream().anyMatch(item -> item.getClaimedPlayerPosition() == playerPosition)) {
+            return false;
+        }
+        if (!reward.getClaimed().compareAndSet(false, true)) return false;
+        reward.setClaimedPlayerPosition(playerPosition);
+        return true;
+    }
+
+    public synchronized void releaseClaim(byte slot, short playerPosition, ItemReward expected) {
+        ItemReward reward = slotRewards.get(slot);
+        if (reward == expected && !reward.getCommitted().get() && reward.getClaimedPlayerPosition() == playerPosition) {
+            reward.setClaimedPlayerPosition((short) -1);
+            reward.getClaimed().set(false);
+        }
+    }
+
     @Getter
     @Setter
     public static class ItemReward {
@@ -104,7 +123,9 @@ public class MatchplayReward {
         private int productAmount;
         private Double weight;
         private AtomicBoolean claimed;
-        private short claimedPlayerPosition;
+        private final AtomicBoolean committed = new AtomicBoolean();
+        private final String resultId = UUID.randomUUID().toString();
+        private volatile short claimedPlayerPosition;
 
         public ItemReward(int productIndex, int productAmount, Double weight) {
             this.productIndex = productIndex;

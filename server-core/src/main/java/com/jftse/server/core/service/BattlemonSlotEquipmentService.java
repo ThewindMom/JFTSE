@@ -10,9 +10,7 @@ public interface BattlemonSlotEquipmentService {
 
     BattlemonSlotEquipment findById(Long id);
 
-    void updateBattlemonSlots(BattlemonSlotEquipment battlemonSlotEquipment, Integer battlemonSlotId);
+    BattlemonSlotEquipment getOrCreate(Player player);
 
-    void updateBattlemonSlots(BattlemonSlotEquipment battlemonSlotEquipment, List<Integer> battlemonSlotItems);
-
-    List<Integer> getEquippedBattlemonSlots(Player player);
+    BattlemonSlotEquipment updateBattlemonSlots(Player player, List<Integer> battlemonSlotItems);
 }

@@ -84,10 +84,10 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
             return;
         }
 
-        if (isBattleGame)
-            ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal);
-        else
-            ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
+        boolean claimed = isBattleGame ?
+                ((MatchplayBattleGame) game).getSkillCrystals().remove(skillCrystal) :
+                ((MatchplayGuardianGame) game).getSkillCrystals().remove(skillCrystal);
+        if (!claimed) return;
 
         short gameFieldSide = -1;
         boolean isRedTeam = game.isRedTeam(playerPosition);
