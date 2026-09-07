@@ -16,6 +16,7 @@ import com.jftse.emulator.server.core.life.item.special.RingOfGold;
 import com.jftse.emulator.server.core.life.item.special.RingOfWiseman;
 import com.jftse.emulator.server.core.life.match.PlayerStats;
 import com.jftse.emulator.server.core.life.match.RallyResult;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
@@ -51,6 +52,7 @@ import com.jftse.server.core.tournament.TournamentService;
 import lombok.extern.log4j.Log4j2;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -382,6 +384,84 @@ public class MatchplayBasicModeHandler implements MatchplayHandleable {
             return;
         }
         game.setMap(map.get());
+    }
+
+    public synchronized void onClubMatchTimerExpired(GameSession gameSession, int gameSessionId,
+                                                     Room activeRoom) {
+        if (gameSession == null || activeRoom == null || !ClubMatchRules.isClubMatch(activeRoom)) {
+            return;
+        }
+        synchronized (activeRoom) {
+            if (gameSession.getMatchplayGame() != game
+                    || !activeRoom.getClubMatchState().tryExpire(gameSessionId, Instant.now())) {
+                return;
+            }
+
+            finishExpiredClubMatch(gameSession, gameSessionId, activeRoom);
+        }
+    }
+
+    private void finishExpiredClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom) {
+        int redSets = game.getSetsRedTeam().get();
+        int blueSets = game.getSetsBlueTeam().get();
+        if (redSets == blueSets) {
+            log.warn("Club Match session {} expired with tied sets {}-{}; "
+                            + "the original tie-break rule is not yet proven, so no result was sent",
+                    gameSessionId, redSets, blueSets);
+            finishClubMatch(gameSession, gameSessionId, activeRoom, null, true);
+            return;
+        }
+
+        byte winningSide = redSets > blueSets ? (byte) 0 : (byte) 1;
+        finishClubMatch(gameSession, gameSessionId, activeRoom, winningSide, true);
+    }
+
+    private void finishClubMatch(GameSession gameSession, int gameSessionId, Room activeRoom,
+                                 Byte winningSide, boolean timerExpiry) {
+        synchronized (activeRoom) {
+            boolean terminalClaimed = timerExpiry
+                    ? activeRoom.getClubMatchState().tryRecordExpiredResult(gameSessionId)
+                    : activeRoom.getClubMatchState().tryRecordResult(gameSessionId);
+            if (!terminalClaimed) {
+                return;
+            }
+            activeRoom.setStatus(RoomStatus.StartCancelled);
+            gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+            gameSession.getFireables().clear();
+            game.getFinished().set(true);
+            if (game.getEndTime() == null) {
+                game.setEndTime(new java.util.concurrent.atomic.AtomicReference<>(new Date()));
+            }
+
+            S2CClubMatchResultPacket resultPacket = winningSide == null
+                    ? null
+                    : new S2CClubMatchResultPacket(winningSide);
+            for (FTClient client : gameSession.getClients()) {
+                RoomPlayer roomPlayer = client.getRoomPlayer();
+                if (roomPlayer != null) {
+                    roomPlayer.setReady(false);
+                    roomPlayer.getConnectedToRelay().set(false);
+                }
+                if (client.getConnection() != null) {
+                    if (resultPacket != null) {
+                        client.getConnection().sendTCP(resultPacket);
+                    }
+                    eventHandler.offer(eventHandler.createPacketEvent(client,
+                            new S2CMatchplayBackToRoom(), PacketEventType.FIRE_DELAYED,
+                            TimeUnit.SECONDS.toMillis(12)));
+                }
+                client.clearActiveGameSession(gameSession);
+            }
+
+            matchRallyStatsConsumer.clearSession(gameSessionId);
+            GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+            if (activeRoom.getClubMatchState().ownsGameSession(gameSessionId)) {
+                activeRoom.setStatus(RoomStatus.NotRunning);
+            }
+        }
+        log.info("Club Match session {} ended{}; ordinary Basic rewards, rankings, player statistics, "
+                        + "and guild records were not changed",
+                gameSessionId, winningSide == null ? " without a proven tie result" : " with winning side " + winningSide);
     }
 
     @Override

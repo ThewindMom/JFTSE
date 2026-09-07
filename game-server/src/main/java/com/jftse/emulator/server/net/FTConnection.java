@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Getter
 @Setter
@@ -39,6 +40,7 @@ public class FTConnection extends Connection<FTClient> {
     private final byte gameServerType;
 
     private ConcurrentLinkedQueue<IPacket> recvQueue = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean castInFlight = new AtomicBoolean();
 
     private final static int MAX_PROCESSED_PACKETS_PER_UPDATE = 3;
 

@@ -47,7 +47,7 @@ class CardPacketContractTest {
         when(player.getItemStats()).thenReturn(new EquippedItemStats());
         when(player.getCardStats()).thenReturn(CARD_STATS);
 
-        Packet packet = new S2CGameEndLevelUpPlayerStatsPacket((short) 1, player);
+        Packet packet = new S2CGameEndLevelUpPlayerStatsPacket((short) 1, player, (short) 0);
 
         assertArrayEquals(fullCardStats(), tail(packet, 24));
     }
@@ -59,7 +59,7 @@ class CardPacketContractTest {
         when(player.getEquippedCardSlots()).thenReturn(new EquippedCardSlots(2, 11, 12, 13, 14));
         when(player.getCardStats()).thenReturn(CARD_STATS);
 
-        Packet packet = new S2CMatchplaySetExperienceGainInfoData((byte) 1, 10, null, (byte) 1, player);
+        Packet packet = new S2CMatchplaySetExperienceGainInfoData((byte) 1, 10, null, (byte) 1, player, (short) 0);
 
         assertArrayEquals(new byte[]{-12, 1, 0, 0, 1, 2, 3, 4}, tail(packet, 8));
     }

@@ -5,16 +5,20 @@ import com.jftse.emulator.common.scripting.ScriptManagerV2;
 import com.jftse.emulator.common.service.ConfigService;
 import com.jftse.emulator.common.utilities.StringUtils;
 import com.jftse.emulator.server.core.client.FTPlayer;
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
 import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
+import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.matchplay.ClubMatchCoordinator;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
+import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
@@ -22,6 +26,9 @@ import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
+import com.jftse.server.core.service.impl.PetLifecyclePolicy;
+import com.jftse.entities.database.model.pet.Pet;
+import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.emulator.server.net.FTClient;
@@ -377,16 +384,155 @@ public class GameManager implements ServerLoopHandler {
         });
     }
 
-    public synchronized void handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
+    public void removeRelayActorPolicy(Integer gameSessionId, GameSession gameSession) {
+        if (gameSessionId == null || gameSession == null || !gameSession.hasOwnedPetSeats()) {
+            return;
+        }
+        RelaySessionAuthorizationMessage message = RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(gameSessionId)
+                .battlemon(gameSession.isDedicatedBattlemonRoom())
+                .ownedPetSession(gameSession.hasOwnedPetSeats())
+                .remove(true)
+                .build();
+        try {
+            boolean acknowledged = rProducerService.sendRelayActorPolicy(
+                    message, "MatchplaySystem(GameServer)");
+            if (!acknowledged) {
+                log.warn("Relay did not acknowledge actor-policy removal for session {}", gameSessionId);
+            }
+        } catch (RuntimeException exception) {
+            log.warn("Unable to remove relay actor policy for session {}", gameSessionId, exception);
+        }
+    }
+
+    public void cleanupGameSession(Integer gameSessionId, GameSession gameSession, Room room) {
+        boolean removed = false;
+        try {
+            gameSession.clearCountDownRunnable();
+            gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+            gameSession.getFireables().clear();
+            MatchplayGame game = gameSession.getMatchplayGame();
+            if (game != null) {
+                game.getScheduledFutures().forEach(future -> future.cancel(false));
+                game.getScheduledFutures().clear();
+            }
+
+            gameSession.getClients().forEach(client -> client.clearActiveGameSession(gameSession));
+            removed = gameSessionManager.removeGameSession(gameSessionId, gameSession);
+            if (removed) {
+                matchRallyStatsConsumer.clearSession(gameSessionId);
+            }
+            if (removed && room != null) {
+                synchronized (room) {
+                    boolean replacementRunning = getClientsInRoom(room.getRoomId()).stream()
+                            .anyMatch(client -> client.getActiveRoom() == room && client.getGameSessionId() != null);
+                    if (!replacementRunning) {
+                        room.setStatus(RoomStatus.NotRunning);
+                        room.getRoomPlayerList().forEach(roomPlayer -> {
+                            roomPlayer.setReady(false);
+                            roomPlayer.setGameAnimationSkipReady(false);
+                            roomPlayer.getConnectedToRelay().set(false);
+                            roomPlayer.getPickedUpSkillCrystals().clear();
+                        });
+                    }
+                }
+            }
+        } finally {
+            if (removed) {
+                removeRelayActorPolicy(gameSessionId, gameSession);
+            }
+            gameSession.getActors().clear();
+        }
+    }
+
+    static List<Short> getRoomPositionsToClear(Room room, RoomPlayer roomPlayer) {
+        if (roomPlayer == null) {
+            return List.of();
+        }
+
+        short playerPosition = roomPlayer.getPosition();
+        boolean hasOwnedPetCard = roomPlayer.getPet() != null && playerPosition >= 0 && playerPosition <= 1 &&
+                (room.getRoomType() == RoomType.BATTLEMON ||
+                        room.getMode() == GameMode.GUARDIAN && room.getAllowBattlemon() != 0);
+        if (hasOwnedPetCard) {
+            return List.of(playerPosition, (short) (playerPosition + 2));
+        }
+        return List.of(playerPosition);
+    }
+
+    public static boolean isBattlemonOwnerPositionFree(Room room, int ownerPosition) {
+        synchronized (room) {
+            return ownerPosition >= 0 && ownerPosition <= 1 &&
+                    room.getPositions().get(ownerPosition) == RoomPositionState.Free &&
+                    room.getPositions().get(ownerPosition + 2) == RoomPositionState.Free;
+        }
+    }
+
+    public static boolean tryClaimBattlemonOwnerPosition(Room room, int ownerPosition) {
+        synchronized (room) {
+            if (room.getStatus() != RoomStatus.NotRunning ||
+                    !isBattlemonOwnerPositionFree(room, ownerPosition)) {
+                return false;
+            }
+            setBattlemonOwnerPositionState(room, ownerPosition, RoomPositionState.InUse);
+            return true;
+        }
+    }
+
+    public static void setBattlemonOwnerPositionState(Room room, int ownerPosition, short state) {
+        synchronized (room) {
+            room.getPositions().set(ownerPosition, state);
+            room.getPositions().set(ownerPosition + 2, state);
+        }
+    }
+
+    static void releaseRoomPositions(Room room, List<Short> positions) {
+        synchronized (room) {
+            for (short position : positions) {
+                room.getPositions().set(position,
+                        position == MiscConstants.InvisibleGmSlot
+                                ? RoomPositionState.Locked
+                                : RoomPositionState.Free);
+            }
+        }
+    }
+
+    public PetView getValidatedActiveBattlemonPet(FTClient client) {
+        if (client == null || !client.hasPlayer()) {
+            return null;
+        }
+        PetView selectedPet = client.getActivePet();
+        if (selectedPet == null) {
+            return null;
+        }
+        Pet pet = serviceManager.getPetService().findByIdAndPlayerId(
+                selectedPet.id(), client.getPlayer().getId());
+        if (!PetLifecyclePolicy.canParticipate(pet, java.time.Instant.now())) {
+            return null;
+        }
+        PetView currentPet = client.getActivePet();
+        if (currentPet == null || currentPet.id() != pet.getId()) {
+            return null;
+        }
+        client.setActivePet(pet);
+        return client.getActivePet();
+    }
+
+    public synchronized boolean handleRoomPlayerChanges(final FTConnection connection, final boolean notifyClients) {
         FTClient client = connection.getClient();
         if (!client.hasPlayer())
-            return;
+            return false;
 
         FTPlayer activePlayer = client.getPlayer();
 
         Room room = client.getActiveRoom();
         if (room == null)
-            return;
+            return false;
+
+        if (ClubMatchRules.isClubMatch(room)
+                && !ClubMatchCoordinator.getInstance().cancelForCompositionChange(room)) {
+            return false;
+        }
 
         TournamentRoomCoordinator tournamentCoordinator = TournamentRoomCoordinator.getInstance();
         boolean closeTournamentRoom = false;
@@ -443,7 +589,7 @@ public class GameManager implements ServerLoopHandler {
             if (playerPosition == 9) {
                 room.getPositions().set(playerPosition, RoomPositionState.Locked);
             } else if (playerPosition != -1) {
-                room.getPositions().set(playerPosition, RoomPositionState.Free);
+                releaseRoomPositions(room, getRoomPositionsToClear(room, roomPlayer.orElse(null)));
             }
         }
 
@@ -511,6 +657,7 @@ public class GameManager implements ServerLoopHandler {
         }
 
         client.setActiveRoom(null);
+        return true;
     }
 
     public void updateRoomForAllClientsInMultiplayer(final FTConnection connection, final Room room) {

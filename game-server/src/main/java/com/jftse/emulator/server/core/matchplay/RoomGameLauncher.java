@@ -3,6 +3,7 @@ package com.jftse.emulator.server.core.matchplay;
 import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.room.ClubMatchRules;
 import com.jftse.emulator.server.core.life.room.ClubMatchState;
 import com.jftse.emulator.server.core.life.room.GameSession;
@@ -133,7 +134,7 @@ public class RoomGameLauncher {
             return;
         }
 
-        GameSession gameSession = new GameSession();
+        GameSession gameSession = new GameSession(room.getRoomType() == RoomType.BATTLEMON);
         Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
         SMSGUnsetHost unsetHostPacket = SMSGUnsetHost.builder().result((byte) 0).build();
         synchronized (room) {
@@ -352,7 +353,7 @@ public class RoomGameLauncher {
                 player.getConnectedToRelay().set(false);
             });
         }
-        clientsInRoom.forEach(client -> client.clearActiveGameSession(gameSessionId));
+        clientsInRoom.forEach(client -> client.clearActiveGameSession(gameSession));
         GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
 
         if (!cleanupLifecycle) {

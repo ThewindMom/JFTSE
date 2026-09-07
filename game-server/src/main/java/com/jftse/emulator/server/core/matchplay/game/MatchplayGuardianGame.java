@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.life.progression.bonuses.BattleHouseBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfExpBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfGoldBonus;
 import com.jftse.emulator.server.core.life.progression.bonuses.RingOfWisemanBonus;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.life.script.ScriptContextHelper;
 import com.jftse.emulator.server.core.manager.GameManager;
@@ -91,6 +92,8 @@ public class MatchplayGuardianGame extends MatchplayGame {
     private AtomicInteger spiderMineIdentifier;
 
     private AtomicBoolean stageChangingToBoss;
+    private int pendingLootUpdates;
+    private final List<Runnable> deferredLootActions = new ArrayList<>();
 
     // Generic per-match state bag for extension points (see .../matchplay/extension/). A plugin's
     // own per-match state lives here, keyed by its own state class, instead of as dedicated fields
@@ -321,6 +324,18 @@ public class MatchplayGuardianGame extends MatchplayGame {
         });
 
         return pbs;
+    }
+
+    public PlayerBattleState createOwnedPetBattleState(GameplayActor actor) {
+        return new PlayerBattleState(
+                actor.position(),
+                actor.pet().id(),
+                actor.pet().hp(),
+                actor.pet().strength(),
+                actor.pet().stamina(),
+                actor.pet().dexterity(),
+                actor.pet().willpower()
+        );
     }
 
     private void calculateBonusStats(RoomPlayer roomPlayer, Collection<RoomPlayer> activeRoomPlayers) {
@@ -872,5 +887,34 @@ public class MatchplayGuardianGame extends MatchplayGame {
                 .filter(x -> x.getPosition() == position)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public synchronized void beginLootUpdate() {
+        pendingLootUpdates++;
+    }
+
+    public synchronized boolean deferUntilLootComplete(Runnable action) {
+        if (pendingLootUpdates == 0) return false;
+        deferredLootActions.add(action);
+        return true;
+    }
+
+    public synchronized void failLootUpdates() {
+        getFinished().set(true);
+        deferredLootActions.clear();
+    }
+
+    public void completeLootUpdate() {
+        List<Runnable> actions;
+        synchronized (this) {
+            if (--pendingLootUpdates != 0) return;
+            if (getFinished().get()) {
+                deferredLootActions.clear();
+                return;
+            }
+            actions = new ArrayList<>(deferredLootActions);
+            deferredLootActions.clear();
+        }
+        actions.forEach(action -> com.jftse.server.core.thread.ThreadManager.getInstance().newTask(action));
     }
 }

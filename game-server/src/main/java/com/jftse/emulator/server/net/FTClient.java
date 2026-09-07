@@ -183,6 +183,16 @@ public class FTClient extends Client<FTConnection> {
         }
     }
 
+    public synchronized boolean clearActiveGameSession(Integer expectedSessionId) {
+        synchronized (matchPublicationLock) {
+            if (expectedSessionId == null || !expectedSessionId.equals(this.gameSessionId)) {
+                return false;
+            }
+            gameSessionId = null;
+            return true;
+        }
+    }
+
     public synchronized void setActiveRoom(Room room) {
         synchronized (matchPublicationLock) {
             this.activeRoom = room;

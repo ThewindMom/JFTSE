@@ -1,10 +1,14 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
+import com.jftse.emulator.server.core.client.PetView;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.constants.RoomType;
+import com.jftse.emulator.server.core.life.room.GameplayActor;
 import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.packets.lobby.room.S2CPetRequestRoomAnswerPacket;
 import com.jftse.emulator.server.core.manager.GameManager;
 import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
@@ -23,15 +27,22 @@ import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
+import com.jftse.entities.database.model.pocket.PlayerPocket;
+import com.jftse.server.core.item.BattlemonController;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.service.AuthenticationService;
+import com.jftse.server.core.service.PlayerPocketService;
 import com.jftse.server.core.shared.ServerConfService;
+import com.jftse.server.core.shared.rabbit.messages.RelaySessionAuthorizationMessage;
 import com.jftse.server.core.shared.packets.matchplay.*;
 import com.jftse.server.core.thread.ThreadManager;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -90,7 +101,7 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
 
         List<FTClient> clientsInRoom = new ArrayList<>(GameManager.getInstance().getClientsInRoom(room.getRoomId()));
 
-        GameSession gameSession = new GameSession();
+        GameSession gameSession = new GameSession(room.getRoomType() == RoomType.BATTLEMON);
         Integer gameSessionId = GameSessionManager.getInstance().addGameSession(gameSession);
         gameSession.setTournamentMatchId(room.getTournamentMatchId());
         gameSession.setTournamentParticipantPositions(tournamentParticipantPositions);
@@ -226,5 +237,209 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             }
             GameManager.getInstance().sendPacketToAllClientsInSameGameSession(startGamePacket, ftClient.getConnection());
         }, 0, TimeUnit.SECONDS);
+    }
+
+    static List<Integer> rewardPlayerPositions(GameSession gameSession) {
+        return gameSession.getClients().stream()
+                .map(FTClient::getRoomPlayer)
+                .filter(Objects::nonNull)
+                .map(RoomPlayer::getPosition)
+                .filter(position -> position >= 0 && position < 4)
+                .map(Short::intValue)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    static List<FTClient> ordinaryRelayEndpointRoster(List<FTClient> clients, int recipientIndex) {
+        List<FTClient> roster = new ArrayList<>(clients.size());
+        for (int offset = 0; offset < clients.size(); offset++) {
+            roster.add(clients.get(Math.floorMod(offset - recipientIndex, clients.size())));
+        }
+        return roster;
+    }
+
+    static RelayStartupPollResult pollRelayStartup(Room room, int initialRoomPlayerSize, FTClient client,
+                                                   Integer gameSessionId, GameSession gameSession) {
+        synchronized (room) {
+            int status = room.getStatus();
+            if (status == RoomStatus.RelayConnectionSuccess) {
+                return RelayStartupPollResult.CONNECTED;
+            }
+
+            boolean allReady = room.getRoomPlayerList().stream()
+                    .filter(rp -> !rp.isMaster())
+                    .collect(Collectors.toList())
+                    .stream()
+                    .filter(rp -> rp.getPosition() < 4)
+                    .allMatch(RoomPlayer::isReady);
+            boolean roomPlayerSizeChanged = initialRoomPlayerSize != room.getRoomPlayerList().size();
+            boolean sessionChanged = GameSessionManager.getInstance().getGameSessionBySessionId(gameSessionId) != gameSession;
+            boolean roomChanged = client.getActiveRoom() != room;
+
+            return !allReady || roomPlayerSizeChanged || sessionChanged || roomChanged ||
+                    status != RoomStatus.StartingGame
+                    ? RelayStartupPollResult.ABORT
+                    : RelayStartupPollResult.WAITING;
+        }
+    }
+
+    enum RelayStartupPollResult {
+        WAITING,
+        CONNECTED,
+        ABORT
+    }
+
+    static RelaySessionAuthorizationMessage createRelayAuthorization(Integer gameSessionId,
+                                                                      List<FTClient> clients,
+                                                                      GameSession gameSession) {
+        Map<Integer, List<Short>> actorPositionsByPlayerId = new LinkedHashMap<>();
+        Map<Integer, Boolean> battlemonControllerByPlayerId = new LinkedHashMap<>();
+        for (FTClient client : clients) {
+            if (!client.hasPlayer() || client.getRoomPlayer() == null || client.getConnection() == null) {
+                throw new IllegalArgumentException("Relay clients must have a room player");
+            }
+
+            int playerId = Math.toIntExact(client.getPlayer().getId());
+            short playerPosition = client.getRoomPlayer().getPosition();
+            List<Short> actorPositions = new ArrayList<>();
+            if (playerPosition >= 0 && playerPosition < 4) {
+                actorPositions.add(playerPosition);
+            }
+            GameplayActor ownedPet = gameSession.getOwnedPetSeat(client.getPlayer().getId());
+            if (ownedPet != null) {
+                actorPositions.add(ownedPet.position());
+            }
+            actorPositions = actorPositions.stream().distinct().sorted().toList();
+            if (actorPositionsByPlayerId.putIfAbsent(playerId, actorPositions) != null) {
+                throw new IllegalArgumentException("Relay session contains duplicate player IDs");
+            }
+            battlemonControllerByPlayerId.put(playerId, ownsBattlemonController(client));
+        }
+
+        long distinctActorCount = actorPositionsByPlayerId.values().stream()
+                .flatMap(List::stream)
+                .distinct()
+                .count();
+        long actorCount = actorPositionsByPlayerId.values().stream().mapToLong(List::size).sum();
+        if (distinctActorCount != actorCount) {
+            throw new IllegalArgumentException("Relay actor ownership overlaps");
+        }
+
+        return RelaySessionAuthorizationMessage.builder()
+                .gameSessionId(gameSessionId)
+                .battlemon(gameSession.isDedicatedBattlemonRoom())
+                .ownedPetSession(gameSession.hasOwnedPetSeats())
+                .remove(false)
+                .actorPositionsByPlayerId(actorPositionsByPlayerId)
+                .battlemonControllerByPlayerId(battlemonControllerByPlayerId)
+                .build();
+    }
+
+    static boolean ownsBattlemonController(FTClient client) {
+        if (client == null || !client.hasPlayer()) {
+            return false;
+        }
+        PlayerPocketService playerPocketService = ServiceManager.getInstance() == null
+                ? null
+                : ServiceManager.getInstance().getPlayerPocketService();
+        if (playerPocketService == null) {
+            return false;
+        }
+        PlayerPocket controller = playerPocketService.getItemAsPocketByItemIndexAndCategoryAndPocket(
+                BattlemonController.SPECIAL_ITEM_INDEX,
+                EItemCategory.SPECIAL.getName(),
+                client.getPlayer().getPocketId()
+        );
+        return BattlemonController.isPossessed(controller);
+    }
+
+    static void abortStartAndNotifyClients(Room room, Integer gameSessionId, GameSession gameSession,
+                                           List<FTClient> clients, FTClient requestingClient) {
+        if (!abortStart(room, gameSessionId, gameSession, clients)) {
+            return;
+        }
+
+        RoomPlayer requestingRoomPlayer = requestingClient.getRoomPlayer();
+        List<RoomPlayer> visibleRoomPlayers = requestingRoomPlayer == null ||
+                requestingRoomPlayer.getPosition() == MiscConstants.InvisibleGmSlot
+                ? room.getRoomPlayerList().stream().toList()
+                : room.getRoomPlayerList().stream()
+                        .filter(roomPlayer -> roomPlayer.getPosition() != MiscConstants.InvisibleGmSlot)
+                        .toList();
+        S2CRoomPlayerListInformationPacket roomPlayerInformationPacket =
+                new S2CRoomPlayerListInformationPacket(visibleRoomPlayers);
+        SMSGCancelStartGame cancelStartGamePacket = SMSGCancelStartGame.builder().result((char) 0).build();
+        Packet roomStartGameAck = new Packet(PacketOperations.S2CRoomStartGameAck);
+        roomStartGameAck.write((char) 0);
+        SMSGUnsetHost unsetHostPacket = SMSGUnsetHost.builder().result((byte) 0).build();
+        List<FTClient> roomClients = GameManager.getInstance().getClientsInRoom(room.getRoomId()).stream().toList();
+
+        for (FTClient client : roomClients) {
+            if (client.getConnection() == null) {
+                continue;
+            }
+            try {
+                client.getConnection().sendTCP(roomPlayerInformationPacket);
+                for (RoomPlayer roomPlayer : visibleRoomPlayers) {
+                    PetView pet = roomPlayer.getPet();
+                    if (pet != null) {
+                        byte slot = roomPlayer.getPosition() == 0 ? (byte) 0 : (byte) 1;
+                        client.getConnection().sendTCP(new S2CPetRequestRoomAnswerPacket(
+                                S2CPetRequestRoomAnswerPacket.SUCCESS, true, slot, pet));
+                    }
+                }
+                client.getConnection().sendTCP(cancelStartGamePacket);
+                client.getConnection().sendTCP(roomStartGameAck);
+                client.getConnection().sendTCP(unsetHostPacket);
+            } catch (RuntimeException e) {
+                log.warn("Unable to notify a client that startup for room {} was aborted", room.getRoomId(), e);
+            }
+        }
+
+        if (requestingClient.getConnection() != null) {
+            try {
+                GameManager.getInstance().updateRoomForAllClientsInMultiplayer(
+                        requestingClient.getConnection(), room);
+            } catch (RuntimeException e) {
+                log.warn("Unable to publish the restored state for room {}", room.getRoomId(), e);
+            }
+        }
+    }
+
+    static boolean abortStart(Room room, Integer gameSessionId, GameSession gameSession, List<FTClient> clients) {
+        boolean removed = GameSessionManager.getInstance().removeGameSession(gameSessionId, gameSession);
+        if (removed) {
+            GameManager.getInstance().removeRelayActorPolicy(gameSessionId, gameSession);
+        }
+
+        gameSession.getCompletionHandled().set(true);
+        gameSession.clearCountDownRunnable();
+        gameSession.getFireables().forEach(fireable -> fireable.setCancelled(true));
+        gameSession.getFireables().clear();
+        MatchplayGame game = gameSession.getMatchplayGame();
+        if (game != null) {
+            game.getScheduledFutures().forEach(future -> future.cancel(false));
+            game.getScheduledFutures().clear();
+        }
+        gameSession.getActors().clear();
+        if (removed) {
+            for (FTClient client : clients) {
+                if (Objects.equals(client.getGameSessionId(), gameSessionId)) {
+                    client.setActiveGameSession(null);
+                }
+            }
+        }
+        if (!removed) {
+            return false;
+        }
+        synchronized (room) {
+            room.setStatus(RoomStatus.NotRunning);
+            room.getRoomPlayerList().forEach(roomPlayer -> {
+                roomPlayer.setReady(false);
+                roomPlayer.getConnectedToRelay().set(false);
+            });
+        }
+        return true;
     }
 }

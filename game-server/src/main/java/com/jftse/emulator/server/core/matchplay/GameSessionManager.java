@@ -42,9 +42,9 @@ public class GameSessionManager {
     }
 
     public Integer addRelayActorPolicyGameSession(GameSession gameSession) {
-        Integer id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+        Integer id = 100_000 + ThreadLocalRandom.current().nextInt(100_000);
         while (gameSessionList.putIfAbsent(id, gameSession) != null) {
-            id = Integer.parseInt("1" + RandomStringUtils.randomNumeric(5));
+            id = 100_000 + ThreadLocalRandom.current().nextInt(100_000);
         }
         return id;
     }

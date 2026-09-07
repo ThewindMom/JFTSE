@@ -135,7 +135,7 @@ public class ItemSettingsHandler implements PacketHandler<FTConnection, CMSGItem
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
             client.getConnection().sendTCP(backToRoomPacket);
 
-            client.clearActiveGameSession(gameSessionId);
+            client.clearActiveGameSession(gameSession);
         }
 
         gameSession.getClients().removeIf(c -> c.getActiveGameSession() == null);

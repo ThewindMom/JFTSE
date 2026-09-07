@@ -204,7 +204,7 @@ class ModeCompletionDatabaseIT {
             when(services.getPlayerPocketService()).thenReturn(items);
             SpecialSlotEquipmentService persistedSlots = service(new SpecialSlotEquipmentServiceImpl(
                     repositories.getRepository(com.jftse.entities.database.repository.player.SpecialSlotEquipmentRepository.class),
-                    items), SpecialSlotEquipmentService.class);
+                    items, pockets), SpecialSlotEquipmentService.class);
             ProxyFactory slotAccess = new ProxyFactory(persistedSlots);
             AtomicBoolean blockSlots = new AtomicBoolean(stage.equals("ringStaleRead"));
             slotAccess.addAdvice((org.aopalliance.intercept.MethodInterceptor) invocation -> {
@@ -601,7 +601,7 @@ class ModeCompletionDatabaseIT {
             });
             when(services.getPlayerPocketService()).thenReturn((PlayerPocketService) itemProxy.getProxy());
             when(services.getProductService()).thenReturn(new ProductServiceImpl(productRepo,
-                    null, null, null, null, null, null, null, null, null, null, null, null, null, null));
+                    null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
             var resultService = new MatchResultServiceImpl();
             ReflectionTestUtils.setField(resultService, "entityManager", entities);
             when(services.getMatchResultService()).thenReturn(service(resultService, MatchResultService.class));

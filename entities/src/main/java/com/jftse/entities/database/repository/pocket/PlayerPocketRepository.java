@@ -2,7 +2,6 @@ package com.jftse.entities.database.repository.pocket;
 
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +20,9 @@ public interface PlayerPocketRepository extends JpaRepository<PlayerPocket, Long
     Optional<PlayerPocket> findByItemIndex(Integer itemIndex);
     Optional<PlayerPocket> findByIdAndPocket(Long id, Pocket pocket);
     Optional<PlayerPocket> findByIdAndPocketId(Long id, Long pocketId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT pp FROM PlayerPocket pp JOIN FETCH pp.pocket WHERE pp.id = :id AND pp.pocket.id = :pocketId")
+    Optional<PlayerPocket> findByIdAndPocketIdForUpdate(@Param("id") Long id, @Param("pocketId") Long pocketId);
     List<PlayerPocket> findAllByPocketAndIdIn(Pocket pocket, List<Long> ids);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM PlayerPocket p WHERE p.pocket = :pocket AND p.id IN :ids")
