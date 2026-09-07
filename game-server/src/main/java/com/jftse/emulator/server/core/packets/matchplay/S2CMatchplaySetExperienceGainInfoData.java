@@ -2,13 +2,16 @@ package com.jftse.emulator.server.core.packets.matchplay;
 
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.PlayerReward;
+import com.jftse.entities.database.model.player.EquippedItemStats;
+import com.jftse.server.core.item.SpecialItemEffects;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
 import java.util.List;
 
 public class S2CMatchplaySetExperienceGainInfoData extends Packet {
-    public S2CMatchplaySetExperienceGainInfoData(byte resultTitle, int secondsNeeded, PlayerReward playerReward, byte playerLevel, RoomPlayer roomPlayer) {
+    public S2CMatchplaySetExperienceGainInfoData(byte resultTitle, int secondsNeeded, PlayerReward playerReward,
+                                                byte playerLevel, RoomPlayer roomPlayer, short gameMode) {
         super(PacketOperations.S2CMatchPlaySetExperienceGainInfoData);
 
         this.write(resultTitle); // 0 = Loser, 1 = Winner
@@ -42,16 +45,17 @@ public class S2CMatchplaySetExperienceGainInfoData extends Packet {
 
         List<Integer> specialSlotEquipment = roomPlayer.getEquippedSpecialSlots().toList();
         List<Integer> cardSlotEquipment = roomPlayer.getEquippedCardSlots().toList();
+        EquippedItemStats equippedItemStats = roomPlayer.getEquippedItemStats();
 
         specialSlotEquipment.forEach(this::write);
         cardSlotEquipment.forEach(this::write);
 
         // earrings added status points
-        this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
+        this.write(SpecialItemEffects.getActiveHp(equippedItemStats, gameMode));
+        this.write(equippedItemStats.getSpecialStrength().byteValue());
+        this.write(equippedItemStats.getSpecialStamina().byteValue());
+        this.write(equippedItemStats.getSpecialDexterity().byteValue());
+        this.write(equippedItemStats.getSpecialWillpower().byteValue());
         // cards added status points
         this.write(0);
         this.write((byte) 0);

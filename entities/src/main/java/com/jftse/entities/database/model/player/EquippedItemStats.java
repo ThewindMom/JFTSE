@@ -13,6 +13,12 @@ public class EquippedItemStats {
 
     private Integer addHp = 0;
 
+    private Integer specialStrength = 0;
+    private Integer specialStamina = 0;
+    private Integer specialDexterity = 0;
+    private Integer specialWillpower = 0;
+    private Integer specialAddHp = 0;
+
     private Integer enchantStr = 0;
     private Integer enchantSta = 0;
     private Integer enchantDex = 0;

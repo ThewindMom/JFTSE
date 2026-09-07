@@ -71,10 +71,10 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
 
         // earrings added status points
         this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
+        this.write(equippedItemStats.getSpecialStrength().byteValue());
+        this.write(equippedItemStats.getSpecialStamina().byteValue());
+        this.write(equippedItemStats.getSpecialDexterity().byteValue());
+        this.write(equippedItemStats.getSpecialWillpower().byteValue());
         // cards added status points
         this.write(0);
         this.write((byte) 0);

@@ -292,11 +292,11 @@ public class MatchplayGuardianGame extends MatchplayGame {
 
         calculateBonusStats(roomPlayer, activeRoomPlayers);
 
-        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getBonusHp();
-        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getBonusStr();
-        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getBonusSta();
-        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getBonusDex();
-        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getBonusWil();
+        int totalHp = baseHp + roomPlayer.getEquippedItemStats().getAddHp() + roomPlayer.getEquippedItemStats().getSpecialAddHp() + roomPlayer.getBonusHp();
+        int totalStr = baseStr + roomPlayer.getEquippedItemStats().getStrength() + roomPlayer.getEquippedItemStats().getEnchantStr() + roomPlayer.getEquippedItemStats().getSpecialStrength() + roomPlayer.getBonusStr();
+        int totalSta = baseSta + roomPlayer.getEquippedItemStats().getStamina() + roomPlayer.getEquippedItemStats().getEnchantSta() + roomPlayer.getEquippedItemStats().getSpecialStamina() + roomPlayer.getBonusSta();
+        int totalDex = baseDex + roomPlayer.getEquippedItemStats().getDexterity() + roomPlayer.getEquippedItemStats().getEnchantDex() + roomPlayer.getEquippedItemStats().getSpecialDexterity() + roomPlayer.getBonusDex();
+        int totalWill = baseWill + roomPlayer.getEquippedItemStats().getWillpower() + roomPlayer.getEquippedItemStats().getEnchantWil() + roomPlayer.getEquippedItemStats().getSpecialWillpower() + roomPlayer.getBonusWil();
 
         PlayerBattleState pbs = new PlayerBattleState(roomPlayer.getPosition(), roomPlayer.getPlayerId(), totalHp, totalStr, totalSta, totalDex, totalWill);
 
@@ -328,11 +328,11 @@ public class MatchplayGuardianGame extends MatchplayGame {
 
         EquippedItemStats equipment = roomPlayer.getEquippedItemStats();
 
-        int hpBeforeBonuses = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equipment.getAddHp();
-        int strBeforeBonuses = roomPlayer.getStrength() + equipment.getStrength() + equipment.getEnchantStr();
-        int staBeforeBonuses = roomPlayer.getStamina() + equipment.getStamina() + equipment.getEnchantSta();
-        int dexBeforeBonuses = roomPlayer.getDexterity() + equipment.getDexterity() + equipment.getEnchantDex();
-        int wilBeforeBonuses = roomPlayer.getWillpower() + equipment.getWillpower() + equipment.getEnchantWil();
+        int hpBeforeBonuses = BattleUtils.calculatePlayerHp(roomPlayer.getLevel()) + equipment.getAddHp() + equipment.getSpecialAddHp();
+        int strBeforeBonuses = roomPlayer.getStrength() + equipment.getStrength() + equipment.getEnchantStr() + equipment.getSpecialStrength();
+        int staBeforeBonuses = roomPlayer.getStamina() + equipment.getStamina() + equipment.getEnchantSta() + equipment.getSpecialStamina();
+        int dexBeforeBonuses = roomPlayer.getDexterity() + equipment.getDexterity() + equipment.getEnchantDex() + equipment.getSpecialDexterity();
+        int wilBeforeBonuses = roomPlayer.getWillpower() + equipment.getWillpower() + equipment.getEnchantWil() + equipment.getSpecialWillpower();
 
         if (hasActiveCoupleInParty(roomPlayer, activeRoomPlayers)) {
             roomPlayer.addBonusHp(hpBeforeBonuses / 20);

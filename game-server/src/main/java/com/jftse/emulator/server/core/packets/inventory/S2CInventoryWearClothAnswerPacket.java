@@ -33,7 +33,8 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
             this.write(equippedItemParts.hat());
             this.write(equippedItemParts.dye());
 
-            this.write((BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp()));
+            int displayedHp = BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp();
+            this.write(displayedHp);
 
             // status points
             this.write((byte) player.getStrength());
@@ -54,11 +55,11 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
             this.write((byte) 0);
 
             // earrings added status points
-            this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
+            this.write(0); // HP necklaces are active only in Battle and Guardian matches
+            this.write(equippedItemStats.getSpecialStrength().byteValue());
+            this.write(equippedItemStats.getSpecialStamina().byteValue());
+            this.write(equippedItemStats.getSpecialDexterity().byteValue());
+            this.write(equippedItemStats.getSpecialWillpower().byteValue());
             // cards added status points
             this.write(0);
             this.write((byte) 0);
@@ -95,7 +96,8 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
             this.write(inventoryEquippedCloths.get("hat"));
             this.write(inventoryEquippedCloths.get("dye"));
 
-            this.write((BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp()));
+            int displayedHp = BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp();
+            this.write(displayedHp);
 
             // status points
             this.write(player.getStrength());
@@ -116,11 +118,11 @@ public class S2CInventoryWearClothAnswerPacket extends Packet {
             this.write((byte) 0);
 
             // earrings added status points
-            this.write(0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
-            this.write((byte) 0);
+            this.write(0); // HP necklaces are active only in Battle and Guardian matches
+            this.write(equippedItemStats.getSpecialStrength().byteValue());
+            this.write(equippedItemStats.getSpecialStamina().byteValue());
+            this.write(equippedItemStats.getSpecialDexterity().byteValue());
+            this.write(equippedItemStats.getSpecialWillpower().byteValue());
             // cards added status points
             this.write(0);
             this.write((byte) 0);

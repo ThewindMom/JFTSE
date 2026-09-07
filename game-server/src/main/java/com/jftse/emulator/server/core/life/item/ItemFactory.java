@@ -45,17 +45,20 @@ public class ItemFactory {
     private static BaseItem getSpecificSpecialItem(PlayerPocket playerPocketItem) {
         ItemSpecial itemSpecial = ServiceManager.getInstance().getItemSpecialService().findByItemIndex(playerPocketItem.getItemIndex());
 
-        if (itemSpecial.getItemIndex() == 1) {
-            return new RingOfExp(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        if (itemSpecial.getItemIndex() == 1 || itemSpecial.getItemIndex() == 39) {
+            return new RingOfExp(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
-        if (itemSpecial.getItemIndex() == 2) {
-            return new RingOfGold(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        if (itemSpecial.getItemIndex() == 2 || itemSpecial.getItemIndex() == 40) {
+            return new RingOfGold(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
-        if (itemSpecial.getItemIndex() == 3) {
-            return new RingOfWiseman(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        if (itemSpecial.getItemIndex() == 3 || itemSpecial.getItemIndex() == 41) {
+            return new RingOfWiseman(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
         if (itemSpecial.getItemIndex() == 6) {
             return new WingOfMemory(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        }
+        if (itemSpecial.getItemIndex() == 7) {
+            return new ContractWithGuardian(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
         if (itemSpecial.getItemIndex() == 26) {
             return new CoupleRing(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
@@ -68,6 +71,9 @@ public class ItemFactory {
         }
         if (itemSpecial.getItemIndex() == 17) {
             return new TrunkLarge(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
+        }
+        if (itemSpecial.getItemIndex() == 18) {
+            return new ClubMemberLicense(playerPocketItem.getId(), itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());
         }
         if (itemSpecial.getItemIndex() == 13 || itemSpecial.getItemIndex() == 14) {
             return new MegaphoneSpeaker(itemSpecial.getItemIndex(), itemSpecial.getName(), playerPocketItem.getCategory());

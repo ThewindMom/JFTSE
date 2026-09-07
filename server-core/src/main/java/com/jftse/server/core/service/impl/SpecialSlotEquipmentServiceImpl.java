@@ -5,7 +5,10 @@ import com.jftse.entities.database.model.player.SpecialSlotEquipment;
 import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.entities.database.repository.player.SpecialSlotEquipmentRepository;
+import com.jftse.server.core.item.EItemCategory;
+import com.jftse.server.core.item.SpecialItemEffects;
 import com.jftse.server.core.service.PlayerPocketService;
+import com.jftse.server.core.service.PocketService;
 import com.jftse.server.core.service.SpecialSlotEquipmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,14 +16,17 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class SpecialSlotEquipmentServiceImpl implements SpecialSlotEquipmentService {
     private final SpecialSlotEquipmentRepository specialSlotEquipmentRepository;
     private final PlayerPocketService playerPocketService;
+    private final PocketService pocketService;
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -37,7 +43,10 @@ public class SpecialSlotEquipmentServiceImpl implements SpecialSlotEquipmentServ
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void updateSpecialSlots(Player player, List<Integer> specialSlotItems) {
+    public List<Integer> updateSpecialSlots(Player player, List<Integer> specialSlotItems) {
+        if (specialSlotItems.size() != 4)
+            throw new IllegalArgumentException("Special slot equipment requires exactly four slots.");
+
         Pocket pocket = player.getPocket();
         SpecialSlotEquipment specialSlotEquipment = findById(player.getSpecialSlotEquipment().getId());
 
@@ -51,10 +60,13 @@ public class SpecialSlotEquipmentServiceImpl implements SpecialSlotEquipmentServ
                 pocket
         );
 
+        Set<Integer> equippedItemIds = new HashSet<>();
         for (int i = 0; i < specialSlotItems.size(); i++) {
             Integer itemId = specialSlotItems.get(i);
             PlayerPocket item = playerPockets.stream()
-                    .filter(pp -> pp.getId().intValue() == itemId)
+                    .filter(pp -> pp.getId().intValue() == itemId
+                            && EItemCategory.SPECIAL.getName().equals(pp.getCategory())
+                            && equippedItemIds.add(itemId))
                     .findFirst()
                     .orElse(null);
 
@@ -69,6 +81,74 @@ public class SpecialSlotEquipmentServiceImpl implements SpecialSlotEquipmentServ
         }
 
         save(specialSlotEquipment);
+        return List.of(
+                specialSlotEquipment.getSlot1(),
+                specialSlotEquipment.getSlot2(),
+                specialSlotEquipment.getSlot3(),
+                specialSlotEquipment.getSlot4()
+        );
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public MatchStatItemUseResult consumeMatchStatItems(Player player, short gameMode) {
+        Pocket pocket = player.getPocket();
+        SpecialSlotEquipment equipment = specialSlotEquipmentRepository.findById(player.getSpecialSlotEquipment().getId()).orElseThrow();
+        List<Integer> specialSlots = new ArrayList<>(List.of(
+                equipment.getSlot1(),
+                equipment.getSlot2(),
+                equipment.getSlot3(),
+                equipment.getSlot4()
+        ));
+        List<Long> equippedItemIds = specialSlots.stream()
+                .filter(id -> id > 0)
+                .distinct()
+                .map(Integer::longValue)
+                .toList();
+
+        if (equippedItemIds.isEmpty())
+            return new MatchStatItemUseResult(List.of(), List.of(), List.copyOf(specialSlots));
+
+        List<PlayerPocket> equippedItems = playerPocketService.getItemsAsPocket(equippedItemIds, pocket);
+        List<PlayerPocket> updatedItems = new ArrayList<>();
+        List<Long> removedItemIds = new ArrayList<>();
+
+        for (Long itemId : equippedItemIds) {
+            PlayerPocket item = equippedItems.stream()
+                    .filter(pp -> pp.getId().equals(itemId)
+                            && EItemCategory.SPECIAL.getName().equals(pp.getCategory())
+                            && SpecialItemEffects.isActiveInMode(pp.getItemIndex(), gameMode))
+                    .findFirst()
+                    .orElse(null);
+            if (item == null)
+                continue;
+
+            int remainingCount = item.getItemCount() - 1;
+            if (remainingCount > 0) {
+                item.setItemCount(remainingCount);
+                updatedItems.add(playerPocketService.save(item));
+                continue;
+            }
+
+            playerPocketService.remove(itemId);
+            pocketService.decrementPocketBelongings(pocket);
+            removedItemIds.add(itemId);
+            specialSlots.replaceAll(slotItemId -> slotItemId.longValue() == itemId ? 0 : slotItemId);
+        }
+
+        if (!removedItemIds.isEmpty()) {
+            equipment.setSlot1(specialSlots.get(0));
+            equipment.setSlot2(specialSlots.get(1));
+            equipment.setSlot3(specialSlots.get(2));
+            equipment.setSlot4(specialSlots.get(3));
+            specialSlotEquipmentRepository.save(equipment);
+        }
+
+        return new MatchStatItemUseResult(
+                List.copyOf(updatedItems),
+                List.copyOf(removedItemIds),
+                List.copyOf(specialSlots)
+        );
     }
 
     @Override

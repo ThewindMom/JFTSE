@@ -1,0 +1,28 @@
+JFTSE packet contracts used by this implementation
+==================================================
+
+Source: server-core/src/main/packets/inventory/CMSG_InventoryWearSpecial.packet
+
+message CMSG_InventoryWearSpecial (0x1B70) {
+    repeated int32 specialSlotList = 1 [len = 4];
+}
+
+Source: server-core/src/main/packets/messenger/CMSG_SendProposal.packet
+
+message CMSG_SendProposal (0x251D) {
+    string receiverName = 1;
+    int32 playerPocketId = 2;
+    int32 itemIndex = 3;
+    string message = 4;
+}
+
+Source: server-core/src/main/packets/messenger/SMSG_SendProposal.packet
+
+message SMSG_SendProposal (0x251E) {
+    byte status = 1;
+}
+
+Evidence boundary:
+- These are repository packet-schema/source facts.
+- The native release smoke run established auth/game connectivity, but it did
+  not capture a native 0x1B70 or 0x251D request.

@@ -11,6 +11,7 @@ import com.jftse.emulator.server.core.life.event.GameEventType;
 import com.jftse.emulator.server.core.life.housing.FishManager;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
+import com.jftse.emulator.server.core.packets.item.S2CPersonalBoardMessageListPacket;
 import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.net.FTClient;
@@ -79,9 +80,8 @@ public class GameManager implements ServerLoopHandler {
 
     private ConcurrentLinkedQueue<FTConnection> addConnectionQueue;
     private ConcurrentLinkedDeque<FTClient> clients;
-    private Room townSquare;
-
     private ConcurrentHashMap<Integer, String> personalBoardMessages;
+    private Room townSquare;
 
     private Optional<ScriptManagerV2> scriptManager;
 
@@ -328,6 +328,8 @@ public class GameManager implements ServerLoopHandler {
             sendPacketToAllClientsInSameRoom(roomPlayerInformationPacket, connection);
         }
 
+        sendPersonalBoardMessages(connection, townSquare);
+
         Packet enableMovement = new Packet(PacketOperations.S2CEnableTownSquareMovement);
         connection.sendTCP(enableMovement);
 
@@ -368,9 +370,12 @@ public class GameManager implements ServerLoopHandler {
 
         final short playerPosition = roomPlayer.isPresent() ? roomPlayer.get().getPosition() : -1;
 
+        room.getPersonalBoardMessages().remove(activePlayer.getId());
+
         if (roomPlayer.isPresent()) {
             RoomPlayer rp = roomPlayer.get();
             if (rp.isMaster()) {
+                room.getPersonalBoardMessages().clear();
                 Packet roomLeaveAnswer = new Packet(PacketOperations.S2CRoomLeaveAnswer);
                 roomLeaveAnswer.write((short) 1);
 
@@ -478,6 +483,12 @@ public class GameManager implements ServerLoopHandler {
                 }
             });
         }
+    }
+
+    public void sendPersonalBoardMessages(FTConnection connection, Room room) {
+        Map<Short, String> messages = room.getPersonalBoardMessagesByPosition();
+        if (!messages.isEmpty())
+            connection.sendTCP(new S2CPersonalBoardMessageListPacket(messages));
     }
 
     private void updateSessions(long diff) {

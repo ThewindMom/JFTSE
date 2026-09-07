@@ -49,7 +49,8 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write(0); // perfect(s)
         this.write(0); // guard break(s)
 
-        this.write((BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp()));
+        int displayedHp = BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp();
+        this.write(displayedHp);
 
         // status points
         this.write((byte) player.getStrength());
@@ -70,11 +71,11 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write((byte) 0);
 
         // earrings added status points
-        this.write(0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
-        this.write((byte) 0);
+        this.write(0); // HP necklaces are active only in Battle and Guardian matches
+        this.write(equippedItemStats.getSpecialStrength().byteValue());
+        this.write(equippedItemStats.getSpecialStamina().byteValue());
+        this.write(equippedItemStats.getSpecialDexterity().byteValue());
+        this.write(equippedItemStats.getSpecialWillpower().byteValue());
         // cards added status points
         this.write(0);
         this.write((byte) 0);

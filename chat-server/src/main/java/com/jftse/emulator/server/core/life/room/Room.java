@@ -4,8 +4,11 @@ import com.jftse.emulator.server.core.constants.RoomStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 @Setter
@@ -14,6 +17,7 @@ public class Room {
         bannedPlayers = new ConcurrentLinkedDeque<>();
         invitedPlayerIds = new ConcurrentLinkedDeque<>();
         roomPlayerList = new ConcurrentLinkedDeque<>();
+        personalBoardMessages = new ConcurrentHashMap<>();
         status = RoomStatus.NotRunning;
     }
 
@@ -37,10 +41,23 @@ public class Room {
     private ConcurrentLinkedDeque<Long> bannedPlayers;
     private ConcurrentLinkedDeque<Long> invitedPlayerIds;
     private ConcurrentLinkedDeque<RoomPlayer> roomPlayerList;
+    private ConcurrentHashMap<Long, String> personalBoardMessages;
     private int status;
 
     // Guardian
     private boolean isHardMode; // Guardians are very strong
     private boolean isArcade; // You have to play against all guardians there are
     private boolean isRandomGuardians; // Always random guardians are spawned.
+
+    public Map<Short, String> getPersonalBoardMessagesByPosition() {
+        Map<Short, String> result = new LinkedHashMap<>();
+        roomPlayerList.stream()
+                .sorted(Comparator.comparingInt(RoomPlayer::getPosition))
+                .forEach(roomPlayer -> {
+                    String message = personalBoardMessages.get(roomPlayer.getPlayerId());
+                    if (message != null)
+                        result.put(roomPlayer.getPosition(), message);
+                });
+        return result;
+    }
 }
