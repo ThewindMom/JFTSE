@@ -10,9 +10,9 @@ import com.jftse.entities.database.model.pocket.Pocket;
 import com.jftse.server.core.protocol.Packet;
 import com.jftse.server.core.protocol.PacketOperations;
 
-public class S2CUnknownPlayerInfoDataPacket extends Packet {
-    public S2CUnknownPlayerInfoDataPacket(FTPlayer player, Pocket pocket, PlayerStatistic playerStatistic) {
-        super(PacketOperations.S2CUnknownPlayerInfoData);
+public class S2CPlayerInfoDataPacket extends Packet {
+    public S2CPlayerInfoDataPacket(FTPlayer player, Pocket pocket, PlayerStatistic playerStatistic) {
+        super(PacketOperations.S2CPlayerInfoData);
 
         EquippedItemParts equippedItemParts = player.getItemPartsPPId();
         EquippedItemStats equippedItemStats = player.getItemStats();
@@ -46,11 +46,10 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write((byte) 0); // ??
 
         this.write(player.getExpPoints());
-        this.write(playerStatistic.getPerfectGames());
-        this.write(playerStatistic.getGuardBreakShot());
+        this.write(0); // perfect(s)
+        this.write(0); // guard break(s)
 
-        int displayedHp = BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp();
-        this.write(displayedHp);
+        this.write((BattleUtils.calculatePlayerHp(player.getLevel()) + equippedItemStats.getAddHp()));
 
         // status points
         this.write((byte) player.getStrength());
@@ -71,7 +70,7 @@ public class S2CUnknownPlayerInfoDataPacket extends Packet {
         this.write((byte) 0);
 
         // earrings added status points
-        this.write(0); // HP necklaces are active only in Battle and Guardian matches
+        this.write(0);
         this.write(equippedItemStats.getSpecialStrength().byteValue());
         this.write(equippedItemStats.getSpecialStamina().byteValue());
         this.write(equippedItemStats.getSpecialDexterity().byteValue());

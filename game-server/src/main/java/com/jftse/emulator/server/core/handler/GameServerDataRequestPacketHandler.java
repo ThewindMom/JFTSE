@@ -11,7 +11,7 @@ import com.jftse.emulator.server.core.packets.pet.S2CPetDataAnswerPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoPlayStatsPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerLevelExpPacket;
 import com.jftse.emulator.server.core.packets.player.S2CPlayerLifetimeStatisticsPacket;
-import com.jftse.emulator.server.core.packets.player.S2CUnknownPlayerInfoDataPacket;
+import com.jftse.emulator.server.core.packets.player.S2CPlayerInfoDataPacket;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.entities.database.model.guild.Guild;
@@ -102,8 +102,8 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
                 player.setGuild(GuildView.fromEntity(guild));
             }
 
-            S2CUnknownPlayerInfoDataPacket unknownPlayerInfoDataPacket = new S2CUnknownPlayerInfoDataPacket(player, pocket, playerStatistic);
-            connection.sendTCP(unknownPlayerInfoDataPacket);
+            S2CPlayerInfoDataPacket playerInfoDataPacket = new S2CPlayerInfoDataPacket(player, pocket, playerStatistic);
+            connection.sendTCP(playerInfoDataPacket);
             connection.sendTCP(new S2CEmblemEquipmentPacket(player.getEmblemEquipment()));
 
             S2CPlayerLevelExpPacket playerLevelExpPacket = new S2CPlayerLevelExpPacket((byte) player.getLevel(), player.getExpPoints());

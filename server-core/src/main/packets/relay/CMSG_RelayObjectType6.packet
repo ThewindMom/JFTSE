@@ -1,0 +1,2 @@
+message CMSG_RelayObjectType6 (0x32CA) {
+}

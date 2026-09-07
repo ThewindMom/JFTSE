@@ -98,8 +98,8 @@ public class GameServerDataRequestPacketHandler implements PacketHandler<FTConne
                 player.setGuild(GuildView.fromEntity(guild));
             }
 
-            S2CUnknownPlayerInfoDataPacket unknownPlayerInfoDataPacket = new S2CUnknownPlayerInfoDataPacket(player, pocket, playerStatistic);
-            connection.sendTCP(unknownPlayerInfoDataPacket);
+            S2CPlayerInfoDataPacket playerInfoDataPacket = new S2CPlayerInfoDataPacket(player, pocket, playerStatistic);
+            connection.sendTCP(playerInfoDataPacket);
 
             S2CPlayerLevelExpPacket playerLevelExpPacket = new S2CPlayerLevelExpPacket((byte) player.getLevel(), player.getExpPoints());
             connection.sendTCP(playerLevelExpPacket);

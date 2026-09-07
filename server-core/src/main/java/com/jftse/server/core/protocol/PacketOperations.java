@@ -32,7 +32,7 @@ public enum PacketOperations {
     S2CGameAnswerData(0x105F),
     C2SGameLoginData(0x1069),
     S2CGameLoginData(0x106A),
-    S2CUnknownPlayerInfoData(0x106D),
+    S2CPlayerInfoData(0x106D),
     S2CClearInventoryData(0x106F),
     S2CInventoryData(0x106E),
 
@@ -141,11 +141,13 @@ public enum PacketOperations {
 
     C2CBallAnimationPacket(0x10E3),
     C2CPlayerAnimationPacket(0x32C9),
+    C2CRelayObjectType6(0x32CA),
     C2CSpiderMinePlacedPacket(0x3390),
     C2CSpiderMineExplodePacket(0x3391),
+    C2CRelayObjectType5(0x3332),
 
     S2CSetHost(0x177E),
-    S2CSetHostUnknown(0x17DA),
+    S2CSetHostReady(0x17DA),
     S2CUnsetHost(0x17D6),
 
     C2SRoomPositionChange(0x1785),
@@ -173,7 +175,7 @@ public enum PacketOperations {
 
     S2CPlayerLevelExpData(0x22B8),
     S2CPlayerInfoPlayStatsData(0x1B6F),
-    C2SUnknownInventoryOpenRequest(0x237C),
+    C2SInventoryOpenRequest(0x237C),
     C2SInventoryWearClothRequest(0x1B63),
     S2CInventoryWearClothAnswer(0x1B64),
     C2SInventoryWearQuickRequest(0x1BD8),
@@ -431,7 +433,7 @@ public enum PacketOperations {
 
     S2CDCMsg(0x2329),
 
-    C2SUnknown0x1071(0x1071),
+    C2SSceneChange(0x1071),
 
     D2SDevPacket(0x555),
 

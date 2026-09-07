@@ -8,18 +8,18 @@ import com.jftse.emulator.server.net.FTConnection;
 import com.jftse.server.core.handler.PacketHandler;
 import com.jftse.server.core.handler.PacketId;
 import com.jftse.server.core.service.BattlemonSlotEquipmentService;
-import com.jftse.server.core.shared.packets.inventory.CMSGUnknownInventoryOpen;
+import com.jftse.server.core.shared.packets.inventory.CMSGInventoryOpen;
 
-@PacketId(CMSGUnknownInventoryOpen.PACKET_ID)
-public class UnknownInventoryOpenPacketHandler implements PacketHandler<FTConnection, CMSGUnknownInventoryOpen> {
+@PacketId(CMSGInventoryOpen.PACKET_ID)
+public class InventoryOpenPacketHandler implements PacketHandler<FTConnection, CMSGInventoryOpen> {
     private final BattlemonSlotEquipmentService battlemonSlotEquipmentService;
 
-    public UnknownInventoryOpenPacketHandler() {
+    public InventoryOpenPacketHandler() {
         battlemonSlotEquipmentService = ServiceManager.getInstance().getBattlemonSlotEquipmentService();
     }
 
     @Override
-    public void handle(FTConnection connection, CMSGUnknownInventoryOpen packet) {
+    public void handle(FTConnection connection, CMSGInventoryOpen packet) {
         FTClient client = connection.getClient();
         if (client.hasPlayer()) {
             FTPlayer player = client.getPlayer();

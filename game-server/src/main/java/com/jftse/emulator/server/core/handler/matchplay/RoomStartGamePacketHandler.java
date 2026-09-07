@@ -225,8 +225,8 @@ public class RoomStartGamePacketHandler implements PacketHandler<FTConnection, C
             SMSGSetHost setHostPacket = SMSGSetHost.builder().result((byte) 1).build();
             clientToHostGame.getConnection().sendTCP(setHostPacket);
 
-            SMSGSetHostUnknown setHostUnknownPacket = SMSGSetHostUnknown.builder().build();
-            clientToHostGame.getConnection().sendTCP(setHostUnknownPacket);
+            SMSGSetHostReady setHostReadyPacket = SMSGSetHostReady.builder().build();
+            clientToHostGame.getConnection().sendTCP(setHostReadyPacket);
 
             game.getHandleable().onPrepare(ftClient);
 

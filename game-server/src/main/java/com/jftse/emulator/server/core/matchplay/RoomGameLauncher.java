@@ -29,7 +29,7 @@ import com.jftse.server.core.service.AuthenticationService;
 import com.jftse.server.core.shared.ServerConfService;
 import com.jftse.server.core.shared.packets.matchplay.SMSGCancelStartGame;
 import com.jftse.server.core.shared.packets.matchplay.SMSGSetHost;
-import com.jftse.server.core.shared.packets.matchplay.SMSGSetHostUnknown;
+import com.jftse.server.core.shared.packets.matchplay.SMSGSetHostReady;
 import com.jftse.server.core.shared.packets.matchplay.SMSGStartGame;
 import com.jftse.server.core.shared.packets.matchplay.SMSGUnsetHost;
 import com.jftse.server.core.thread.ThreadManager;
@@ -287,7 +287,7 @@ public class RoomGameLauncher {
             }
 
             hostClient.getConnection().sendTCP(SMSGSetHost.builder().result((byte) 1).build());
-            hostClient.getConnection().sendTCP(SMSGSetHostUnknown.builder().build());
+            hostClient.getConnection().sendTCP(SMSGSetHostReady.builder().build());
             game.getHandleable().onPrepare(launchClient);
 
             GameManager.getInstance().sendPacketToAllClientsInSameGameSession(
