@@ -1,0 +1,14 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 2/2   #P:4
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+ FantaTennis.exe-262259  [001] DNZff 19585.006920: c3_count: (0x5c9dcd) obj=0x39b14948 loaded=1 complete=0 entries=16 rounds=5 nodes=31 expected=15
+ FantaTennis.exe-262259  [001] DNZff 19585.006985: c3_fail: (0x5ca1cd) obj=0x60 loaded=0 complete=0 expected=0

@@ -30,6 +30,10 @@ public class RoomPositionChangeRequestPacketHandler implements PacketHandler<FTC
 
         Room room = ftClient.getActiveRoom();
         RoomPlayer requestingSlotChangePlayer = ftClient.getRoomPlayer();
+        if (room != null && room.isTournamentRoom()) {
+            ftClient.getIsChangingSlot().set(false);
+            return;
+        }
         if (room != null) {
             if (requestingSlotChangePlayer != null) {
                 short requestingSlotChangePlayerOldPosition = requestingSlotChangePlayer.getPosition();

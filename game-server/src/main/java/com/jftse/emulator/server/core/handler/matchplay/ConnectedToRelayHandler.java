@@ -1,6 +1,7 @@
 package com.jftse.emulator.server.core.handler.matchplay;
 
 import com.jftse.emulator.server.core.constants.RoomStatus;
+import com.jftse.emulator.server.core.life.room.GameSession;
 import com.jftse.emulator.server.core.life.room.Room;
 import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.net.FTClient;
@@ -27,7 +28,12 @@ public class ConnectedToRelayHandler implements PacketHandler<FTConnection, CMSG
             connection.sendTCP(answer);
 
             Room room = ftClient.getActiveRoom();
-            if (room != null) {
+            GameSession gameSession = ftClient.getActiveGameSession();
+            boolean participantFailure = room == null
+                    || !room.isTournamentRoom()
+                    || (gameSession != null && ftClient.hasPlayer()
+                    && gameSession.getTournamentParticipantPositions().containsKey(ftClient.getPlayer().getId()));
+            if (room != null && participantFailure) {
                 synchronized (room) {
                     room.setStatus(RoomStatus.RelayConnectionFailed);
                 }
@@ -36,8 +42,15 @@ public class ConnectedToRelayHandler implements PacketHandler<FTConnection, CMSG
         }
 
         Room room = ftClient.getActiveRoom();
+        if (room == null) {
+            return;
+        }
         ConcurrentLinkedDeque<RoomPlayer> roomPlayerList = room.getRoomPlayerList();
-        if (roomPlayerList.stream().allMatch(rp -> rp.getConnectedToRelay().get())) {
+        GameSession gameSession = ftClient.getActiveGameSession();
+        boolean allConnected = room.isTournamentRoom()
+                ? gameSession != null && gameSession.areTournamentParticipantsConnectedToRelay()
+                : roomPlayerList.stream().allMatch(rp -> rp.getConnectedToRelay().get());
+        if (allConnected) {
             room.setStatus(RoomStatus.RelayConnectionSuccess);
         }
     }

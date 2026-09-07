@@ -108,6 +108,7 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
         }
 
         GameSession gameSession = client.getActiveGameSession();
+        Integer gameSessionId = client.getGameSessionId();
         if (gameSession != null) {
 
             Room currentClientRoom = client.getActiveRoom();
@@ -137,7 +138,6 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
                                 }
                             }
                         });
-                        GameSessionManager.getInstance().getGameSessionList().remove(client.getGameSessionId(), gameSession);
                     }
                 }
                 MatchplayGame game = gameSession.getMatchplayGame();
@@ -145,11 +145,12 @@ public class TCPChannelHandler extends TCPHandlerV2<FTConnection> {
                 game.getScheduledFutures().clear();
 
                 GameManager.getInstance().getMatchRallyStatsConsumer().clearSession(client.getGameSessionId());
-
-                client.setActiveGameSession(null);
             }
         }
         GameManager.getInstance().handleRoomPlayerChanges(connection, notifyClients);
+        if (gameSession != null && notifyClients) {
+            GameSessionManager.getInstance().discardGameSession(gameSessionId, gameSession);
+        }
     }
 
     @Override

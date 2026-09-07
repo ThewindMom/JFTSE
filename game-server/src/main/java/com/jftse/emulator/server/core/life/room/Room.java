@@ -50,6 +50,9 @@ public class Room {
     private ArrayList<Short> positions;
     private int status;
 
+    private Long tournamentMatchId;
+    private boolean tournamentSpectatorsAllowed;
+
     private byte previousMap = 0;
 
     // Guardian
@@ -64,6 +67,10 @@ public class Room {
 
     public boolean isModeActive(String modeId) {
         return activeExtensionModes.contains(modeId);
+    }
+
+    public boolean isTournamentRoom() {
+        return tournamentMatchId != null;
     }
 
     public void setModeActive(String modeId, boolean active) {

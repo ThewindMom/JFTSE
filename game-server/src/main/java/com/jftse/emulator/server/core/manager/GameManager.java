@@ -7,6 +7,7 @@ import com.jftse.emulator.common.utilities.StringUtils;
 import com.jftse.emulator.server.core.client.FTPlayer;
 import com.jftse.emulator.server.core.constants.MiscConstants;
 import com.jftse.emulator.server.core.constants.RoomPositionState;
+import com.jftse.emulator.server.core.constants.RoomStatus;
 import com.jftse.emulator.server.core.constants.RoomType;
 import com.jftse.emulator.server.core.life.event.GameEventBus;
 import com.jftse.emulator.server.core.life.event.GameEventType;
@@ -21,6 +22,7 @@ import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
 import com.jftse.emulator.server.core.rabbit.service.RProducerService;
+import com.jftse.emulator.server.core.tournament.TournamentRoomCoordinator;
 import com.jftse.emulator.server.core.utils.BattleUtils;
 import com.jftse.emulator.server.net.FTClient;
 import com.jftse.emulator.server.net.FTConnection;
@@ -43,6 +45,7 @@ import com.jftse.server.core.shared.ServerMetricsContext;
 import com.jftse.server.core.shared.packets.SMSGInitHandshake;
 import com.jftse.server.core.shared.packets.SMSGServerNotice;
 import com.jftse.server.core.shared.packets.lobby.room.SMSGRoomChangePosition;
+import com.jftse.server.core.shared.packets.lobby.room.SMSGRoomLeave;
 import com.jftse.server.core.thread.ThreadManager;
 import com.jftse.server.core.util.GameTime;
 import com.jftse.server.core.util.IntervalTimer;
@@ -385,6 +388,24 @@ public class GameManager implements ServerLoopHandler {
         if (room == null)
             return;
 
+        TournamentRoomCoordinator tournamentCoordinator = TournamentRoomCoordinator.getInstance();
+        boolean closeTournamentRoom = false;
+        GameSession tournamentGameSession = client.getActiveGameSession();
+        Integer tournamentGameSessionId = client.getGameSessionId();
+        if (tournamentCoordinator != null) {
+            synchronized (room) {
+                closeTournamentRoom = tournamentCoordinator.onPlayerLeaving(
+                        room,
+                        activePlayer.getId(),
+                        tournamentGameSession == null ? null : tournamentGameSessionId,
+                        tournamentGameSession != null
+                                && tournamentGameSession.getTournamentCompletionStarted().get());
+                if (closeTournamentRoom) {
+                    room.setStatus(RoomStatus.StartCancelled);
+                }
+            }
+        }
+
         final boolean isTownSquare = room.getRoomType() == 1 && room.getMode() == 2;
         final ConcurrentLinkedDeque<RoomPlayer> roomPlayerList = room.getRoomPlayerList();
         final Optional<RoomPlayer> roomPlayer = Optional.ofNullable(client.getRoomPlayer());
@@ -402,7 +423,7 @@ public class GameManager implements ServerLoopHandler {
                             rp.setMaster(true);
                             rp.setReady(false);
                         });
-            } else {
+            } else if (!room.isTournamentRoom()) {
                 roomPlayerList.stream()
                         .filter(rp -> !rp.isMaster())
                         .findFirst()
@@ -427,7 +448,23 @@ public class GameManager implements ServerLoopHandler {
         }
 
         roomPlayerList.removeIf(rp -> rp.getPlayerId() == activePlayer.getId());
-        if (room.getRoomPlayerList().isEmpty() && !isTownSquare) {
+        if (closeTournamentRoom) {
+            if (tournamentGameSession != null && tournamentGameSessionId != null) {
+                gameSessionManager.discardGameSession(tournamentGameSessionId, tournamentGameSession);
+            }
+            SMSGRoomLeave roomLeave = SMSGRoomLeave.builder().result((short) 0).build();
+            getClientsInRoom(room.getRoomId()).stream()
+                    .filter(occupant -> occupant != client)
+                    .forEach(occupant -> {
+                        if (occupant.getConnection() != null) {
+                            occupant.getConnection().sendTCP(roomLeave);
+                        }
+                        occupant.setActiveGameSession(null);
+                        occupant.setActiveRoom(null);
+                    });
+            roomPlayerList.clear();
+            roomManager.removeRoom(room);
+        } else if (room.getRoomPlayerList().isEmpty() && !isTownSquare) {
             roomManager.removeRoom(room);
         }
 
@@ -522,6 +559,70 @@ public class GameManager implements ServerLoopHandler {
         return room.getMode();
     }
 
+    public synchronized void internalHandleRoomCreate(final FTConnection connection, Room room) {
+        if (roomManager.registerRoom(room) == null) {
+            throw new IllegalStateException("No available room IDs");
+        }
+        room.getPositions().set(0, RoomPositionState.InUse);
+
+        byte players = room.getPlayers();
+        if (players == 2) {
+            room.getPositions().set(2, RoomPositionState.Locked);
+            room.getPositions().set(3, RoomPositionState.Locked);
+        }
+
+        FTClient client = connection.getClient();
+        FTPlayer activePlayer = client.getPlayer();
+
+        Friend couple = serviceManager.getSocialService().getRelationshipWithFriend(activePlayer.getPlayerRef());
+        if (couple != null) {
+            activePlayer.setCoupleId(couple.getFriend().getId());
+            activePlayer.setCoupleName(couple.getFriend().getName());
+        }
+
+        RoomPlayer roomPlayer = new RoomPlayer(activePlayer);
+        roomPlayer.setGameMaster(client.isGameMaster());
+        roomPlayer.setPosition((short) 0);
+        roomPlayer.setMaster(true);
+        roomPlayer.setFitting(false);
+
+        client.setActiveRoom(room);
+        client.setInLobby(false);
+
+        room.getRoomPlayerList().add(roomPlayer);
+
+        S2CRoomCreateAnswerPacket roomCreateAnswerPacket = new S2CRoomCreateAnswerPacket((char) 0, room.getRoomType(), room.getMode(), room.getMap());
+        S2CRoomInformationPacket roomInformationPacket = new S2CRoomInformationPacket(room);
+        S2CRoomPlayerListInformationPacket roomPlayerInformationPacket = new S2CRoomPlayerListInformationPacket(new ArrayList<>(room.getRoomPlayerList()));
+
+        try {
+            connection.sendTCP(roomCreateAnswerPacket);
+            connection.sendTCP(roomInformationPacket);
+            connection.sendTCP(roomPlayerInformationPacket);
+
+            updateLobbyRoomListForAllClients(connection);
+            refreshLobbyPlayerListForAllClients();
+        } catch (RuntimeException exception) {
+            roomManager.removeRoom(room);
+            room.getRoomPlayerList().remove(roomPlayer);
+            room.getPositions().set(0, RoomPositionState.Free);
+            client.setActiveRoom(null);
+            client.setInLobby(true);
+            throw exception;
+        }
+    }
+
+    public synchronized short getRoomId() {
+        List<Short> roomIds = getRooms().stream().map(Room::getRoomId).sorted().collect(Collectors.toList());
+        short currentRoomId = 0;
+        for (Short roomId : roomIds) {
+            if (roomId != currentRoomId) {
+                return currentRoomId;
+            }
+            currentRoomId++;
+        }
+        return currentRoomId;
+    }
     public GuildMember getGuildMemberByPlayerPositionInGuild(int playerPositionInGuild, final GuildMember guildMember) {
         Guild guild = serviceManager.getGuildService().findWithMembersById(guildMember.getGuild().getId());
         return getGuildMemberByPlayerPositionInGuild(guild, playerPositionInGuild);

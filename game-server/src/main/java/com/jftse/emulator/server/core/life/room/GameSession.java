@@ -10,7 +10,9 @@ import com.jftse.server.core.constants.GameMode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Getter
 @Setter
@@ -29,6 +31,9 @@ public class GameSession {
     private ConcurrentLinkedDeque<Fireable> fireables;
     private volatile RunnableEvent countDownRunnable;
     private int mode;
+    private Long tournamentMatchId;
+    private Map<Long, Short> tournamentParticipantPositions = Map.of();
+    private AtomicBoolean tournamentCompletionStarted = new AtomicBoolean(false);
 
     public void setMatchplayGame(MatchplayGame game) {
         this.matchplayGame = game;
@@ -63,6 +68,17 @@ public class GameSession {
                 .filter(c -> c.hasPlayer() && c.getPlayer().getId() == playerId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public boolean areTournamentParticipantsConnectedToRelay() {
+        if (tournamentParticipantPositions.isEmpty()) {
+            return false;
+        }
+        return tournamentParticipantPositions.keySet().stream()
+                .map(this::getClientByPlayerId)
+                .allMatch(client -> client != null
+                        && client.getRoomPlayer() != null
+                        && client.getRoomPlayer().getConnectedToRelay().get());
     }
 
     public void clearCountDownRunnable() {

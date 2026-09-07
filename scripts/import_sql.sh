@@ -44,6 +44,7 @@ SQL_FILES=(
     "relationshiproles.sql"
     "relationshiptypes.sql"
     "relationships.sql"
+    "tournament.sql"
 )
 
 # Check if mysql client is installed
@@ -76,7 +77,8 @@ for FILE in "${SQL_FILES[@]}"; do
             exit 1
         fi
     else
-        echo "Warning: $FILE_PATH not found, skipping..."
+        echo "Error: Required SQL file $FILE_PATH was not found."
+        exit 1
     fi
 done
 

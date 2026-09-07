@@ -25,6 +25,9 @@ public class RandomModeCommand extends AbstractCommand {
         Room room = connection.getClient().getActiveRoom();
         RoomPlayer roomPlayer = connection.getClient().getRoomPlayer();
 
+        if (room.isTournamentRoom())
+            return;
+
         boolean isGuardian = GameManager.getInstance().getRoomMode(room) == GameMode.GUARDIAN;
         if (!isGuardian)
             return;
