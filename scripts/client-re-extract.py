@@ -364,6 +364,11 @@ def catalog_res() -> dict:
     return {"archives": zips, "tableLikeEntries": sorted(tables)}
 
 
+def extract_script_ini_paths(data: bytes) -> list[bytes]:
+    return sorted(set(re.findall(rb"Res/Script/[A-Za-z0-9_/%]+\.(?:ini|txt)", data)))
+
+
+
 def main() -> None:
     raw = EXE_UNPATCHED.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
@@ -453,7 +458,11 @@ def main() -> None:
             },
         },
         "res": catalog_res(),
+        "scriptIniPaths": [p.decode("ascii", "replace") for p in extract_script_ini_paths(raw)],
     }
+    unknown = report["packetOperations"]["unknownNamed"]
+    if unknown:
+        raise SystemExit("unknown-named PacketOperations remain: " + ", ".join(unknown))
     OUT.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(
         {
