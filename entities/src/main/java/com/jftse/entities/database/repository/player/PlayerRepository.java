@@ -86,10 +86,6 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     @Query(value = "SELECT p FROM Player p JOIN FETCH p.playerStatistic playerStatistic WHERE p.id = :playerId")
     Optional<Player> findWithStatisticById(Long playerId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query(value = "SELECT p FROM Player p WHERE p.id = :playerId")
-    Optional<Player> findByIdForUpdate(@Param("playerId") Long playerId);
-
     @Query("SELECT p FROM Player p JOIN FETCH p.clothEquipment ce WHERE p.account.id = :accountId")
     List<Player> getPlayerListByAccountId(Long accountId);
 
