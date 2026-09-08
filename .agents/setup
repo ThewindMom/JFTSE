@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+# System packages an orb needs beyond the Amp Debian 12 base image:
+#   ca-certificates curl gnupg tar unzip git
+#   temurin-21-jdk (Adoptium; bookworm has OpenJDK 17 only)
+#   docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Maven 3.9.4 is the emulator image pin (README allows >= 3.6.3; apt Maven is 3.8.7).
+# Runtime MySQL 8.0 and RabbitMQ 3.12 are not Debian 12 packages. Do not install
+# MariaDB or apt rabbitmq-server in their place. Use docker/docker-compose.yml.
+
+MAVEN_VERSION="3.9.4"
+MAVEN_HOME="/opt/maven/apache-maven-${MAVEN_VERSION}"
+MAVEN_TARBALL="apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+MAVEN_URL="https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/${MAVEN_TARBALL}"
+MAVEN_SHA512="deaa39e16b2cf20f8cd7d232a1306344f04020e1f0fb28d35492606f647a60fe729cc40d3cba33e093a17aed41bd161fe1240556d0f1b80e773abd408686217e"
+MVN_SETTINGS="$(mktemp)"
+trap 'rm -f "${MVN_SETTINGS}"' EXIT
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_ROOT}"
+
+as_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+step() {
+  local name="$1"
+  shift
+  local started
+  started="$(date +%s)"
+  echo "==> ${name}"
+  "$@"
+  echo "==> ${name} done in $(($(date +%s) - started))s"
+}
+
+pkg_installed() {
+  local status
+  status="$(dpkg-query -W -f='${Status}' "$1" 2>/dev/null || true)"
+  [[ "${status}" == "install ok installed" ]]
+}
+
+temurin21_home() {
+  local dir
+  for dir in /usr/lib/jvm/temurin-21-jdk-amd64 /usr/lib/jvm/temurin-21-jdk-arm64 /usr/lib/jvm/temurin-21-jdk; do
+    if [[ -x "${dir}/bin/javac" ]]; then
+      printf '%s\n' "${dir}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+java_home_from_javac() {
+  local javac resolved
+  javac="$(command -v javac)" || return 1
+  resolved="$(readlink -f "${javac}")"
+  dirname "$(dirname "${resolved}")"
+}
+
+choose_java_home() {
+  local home
+  if home="$(temurin21_home)"; then
+    printf '%s\n' "${home}"
+    return 0
+  fi
+  java_home_from_javac
+}
+
+java21_ok() {
+  local home javac java
+  home="$(choose_java_home)" || return 1
+  javac="${home}/bin/javac"
+  java="${home}/bin/java"
+  [[ -x "${javac}" && -x "${java}" ]] || return 1
+  "${java}" -version 2>&1 | grep -q 'version "21' || return 1
+  "${javac}" -version 2>&1 | grep -q ' 21' || return 1
+}
+
+docker_tools_ok() {
+  command -v docker >/dev/null 2>&1 || return 1
+  command -v dockerd >/dev/null 2>&1 || return 1
+  docker compose version >/dev/null 2>&1 || return 1
+  docker buildx version >/dev/null 2>&1 || return 1
+}
+
+export_toolchain() {
+  local java_home
+  java_home="$(choose_java_home)"
+  export JAVA_HOME="${java_home}"
+  export PATH="${MAVEN_HOME}/bin:${JAVA_HOME}/bin:${PATH}"
+}
+
+write_maven_settings() {
+  cat > "${MVN_SETTINGS}" <<'EOF'
+<settings>
+  <mirrors>
+    <mirror>
+      <id>central</id>
+      <url>https://repo1.maven.org/maven2</url>
+      <mirrorOf>central maven repository</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+EOF
+}
+
+mvn_cmd() {
+  mvn -B -s "${MVN_SETTINGS}" "$@"
+}
+
+install_base_packages() {
+  local need_packages=()
+  local pkg
+  for pkg in ca-certificates curl gnupg tar unzip git; do
+    if pkg_installed "${pkg}"; then
+      continue
+    fi
+    need_packages+=("${pkg}")
+  done
+  if [[ "${#need_packages[@]}" -eq 0 ]]; then
+    echo "base packages already installed"
+    return 0
+  fi
+  as_root apt-get update
+  as_root apt-get install -y "${need_packages[@]}"
+}
+
+install_java21() {
+  if java21_ok; then
+    echo "Java 21 already present: $(choose_java_home)/bin/javac"
+    return 0
+  fi
+  . /etc/os-release
+  as_root install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
+    | as_root gpg --batch --yes --dearmor -o /etc/apt/keyrings/adoptium.gpg
+  as_root chmod a+r /etc/apt/keyrings/adoptium.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb ${VERSION_CODENAME} main" \
+    | as_root tee /etc/apt/sources.list.d/adoptium.list >/dev/null
+  as_root apt-get update
+  as_root apt-get install -y temurin-21-jdk
+}
+
+install_maven() {
+  if [[ -x "${MAVEN_HOME}/bin/mvn" ]]; then
+    echo "Maven already present: ${MAVEN_HOME}/bin/mvn"
+    as_root ln -sfn "${MAVEN_HOME}/bin/mvn" /usr/local/bin/mvn
+    return 0
+  fi
+  as_root mkdir -p /opt/maven /tmp
+  curl -fsSL "${MAVEN_URL}" -o "/tmp/${MAVEN_TARBALL}"
+  echo "${MAVEN_SHA512}  /tmp/${MAVEN_TARBALL}" | sha512sum -c -
+  as_root tar -xzf "/tmp/${MAVEN_TARBALL}" -C /opt/maven
+  rm -f "/tmp/${MAVEN_TARBALL}"
+  as_root ln -sfn "${MAVEN_HOME}/bin/mvn" /usr/local/bin/mvn
+}
+
+install_docker() {
+  if docker_tools_ok; then
+    echo "Docker CLI, compose, buildx, and dockerd already present: $(command -v docker)"
+    return 0
+  fi
+  . /etc/os-release
+  as_root install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/debian/gpg \
+    | as_root gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+  as_root chmod a+r /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian ${VERSION_CODENAME} stable" \
+    | as_root tee /etc/apt/sources.list.d/docker.list >/dev/null
+  as_root apt-get update
+  as_root apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+
+write_profile() {
+  local java_home
+  java_home="$(choose_java_home)"
+  as_root tee /etc/profile.d/jftse-dev.sh >/dev/null <<EOF
+# JFTSE orb toolchain
+export JAVA_HOME="${java_home}"
+export PATH="${MAVEN_HOME}/bin:\${JAVA_HOME}/bin:\${PATH}"
+EOF
+  as_root chmod 0644 /etc/profile.d/jftse-dev.sh
+}
+
+cache_maven() {
+  export_toolchain
+  write_maven_settings
+  mvn_cmd -DskipTests -pl packet-generator,commons-proto -am install
+  mvn_cmd -DskipTests install
+  mvn_cmd org.apache.maven.plugins:maven-dependency-plugin:3.3.0:get \
+    -Dartifact=org.apache.maven.surefire:surefire-junit-platform:2.22.2
+}
+
+if [[ "$(id -u)" -ne 0 ]] && ! command -v sudo >/dev/null 2>&1; then
+  echo "sudo is required when setup is not root" >&2
+  exit 1
+fi
+
+step "base packages" install_base_packages
+step "Java 21" install_java21
+step "Maven ${MAVEN_VERSION}" install_maven
+step "Docker CE" install_docker
+step "login PATH" write_profile
+export_toolchain
+step "Maven dependency cache" cache_maven
+
+echo "setup complete"
+java -version
+javac -version
+mvn -version
+docker --version
+docker compose version
+docker buildx version
+command -v dockerd

@@ -1,0 +1,5 @@
+services:
+  docker-daemon:
+    command: sudo dockerd
+  backing-services:
+    command: .agents/wait-docker

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_ROOT}"
+
+limit=30
+i=1
+while ! sudo docker info >/dev/null 2>&1; do
+  if [[ "${i}" -ge "${limit}" ]]; then
+    echo "docker daemon not ready after ${limit}s" >&2
+    exit 1
+  fi
+  sleep 1
+  i=$((i + 1))
+done
+
+exec sudo docker compose \
+  --project-name jftse-orb \
+  -f docker/docker-compose.yml \
+  up mysql-db rabbitmq

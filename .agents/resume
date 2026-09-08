@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  echo "resume: $*" >&2
+  exit 1
+}
+
+command -v java >/dev/null 2>&1 || fail "java not on PATH"
+command -v javac >/dev/null 2>&1 || fail "javac not on PATH"
+java -version 2>&1 | grep -q 'version "21' || fail "Java 21 required"
+javac -version 2>&1 | grep -q ' 21' || fail "javac 21 required"
+command -v mvn >/dev/null 2>&1 || fail "mvn not on PATH"
+[[ -f /etc/profile.d/jftse-dev.sh ]] || fail "missing /etc/profile.d/jftse-dev.sh"
+command -v docker >/dev/null 2>&1 || fail "docker CLI missing; rerun .agents/setup"
+command -v dockerd >/dev/null 2>&1 || fail "dockerd missing; rerun .agents/setup"
+docker compose version >/dev/null 2>&1 || fail "docker compose missing; rerun .agents/setup"
+docker buildx version >/dev/null 2>&1 || fail "docker buildx missing; rerun .agents/setup"
+
+echo "resume ok"
+java -version
+javac -version
+mvn -version
+docker --version
+docker compose version
+docker buildx version
+command -v dockerd
