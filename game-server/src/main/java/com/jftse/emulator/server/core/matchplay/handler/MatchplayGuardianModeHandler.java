@@ -29,7 +29,12 @@ import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.extension.MatchRewardExtension;
 import com.jftse.emulator.server.core.matchplay.extension.MatchplayLifecycleExtension;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
+import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
+import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemCountPacket;
+import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemsPlacePacket;
+import com.jftse.emulator.server.core.packets.inventory.S2CInventoryWearQuickAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomPlayerListInformationPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardianStats;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetGuardians;
@@ -51,8 +56,10 @@ import com.jftse.entities.database.model.log.GameLog;
 import com.jftse.entities.database.model.log.GameLogType;
 import com.jftse.entities.database.model.map.SMaps;
 import com.jftse.entities.database.model.player.PlayerStatistic;
+import com.jftse.entities.database.model.pocket.PlayerPocket;
 import com.jftse.entities.database.model.scenario.MScenarios;
 import com.jftse.server.core.constants.GameMode;
+import com.jftse.server.core.item.EItemCategory;
 import com.jftse.server.core.jdbc.JdbcUtil;
 import com.jftse.server.core.matchplay.battle.GuardianBattleState;
 import com.jftse.server.core.protocol.Packet;
@@ -117,6 +124,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(triggerGuardianServePacket, ftClient.getConnection());
 
         game.resetStageStartTime();
+
+        if (HalloweenArenaRules.isArena(game)) {
+            S2CChatRoomAnswerPacket notice = new S2CChatRoomAnswerPacket((byte) 2, "Server", HalloweenArenaRules.MATCH_START_NOTICE);
+            GameManager.getInstance().sendPacketToAllClientsInSameGameSession(notice, ftClient.getConnection());
+        }
 
         int activePlayers = game.getPlayerBattleStates().size();
         switch (activePlayers) {
@@ -259,6 +271,8 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
         List<MatchFinishedMessage.PlayerDto> playerDtoList = new ArrayList<>();
 
+        final boolean halloweenCoinEarned = wonGame && game.getBossBattleActive().get() && HalloweenArenaRules.isArena(game);
+
         for (final FTClient client : clients) {
             if (!client.hasPlayer())
                 continue;
@@ -309,6 +323,11 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                                 connectionByPlayerId.sendTCP(packets.toArray(Packet[]::new));
                         });
                     }
+                }
+
+                if (halloweenCoinEarned) {
+                    this.grantHalloweenCoin(client.getConnection(), player);
+                    gameLogContent.append("Halloween Coin; ");
                 }
 
                 final int oldLevel = player.getLevel();
@@ -401,6 +420,10 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
 
             S2CMatchplaySetGameResultData setGameResultData = new S2CMatchplaySetGameResultData(matchplayReward.getPlayerRewards());
             eventHandler.offer(eventHandler.createPacketEvent(client, setGameResultData, PacketEventType.DEFAULT, 0));
+
+            if (HalloweenArenaRules.isArena(game)) {
+                client.getConnection().sendTCP(new S2CInventoryWearQuickAnswerPacket(client.getPlayer().getQuickSlots().toList()));
+            }
 
             S2CMatchplayBackToRoom backToRoomPacket = new S2CMatchplayBackToRoom();
             eventHandler.offer(eventHandler.createPacketEvent(client, backToRoomPacket, PacketEventType.FIRE_DELAYED, TimeUnit.SECONDS.toMillis(12)));
@@ -567,6 +590,19 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
                         .filter(rp -> rp.getPosition() != MiscConstants.InvisibleGmSlot)
                         .toList();
 
+            // Halloween Arena: the stock client reads its quick slots only while the match loads, so the
+            // Heal/Shield slots are emptied here for the whole match (restored in onEnd and on leave).
+            if (HalloweenArenaRules.isArena(game)) {
+                List<Integer> matchSlots = client.getPlayer().getQuickSlots().toList().stream().map(id -> {
+                    PlayerPocket pocket = ServiceManager.getInstance().getPlayerPocketService()
+                            .getItemAsPocket((long) id, client.getPlayer().getPocketId());
+                    return pocket != null && EItemCategory.QUICK.getName().equals(pocket.getCategory())
+                            && HalloweenArenaRules.isSealedQuickItem(pocket.getItemIndex()) ? 0 : id;
+                }).toList();
+                connection.sendTCP(new S2CInventoryWearQuickAnswerPacket(matchSlots));
+                log.info("({}) Halloween Arena match quick slots: {}", client.getPlayer().getId(), matchSlots);
+            }
+
             connection.sendTCP(new S2CRoomPlayerListInformationPacket(visibleRoomPlayers));
         }
 
@@ -595,6 +631,21 @@ public class MatchplayGuardianModeHandler implements MatchplayHandleable {
             triggerGuardianServePacket = new S2CMatchplayTriggerGuardianServe(GameFieldSide.Players, servingPositionXOffset, servingPositionYOffset);
         }
         GameManager.getInstance().sendPacketToAllClientsInSameGameSession(triggerGuardianServePacket, ftClient.getConnection());
+    }
+
+    private void grantHalloweenCoin(FTConnection connection, FTPlayer player) {
+        List<PlayerPocket> pockets = ServiceManager.getInstance().getInventoryService().addItem(
+                player.getId(), HalloweenArenaRules.HALLOWEEN_COIN_ITEM_INDEX, HalloweenArenaRules.HALLOWEEN_COIN_CATEGORY, 1, null);
+        for (PlayerPocket pocket : pockets) {
+            if (pocket.getItemCount() == 1) {
+                connection.sendTCP(new S2CInventoryItemsPlacePacket(List.of(pocket)));
+            } else {
+                connection.sendTCP(new S2CInventoryItemCountPacket(pocket));
+            }
+        }
+        if (pockets.isEmpty()) {
+            log.warn("Halloween Coin (material {}) could not be granted to player {}", HalloweenArenaRules.HALLOWEEN_COIN_ITEM_INDEX, player.getId());
+        }
     }
 
     private float getAveragePlayerLevel(final List<RoomPlayer> roomPlayers) {

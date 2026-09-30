@@ -12,6 +12,8 @@ import com.jftse.emulator.server.core.manager.ServiceManager;
 import com.jftse.emulator.server.core.matchplay.MatchplayGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
+import com.jftse.emulator.server.core.packets.chat.S2CChatRoomAnswerPacket;
 import com.jftse.emulator.server.core.packets.inventory.S2CInventoryItemCountPacket;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayDealDamage;
 import com.jftse.emulator.server.net.FTClient;
@@ -100,6 +102,16 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
         }
 
         Skill skill = skillService.findSkillByIndex(anyoneUsesSkill.getSkillIndex());
+        if (attackerIsPlayer && HalloweenArenaRules.isArena(game)) {
+            if (isQuickSlot && HalloweenArenaRules.isSealedWhenEquipped(skill)) {
+                rejectSealedQuickSlotUse(connection, game, player, skill, anyoneUsesSkill);
+                return;
+            }
+            if (!isQuickSlot) {
+                HalloweenArenaRules.sealedEffects(game).allowCrystal(skill, attackerPosition, Time.nanoToMillis(Time.getNSTime()));
+            }
+        }
+
         SkillUse skillUse = null;
         if (skill != null)
             skillUse = new SkillUse(skill, attackerPosition, targetPosition, isQuickSlot, skillUseTimestamp, false);
@@ -140,6 +152,21 @@ public class PlayerUseSkillHandler implements PacketHandler<FTConnection, CMSGPl
                 c.getConnection().sendTCP(response);
             }
         });
+    }
+
+    // Halloween Arena: the equipped item is not consumed and teammates never see the cast. The caster's
+    // client already plays it locally, so the hits it reports next are ignored (see SpellHitsTargetHandler).
+    private void rejectSealedQuickSlotUse(FTConnection connection, MatchplayGame game, FTPlayer player, Skill skill, CMSGPlayerUseSkill playerUseSkill) {
+        HalloweenArenaRules.sealedEffects(game).seal(skill, playerUseSkill.getAttackerPosition(), Time.nanoToMillis(Time.getNSTime()));
+        log.info("({}) Halloween Arena sealed equipped skill {} ({}) from quick slot {}", player.getId(), skill.getId(), skill.getName(), playerUseSkill.getQuickSlotIndex());
+
+        connection.sendTCP(new S2CChatRoomAnswerPacket((byte) 2, "Server", HalloweenArenaRules.SEALED_NOTICE));
+
+        int itemId = player.getQuickSlots().hasItem(playerUseSkill.getPlayerPocketId());
+        PlayerPocket playerPocket = itemId > 0 ? playerPocketService.getItemAsPocket((long) itemId, player.getPocketId()) : null;
+        if (playerPocket != null) {
+            connection.sendTCP(new S2CInventoryItemCountPacket(playerPocket));
+        }
     }
 
     private boolean isQsUseValid(FTConnection connection, long skillUseTimestamp, FTPlayer player, Skill skill, SkillUse skillUse, MatchplayGame game, byte attackerPosition, CMSGPlayerUseSkill anyoneUsesSkill) {

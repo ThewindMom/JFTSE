@@ -26,6 +26,7 @@ import com.jftse.emulator.server.core.matchplay.combat.GuardianCombatSystem;
 import com.jftse.emulator.server.core.matchplay.combat.PlayerCombatSystem;
 import com.jftse.emulator.server.core.matchplay.extension.GuardianBattleStateProvider;
 import com.jftse.emulator.server.core.matchplay.guardian.AdvancedGuardianState;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
 import com.jftse.emulator.server.core.matchplay.guardian.BossBattlePhaseable;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseScript;
@@ -401,7 +402,8 @@ public class MatchplayGuardianGame extends MatchplayGame {
             AdvancedGuardianState advancedGuardianState = !isHardMode ?
                     new AdvancedGuardianState(map.getId(), scenario.getId(), guardian, guardianPosition, totalHp, 110, 45, 165, 120, guardian.getRewardExp(), guardian.getRewardGold(), guardian.getRewardRankingPoint())
                     : new AdvancedGuardianState(map.getId(), scenario.getId(), guardian, guardianPosition, 8000, 110, 45, 165, 120, guardian.getRewardExp(), guardian.getRewardGold(), guardian.getRewardRankingPoint());
-            if (activePlayingPlayersCount == 4) {
+            // Halloween Arena health is linear up to four players (Guardian rows 101/102, BossGuardian 103).
+            if (activePlayingPlayersCount == 4 && !HalloweenArenaRules.isArena(this)) {
                 final int hp = advancedGuardianState.getCurrentHealth().get();
                 final int newHp = (int) (hp * 1.5);
                 advancedGuardianState.getCurrentHealth().set(newHp);

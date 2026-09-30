@@ -16,7 +16,9 @@ import com.jftse.emulator.server.core.life.room.RoomPlayer;
 import com.jftse.emulator.server.core.matchplay.GameSessionManager;
 import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
+import com.jftse.emulator.server.core.packets.inventory.S2CInventoryWearQuickAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.S2CLobbyUserListAnswerPacket;
 import com.jftse.emulator.server.core.packets.lobby.room.*;
 import com.jftse.emulator.server.core.rabbit.MatchRallyStatsConsumer;
@@ -440,6 +442,9 @@ public class GameManager implements ServerLoopHandler {
                 GameSession gameSession = gameSessionManager.getGameSessionBySessionId(client.getGameSessionId());
                 if (gameSession != null) {
                     gameSession.getClients().removeIf(c -> c.hasPlayer() && c.getPlayer().getId() == activePlayer.getId());
+                    if (HalloweenArenaRules.isArena(gameSession.getMatchplayGame())) {
+                        connection.sendTCP(new S2CInventoryWearQuickAnswerPacket(activePlayer.getQuickSlots().toList()));
+                    }
                 }
                 client.setActiveGameSession(null);
             }
