@@ -14,6 +14,7 @@ import com.jftse.emulator.server.core.matchplay.event.EventHandler;
 import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
 import com.jftse.emulator.server.core.packets.matchplay.S2CMatchplayGiveSpecificSkill;
 import com.jftse.emulator.server.core.task.PlaceCrystalRandomlyTask;
 import com.jftse.emulator.server.net.FTClient;
@@ -109,7 +110,13 @@ public class PlayerPickingUpCrystalHandler implements PacketHandler<FTConnection
             boolean levelRequired = !isBattleGame && activeRoom.getRoomPlayerList().stream()
                     .allMatch(p -> p.getLevel() >= 65);
 
-            int randomSkillIndex = this.getRandomPlayerSkill(player.getLevel(), playerBattleState, levelRequired);
+            int randomSkillIndex;
+            if (HalloweenArenaRules.isArenaBossStage(game)) {
+                ThreadLocalRandom rnd = ThreadLocalRandom.current();
+                randomSkillIndex = HalloweenArenaRules.crystalSkillIndex(playerBattleState != null, rnd.nextInt(100), rnd.nextInt(100));
+            } else {
+                randomSkillIndex = this.getRandomPlayerSkill(player.getLevel(), playerBattleState, levelRequired);
+            }
             skillCrystal.setPickedUpByPlayerId(player.getId());
             skillCrystal.setSkillIndex(randomSkillIndex);
 

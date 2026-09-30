@@ -13,7 +13,6 @@ var WITCH_SKILL_ID = 6;
 var POLYMORPH_ID = 7;
 var CHAOS_ID = 25;
 var MOVEMENT_SPEED_ID = 46;
-var BIG_WARNING_LEAD_MS = 2000;
 var REVIVE_DELAY_MS = 20000;
 var TRICK_FIRST_MS = 20000;
 var TRICK_REPEAT_MS = 30000;
@@ -40,7 +39,7 @@ var TRICK_OR_TREAT = [
 
 var INTRO_LINES = [
     "Hell Blood is immune while a Witch lives. Won rallies heal 5 percent max HP.",
-    "Witch curse: avoid equipped Heal and Shield. Crystal Heal, Shield, and Revive are OK.",
+    "Equipped Heal/Shield are sealed. Crystal Heal, Shield, Revive work.",
     "Small Inferno strikes every 5 seconds, more times as Witches fall."
 ];
 
@@ -53,16 +52,15 @@ class HalloweenArena {
         this.smallInferno = null;
         this.bigInferno = null;
         this.witchSkill = null;
-        this.epoch = 0;
         this.nextSmallWaveAt = 0;
+        this.smallRoundsLeft = 0;
+        this.nextSmallRoundAt = 0;
         this.nextBigAt = 0;
-        this.bigWarnedFor = 0;
         this.bossProtected = true;
         this.witches = {
             11: { observedAlive: false, revivalDue: 0 },
             12: { observedAlive: false, revivalDue: 0 }
         };
-        this.volleys = {};
         this.effects = { polymorph: null, chaos: null, speed: null };
         this.introPending = false;
         this.nextTrickAt = 0;
@@ -91,6 +89,8 @@ function ruleFor(count) {
     return RULES[count] || RULES[0];
 }
 
+// Every scripted cast, trick and heal reads the living players at the moment it fires,
+// like castGuardianSkill in 10/1_echoes_of_the_deep.js.
 function livingPlayers() {
     return game.getPlayerBattleStates().stream()
         .filter(function (player) {
@@ -99,41 +99,14 @@ function livingPlayers() {
         .toArray();
 }
 
-function effectPlayers() {
-    return game.getPlayerBattleStates().stream()
-        .filter(function (player) {
-            return player != null
-                && player.getPosition() >= 0
-                && player.getPosition() <= 3
-                && !player.isDead()
-                && player.getCurrentHealth().get() > 0;
-        })
-        .toArray();
-}
-
-function playerCount() {
-    var count = game.getPlayerBattleStates().stream()
-        .filter(function (player) {
-            return player != null && player.getPosition() < 4;
-        })
-        .count();
-    if (count < 1) {
-        return 1;
-    }
-    if (count > 4) {
-        return 4;
-    }
-    return count;
-}
-
 function say(connection, message) {
     var packet = new S2CChatRoomAnswerPacket(2, "Server", message);
     gameManager.sendPacketToAllClientsInSameGameSession(packet, connection);
 }
 
-function applyStats(state, maxHealth, str, sta, dex, will) {
-    state.setMaxHealth(maxHealth);
-    state.getCurrentHealth().set(maxHealth);
+// Health comes from the Arena guardian rows (hpBase + hpPer x players, no x1.5 on Arena),
+// like every other boss, so the client health bars match the server.
+function applyStats(state, str, sta, dex, will) {
     state.setStr(str);
     state.setSta(sta);
     state.setDex(dex);
@@ -154,8 +127,8 @@ function attachWitchSkill(state) {
     return true;
 }
 
-function clearVolleys() {
-    arena.volleys = {};
+function clearSmallWave() {
+    arena.smallRoundsLeft = 0;
 }
 
 function endEncounter() {
@@ -163,20 +136,17 @@ function endEncounter() {
         return;
     }
     arena.ended = true;
-    arena.epoch++;
-    clearVolleys();
+    clearSmallWave();
     arena.witches[11].revivalDue = 0;
     arena.witches[12].revivalDue = 0;
     arena.introPending = false;
     arena.rallyHealPending = false;
-    arena.bigWarnedFor = 0;
 }
 
 function resetCadence(now, count) {
     var rule = ruleFor(count);
     arena.nextSmallWaveAt = now + SMALL_WAVE_MS;
     arena.nextBigAt = now + rule.bigCadence;
-    arena.bigWarnedFor = 0;
 }
 
 function castSkill(connection, target, skill) {
@@ -251,7 +221,7 @@ function dispatchIntro(connection) {
     if (arena.effects.polymorph == null) {
         return;
     }
-    var players = effectPlayers();
+    var players = livingPlayers();
     for (var i = 0; i < players.length; i++) {
         castSkill(connection, players[i].getPosition(), arena.effects.polymorph);
     }
@@ -263,7 +233,7 @@ function dispatchTricks(connection, now) {
     }
     arena.nextTrickAt = now + TRICK_REPEAT_MS;
     var tricks = availableTricks();
-    var players = effectPlayers();
+    var players = livingPlayers();
     var casts = [];
     var heals = [];
     for (var i = 0; i < players.length; i++) {
@@ -285,64 +255,28 @@ function dispatchRallyHeal(connection) {
         return;
     }
     arena.rallyHealPending = false;
-    healPlayers(connection, effectPlayers());
+    healPlayers(connection, livingPlayers());
 }
 
-function playerAt(position) {
-    return game.getPlayerBattleStates().stream()
-        .filter(function (player) {
-            return player != null && player.getPosition() === position;
-        })
-        .findFirst()
-        .orElse(null);
-}
-
-function replaceSmallWave(now) {
-    var count = livingWitchCount();
-    var players = livingPlayers();
-    var repeats = ruleFor(count).smallCount;
-    var volleys = {};
-    for (var i = 0; i < players.length; i++) {
-        var position = players[i].getPosition();
-        volleys[position] = {
-            epoch: arena.epoch,
-            witchCount: count,
-            target: position,
-            remaining: repeats,
-            nextDue: now
-        };
-    }
-    arena.volleys = volleys;
+function startSmallWave(now) {
+    arena.smallRoundsLeft = ruleFor(livingWitchCount()).smallCount;
+    arena.nextSmallRoundAt = now;
     arena.nextSmallWaveAt = now + SMALL_WAVE_MS;
 }
 
-function dispatchVolleys(connection, now) {
+function dispatchSmall(connection, now) {
     if (arena.ended || !living(arena.boss) || arena.smallInferno == null) {
         return;
     }
-    var count = livingWitchCount();
-    var positions = Object.keys(arena.volleys);
-    for (var i = 0; i < positions.length; i++) {
-        var volley = arena.volleys[positions[i]];
-        if (volley == null || volley.remaining < 1 || volley.nextDue > now) {
-            continue;
-        }
-        if (volley.epoch !== arena.epoch || volley.witchCount !== count) {
-            delete arena.volleys[volley.target];
-            continue;
-        }
-        var target = playerAt(volley.target);
-        if (!living(target)) {
-            delete arena.volleys[volley.target];
-            continue;
-        }
-        castSkill(connection, volley.target, arena.smallInferno);
-        volley.remaining--;
-        volley.nextDue = now + SMALL_REPEAT_MS;
-        if (volley.remaining < 1) {
-            delete arena.volleys[volley.target];
-        }
+    if (arena.smallRoundsLeft < 1 || now < arena.nextSmallRoundAt) {
+        return;
     }
+    var players = livingPlayers();
+    for (var i = 0; i < players.length; i++) {
+        castSkill(connection, players[i].getPosition(), arena.smallInferno);
+    }
+    arena.smallRoundsLeft--;
+    arena.nextSmallRoundAt = now + SMALL_REPEAT_MS;
 }
 
 function dispatchBig(connection, now) {
@@ -357,11 +291,6 @@ function dispatchBig(connection, now) {
         var target = players[Math.floor(Math.random() * players.length)];
         castSkill(connection, target.getPosition(), arena.bigInferno);
         arena.nextBigAt = now + ruleFor(livingWitchCount()).bigCadence;
-        return;
-    }
-    if (now >= arena.nextBigAt - BIG_WARNING_LEAD_MS && arena.bigWarnedFor !== arena.nextBigAt) {
-        arena.bigWarnedFor = arena.nextBigAt;
-        say(connection, "Big Inferno incoming!");
     }
 }
 
@@ -375,8 +304,7 @@ function syncProtection(connection, count) {
 }
 
 function onWitchEdge(connection, now, count) {
-    arena.epoch++;
-    clearVolleys();
+    clearSmallWave();
     resetCadence(now, count);
     syncProtection(connection, count);
 }
@@ -415,13 +343,19 @@ function pollWitches(connection, now) {
             record.observedAlive = true;
             transitioned = true;
         }
-        if (record.revivalDue > 0 && record.revivalDue <= now && !alive) {
+        if (record.revivalDue > 0 && record.revivalDue <= now && !alive && living(arena.boss)) {
             if (reviveWitch(connection, position, record)) {
                 transitioned = true;
             }
         }
     }
     return transitioned;
+}
+
+function allGuardiansDead() {
+    return game.getGuardianBattleStates().stream().allMatch(function (guardian) {
+        return guardian.getCurrentHealth().get() < 1;
+    });
 }
 
 function unchangedBossHealth(target) {
@@ -439,9 +373,7 @@ var phase = {
     start: function () {
         arena.timeStarted = Date.now();
         arena.started = true;
-        arena.epoch++;
 
-        var players = playerCount();
         var boss = game.getGuardianBattleStateByPosition(BOSS_POSITION);
         var left = game.getGuardianBattleStateByPosition(11);
         var right = game.getGuardianBattleStateByPosition(12);
@@ -469,10 +401,10 @@ var phase = {
         }
 
         arena.boss = boss;
-        applyStats(boss, 7000 + (3000 * players), 120, 52, 165, 130);
+        applyStats(boss, 120, 52, 165, 130);
         boss.getSkills().clear();
-        applyStats(left, 2230 + (800 * players), 110, 45, 165, 120);
-        applyStats(right, 2230 + (800 * players), 110, 45, 165, 120);
+        applyStats(left, 110, 45, 165, 120);
+        applyStats(right, 110, 45, 165, 120);
         if (!attachWitchSkill(left) || !attachWitchSkill(right)) {
             log.error("Halloween Arena could not normalize Witch skills");
             endEncounter();
@@ -494,7 +426,7 @@ var phase = {
         if (!arena.started || arena.ended) {
             return PhaseUpdateResult.END_PHASE;
         }
-        if (!living(arena.boss)) {
+        if (allGuardiansDead()) {
             endEncounter();
             return PhaseUpdateResult.END_PHASE;
         }
@@ -504,11 +436,6 @@ var phase = {
             onWitchEdge(connection, now, livingWitchCount());
         }
 
-        if (!living(arena.boss)) {
-            endEncounter();
-            return PhaseUpdateResult.END_PHASE;
-        }
-
         dispatchIntro(connection);
         dispatchRallyHeal(connection);
         if (now >= arena.nextTrickAt) {
@@ -516,15 +443,10 @@ var phase = {
         }
 
         if (now >= arena.nextSmallWaveAt) {
-            replaceSmallWave(now);
+            startSmallWave(now);
         }
-        dispatchVolleys(connection, now);
+        dispatchSmall(connection, now);
         dispatchBig(connection, now);
-
-        if (!living(arena.boss)) {
-            endEncounter();
-            return PhaseUpdateResult.END_PHASE;
-        }
         return PhaseUpdateResult.CONTINUE;
     },
     end: function () {
@@ -537,7 +459,7 @@ var phase = {
         return 0;
     },
     hasEnded: function () {
-        return arena.ended || (arena.boss != null && !living(arena.boss));
+        return arena.ended;
     },
     getGuardianAttackLoopTime: function (guardian) {
         if (guardian == null || guardian.isBoss() || !living(guardian)) {

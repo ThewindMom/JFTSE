@@ -13,6 +13,7 @@ import com.jftse.emulator.server.core.matchplay.event.RunnableEvent;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayBattleGame;
 import com.jftse.emulator.server.core.matchplay.extension.WaveCompletionExtension;
 import com.jftse.emulator.server.core.matchplay.game.MatchplayGuardianGame;
+import com.jftse.emulator.server.core.matchplay.guardian.HalloweenArenaRules;
 import com.jftse.emulator.server.core.matchplay.guardian.PhaseManager;
 import com.jftse.emulator.server.core.packets.lobby.room.S2CRoomSetBossGuardiansStats;
 import com.jftse.emulator.server.core.packets.matchplay.CMSGSpellHitsTargetExtended;
@@ -36,6 +37,7 @@ import com.jftse.server.core.service.GuardianService;
 import com.jftse.server.core.service.SkillService;
 import com.jftse.server.core.shared.packets.matchplay.CMSGSpellHitsTarget;
 import com.jftse.server.core.thread.ThreadManager;
+import com.jftse.server.core.util.Time;
 import lombok.extern.log4j.Log4j2;
 
 import javax.persistence.TypedQuery;
@@ -103,12 +105,23 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             return;
         }
 
-        boolean denyDamage = spellHitsTargetExt.getDamageType() == 1;
+        boolean shieldSealed = false;
+        if (HalloweenArenaRules.isArena(game)) {
+            long now = Time.nanoToMillis(Time.getNSTime());
+            HalloweenArenaRules.SealedEffects sealed = HalloweenArenaRules.sealedEffects(game);
+            int reportingPosition = ftClient.getRoomPlayer() != null ? ftClient.getRoomPlayer().getPosition() : -1;
+            if (sealed.isHealHitSealed(skill, spellHitsTargetExt.getAttackerPosition(), reportingPosition, spellHitsTargetExt.getTargetPosition(), now)) {
+                this.resyncSealedHeal(ftClient.getConnection(), (MatchplayGuardianGame) game, spellHitsTargetExt.getTargetPosition());
+                return;
+            }
+            shieldSealed = sealed.isShieldSealed(spellHitsTargetExt.getTargetPosition(), now);
+        }
+        boolean denyDamage = spellHitsTargetExt.getDamageType() == 1 && !shieldSealed;
         if (skillId == 0 && !denyDamage) {
             if (!this.handleBallLossDamage(ftClient.getConnection(), game, spellHitsTargetExt))
                 return;
         } else {
-            if (!this.handleSkillDamage(ftClient.getConnection(), spellHitsTargetExt.getTargetPosition(), game, skill, spellHitsTargetExt))
+            if (!this.handleSkillDamage(ftClient.getConnection(), spellHitsTargetExt.getTargetPosition(), game, skill, spellHitsTargetExt, shieldSealed))
                 return;
         }
 
@@ -118,6 +131,19 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
             this.handleAllGuardiansDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
             this.handleAllPlayersDead(ftClient.getConnection(), (MatchplayGuardianGame) game);
         }
+    }
+
+    // Halloween Arena: the caster's client healed itself locally; put the server health back on screen.
+    private void resyncSealedHeal(FTConnection connection, MatchplayGuardianGame game, short targetPosition) {
+        PlayerBattleState target = game.getPlayerBattleStates().stream()
+                .filter(state -> state.getPosition() == targetPosition)
+                .findFirst()
+                .orElse(null);
+        if (target == null)
+            return;
+
+        S2CMatchplayDealDamage healthPacket = new S2CMatchplayDealDamage(targetPosition, (short) target.getCurrentHealth().get(), (short) 4, (byte) 3, 0.0f, 0.0f);
+        GameManager.getInstance().sendPacketToAllClientsInSameGameSession(healthPacket, connection);
     }
 
     private boolean isUniqueSkill(Skill skill) {
@@ -222,11 +248,11 @@ public class SpellHitsTargetHandler implements PacketHandler<FTConnection, CMSGS
         return true;
     }
 
-    private boolean handleSkillDamage(FTConnection connection, short targetPosition, MatchplayGame game, Skill skill, CMSGSpellHitsTargetExtended spellHitsTargetExt) {
-        boolean denyDamage = spellHitsTargetExt.getDamageType() == 1;
+    private boolean handleSkillDamage(FTConnection connection, short targetPosition, MatchplayGame game, Skill skill, CMSGSpellHitsTargetExtended spellHitsTargetExt, boolean shieldSealed) {
+        boolean denyDamage = spellHitsTargetExt.getDamageType() == 1 && !shieldSealed;
         short attackerPosition = spellHitsTargetExt.getAttackerPosition();
         boolean attackerHasStrBuff = spellHitsTargetExt.getAttackerBuffId1() == 0 || spellHitsTargetExt.getAttackerBuffId2() == 0;
-        boolean receiverHasDefBuff = spellHitsTargetExt.getReceiverBuffId1() == 1 || spellHitsTargetExt.getReceiverBuffId2() == 1;
+        boolean receiverHasDefBuff = (spellHitsTargetExt.getReceiverBuffId1() == 1 || spellHitsTargetExt.getReceiverBuffId2() == 1) && !shieldSealed;
 
         short skillDamage = skill != null ? skill.getDamage().shortValue() : -1;
 
